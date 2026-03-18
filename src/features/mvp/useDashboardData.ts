@@ -8,6 +8,7 @@ const emptyDashboardData: DashboardData = {
   ownerCalendar: null,
   joinedCalendars: [],
   upcomingAppointments: [],
+  recentNotifications: [],
 };
 
 export function useDashboardData(user: { uid: string; email: string | null } | null) {

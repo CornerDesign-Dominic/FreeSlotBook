@@ -47,6 +47,10 @@ service cloud.firestore {
 
     match /owners/{userId} {
       allow read, write: if isOwner(userId);
+
+      match /devices/{deviceId} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
     match /calendars/{calendarId} {
@@ -97,13 +101,14 @@ service cloud.firestore {
 
       match /notifications/{notificationId} {
         allow read: if ownsCalendar(calendarId)
-          || (isSignedIn() && resource.data.recipientEmail == signedInEmail());
+          || (isSignedIn() && resource.data.recipientEmailKey == signedInEmailKey());
         allow create: if ownsCalendar(calendarId)
           || (hasCalendarAccess(calendarId)
-            && request.resource.data.recipientEmail == calendarOwnerEmail(calendarId)
+            && request.resource.data.recipientEmailKey == get(/databases/$(database)/documents/calendars/$(calendarId)).data.ownerEmailKey
             && request.resource.data.type == 'booking_created'
             && request.resource.data.channel == 'in_app');
-        allow update, delete: if ownsCalendar(calendarId);
+        allow update, delete: if ownsCalendar(calendarId)
+          || (isSignedIn() && resource.data.recipientEmailKey == signedInEmailKey());
       }
     }
   }

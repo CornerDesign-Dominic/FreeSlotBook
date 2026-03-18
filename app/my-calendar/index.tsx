@@ -7,6 +7,7 @@ import {
   formatMonthTitle,
   getSlotCountsByDay,
 } from '../../src/features/mvp/calendar-utils';
+import { updateCalendarNotificationSettings } from '../../src/features/mvp/repository';
 import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useAuth } from '../../src/firebase/useAuth';
@@ -23,6 +24,8 @@ export default function MyCalendarScreen() {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
+  const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
+  const [togglingNotifications, setTogglingNotifications] = useState(false);
 
   if (authLoading || loading || slotsLoading) {
     return (
@@ -43,6 +46,29 @@ export default function MyCalendarScreen() {
     setVisibleMonth((currentMonth) => new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
   };
 
+  const handleToggleNewSlotsNotification = async () => {
+    if (!calendar) {
+      return;
+    }
+
+    setTogglingNotifications(true);
+    setSettingsMessage(null);
+
+    try {
+      await updateCalendarNotificationSettings({
+        calendarId: calendar.id,
+        notifyOnNewSlotsAvailable: !calendar.notifyOnNewSlotsAvailable,
+      });
+      setSettingsMessage('Kalendereinstellung wurde aktualisiert.');
+    } catch (nextError) {
+      setSettingsMessage(
+        nextError instanceof Error ? nextError.message : 'Einstellung konnte nicht aktualisiert werden.'
+      );
+    } finally {
+      setTogglingNotifications(false);
+    }
+  };
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
       <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>Mein Kalender</Text>
@@ -52,13 +78,26 @@ export default function MyCalendarScreen() {
           <>
             <Text style={{ color: 'black', marginBottom: 8 }}>Kalender-ID: {calendar.id}</Text>
             <Text style={{ color: 'black', marginBottom: 8 }}>Inhaber: {calendar.ownerEmail}</Text>
-            <Text style={{ color: 'black' }}>Sichtbarkeit: {calendar.visibility}</Text>
+            <Text style={{ color: 'black', marginBottom: 8 }}>Sichtbarkeit: {calendar.visibility}</Text>
+            <Text style={{ color: 'black', marginBottom: 8 }}>
+              Neue freie Slots benachrichtigen: {calendar.notifyOnNewSlotsAvailable ? 'aktiv' : 'inaktiv'}
+            </Text>
+            <Pressable onPress={handleToggleNewSlotsNotification} disabled={togglingNotifications}>
+              <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                {togglingNotifications
+                  ? 'Aktualisiere...'
+                  : calendar.notifyOnNewSlotsAvailable
+                    ? 'Benachrichtigung deaktivieren'
+                    : 'Benachrichtigung aktivieren'}
+              </Text>
+            </Pressable>
           </>
         ) : (
           <Text style={{ color: 'black' }}>Dein persoenlicher Kalender ist noch nicht verfuegbar.</Text>
         )}
 
         {error ? <Text style={{ color: 'black', marginTop: 12 }}>{error}</Text> : null}
+        {settingsMessage ? <Text style={{ color: 'black', marginTop: 12 }}>{settingsMessage}</Text> : null}
       </View>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>

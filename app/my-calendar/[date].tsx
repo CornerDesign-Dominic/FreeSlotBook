@@ -366,11 +366,7 @@ export default function CalendarDayScreen() {
                   : 'Dieser Slot ist aktuell noch keinem Termin zugeordnet.'}
               </Text>
             </>
-          ) : (
-            <Text style={{ color: 'black', marginBottom: 12 }}>
-              Waehle oben einen Slot aus, um Details und Historie zu sehen.
-            </Text>
-          )}
+          ) : null}
 
           <ScrollView style={{ maxHeight: historyPanelMaxHeight }}>
             {selectedSlot ? (
@@ -408,11 +404,7 @@ export default function CalendarDayScreen() {
                   Fuer den ausgewaehlten Slot ist bisher nur der aktuelle Zustand vorhanden.
                 </Text>
               )
-            ) : (
-              <Text style={{ color: 'black' }}>
-                Noch kein Slot ausgewaehlt. Die Historie erscheint nach der Auswahl direkt hier.
-              </Text>
-            )}
+            ) : null}
           </ScrollView>
 
           {slotDetailError ? <Text style={{ color: 'black', marginTop: 12 }}>{slotDetailError}</Text> : null}

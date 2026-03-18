@@ -30,7 +30,7 @@ export default function HomeScreen() {
     );
   }
 
-  const nextAppointments = data.upcomingAppointments.slice(0, 3);
+  const recentNotifications = data.recentNotifications.slice(0, 3);
 
   if (user) {
     return (
@@ -76,19 +76,20 @@ export default function HomeScreen() {
 
         <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 12 }}>
           <Text style={{ color: 'black', fontSize: 18, marginBottom: 4 }}>MEINE TERMINE</Text>
-          {nextAppointments.length ? (
-            nextAppointments.map((appointment) => (
-              <View key={appointment.id} style={{ marginTop: 12 }}>
+          {recentNotifications.length ? (
+            recentNotifications.map((notification) => (
+              <View key={notification.id} style={{ marginTop: 12 }}>
+                <Text style={{ color: 'black', marginBottom: 4 }}>
+                  {notification.title || 'Benachrichtigung'}
+                </Text>
                 <Text style={{ color: 'black' }}>
-                  {appointment.startsAt
-                    ? appointment.startsAt.toLocaleString('de-DE')
-                    : 'Zeitpunkt noch nicht verfuegbar'}
+                  {notification.body || 'Keine weiteren Details verfuegbar.'}
                 </Text>
               </View>
             ))
           ) : (
             <Text style={{ color: 'black' }}>
-              Du hast aktuell keine bevorstehenden Termine.
+              Du hast aktuell keine relevanten Termin-Benachrichtigungen.
             </Text>
           )}
         </View>

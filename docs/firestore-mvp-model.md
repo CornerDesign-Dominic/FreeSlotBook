@@ -181,6 +181,40 @@ Aktuelle MVP-Buchung:
 - bei erfolgreicher Slot-Buchung wird zunaechst eine In-App-/Datenbank-Notification fuer den Kalenderinhaber angelegt
 - der Versandkanal ist als `in_app` modelliert, ohne bereits eine volle Zustellung umzusetzen
 
+Vorgesehene Notification-Typen und Texte:
+
+- `new_slots_available`
+  - Titel: `Neue freie Slots`
+  - Text: `Neue freie Slots bei XXX`
+- `slot_cancelled`
+  - Titel: `Slot storniert`
+  - Text: `Slot storniert bei XXX`
+- `slot_assigned`
+  - Titel: `Slotzeit erhalten`
+  - Text: `Slotzeit am Datum Uhrzeit erhalten`
+
+Ergaenzte Felder fuer Dashboard und App:
+
+- `recipientEmail`
+- `recipientEmailKey`
+- `title`
+- `body`
+- `type`
+- `channel`
+- `appointmentId`
+- `slotId`
+- `dedupeKey`
+- `createdAt`
+- `updatedAt`
+- `readAt`
+
+Neue freie Slots als Sammelbenachrichtigung:
+
+- pro Kalender und Empfaenger wird hoechstens eine `new_slots_available`-Notification pro Tag angelegt
+- die Steuerung erfolgt ueber `notifyOnNewSlotsAvailable` im Kalender
+- die eigentliche Ausloesung passiert derzeit bei Slot-Erstellung in der App
+- fuer spaetere robustere serverseitige Trigger ist das Modell vorbereitet
+
 ## Warum das Modell fuer dieses MVP passt
 
 Das Modell ist fuer das MVP geeignet, weil es die wichtigsten Produktentscheidungen direkt abbildet:

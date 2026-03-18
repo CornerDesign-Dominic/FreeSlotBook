@@ -80,6 +80,10 @@ function calendarNotificationsCollection(calendarId: string) {
   return collection(db, 'calendars', calendarId, 'notifications');
 }
 
+function ownerDevicesCollection(ownerUid: string) {
+  return collection(db, 'owners', ownerUid, 'devices');
+}
+
 function mapOwnerProfile(id: string, data: Record<string, unknown>): OwnerProfile {
   return {
     uid: String(data.uid ?? id),
@@ -99,6 +103,7 @@ function mapCalendar(id: string, data: Record<string, unknown>): CalendarRecord 
     ownerEmail: String(data.ownerEmail ?? ''),
     ownerEmailKey: String(data.ownerEmailKey ?? ''),
     visibility: 'restricted',
+    notifyOnNewSlotsAvailable: Boolean(data.notifyOnNewSlotsAvailable),
     createdAt: asDate(data.createdAt),
     updatedAt: asDate(data.updatedAt),
   };
@@ -204,6 +209,86 @@ function mapSlotEvent(id: string, data: Record<string, unknown>): CalendarSlotEv
   };
 }
 
+function mapNotification(id: string, data: Record<string, unknown>): NotificationRecord {
+  return {
+    id,
+    calendarId: String(data.calendarId ?? ''),
+    appointmentId: typeof data.appointmentId === 'string' ? data.appointmentId : null,
+    slotId: typeof data.slotId === 'string' ? data.slotId : null,
+    recipientEmail: String(data.recipientEmail ?? ''),
+    recipientEmailKey: String(data.recipientEmailKey ?? ''),
+    channel:
+      data.channel === 'email' || data.channel === 'push' ? data.channel : 'in_app',
+    type:
+      data.type === 'slot_assigned' ||
+      data.type === 'slot_cancelled' ||
+      data.type === 'new_slots_available' ||
+      data.type === 'appointment_assigned' ||
+      data.type === 'appointment_cancelled'
+        ? data.type
+        : 'booking_created',
+    title: String(data.title ?? ''),
+    body: String(data.body ?? ''),
+    dedupeKey: typeof data.dedupeKey === 'string' ? data.dedupeKey : null,
+    status:
+      data.status === 'sent' || data.status === 'failed' || data.status === 'read'
+        ? data.status
+        : 'pending',
+    createdAt: asDate(data.createdAt),
+    updatedAt: asDate(data.updatedAt),
+    readAt: asDate(data.readAt),
+  };
+}
+
+function buildNotificationContent(params: {
+  type: NotificationRecord['type'];
+  ownerEmail?: string;
+  startsAt?: Date | null;
+}) {
+  const ownerLabel = params.ownerEmail ?? 'Kalender';
+  const dateTimeLabel =
+    params.startsAt?.toLocaleString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }) ?? 'Zeitpunkt nicht verfuegbar';
+
+  switch (params.type) {
+    case 'slot_assigned':
+      return {
+        title: 'Slotzeit erhalten',
+        body: `Slotzeit am ${dateTimeLabel} erhalten`,
+      };
+    case 'slot_cancelled':
+      return {
+        title: 'Slot storniert',
+        body: `Slot storniert bei ${ownerLabel}`,
+      };
+    case 'new_slots_available':
+      return {
+        title: 'Neue freie Slots',
+        body: `Neue freie Slots bei ${ownerLabel}`,
+      };
+    case 'appointment_assigned':
+      return {
+        title: 'Termin erhalten',
+        body: `Slotzeit am ${dateTimeLabel} erhalten`,
+      };
+    case 'appointment_cancelled':
+      return {
+        title: 'Termin storniert',
+        body: `Slot storniert bei ${ownerLabel}`,
+      };
+    default:
+      return {
+        title: 'Neue Buchung',
+        body: `${ownerLabel} hat eine neue Buchung erhalten`,
+      };
+  }
+}
+
 export async function ensureOwnerAccountSetup(params: { uid: string; email: string }) {
   const trimmedEmail = params.email.trim();
 
@@ -252,6 +337,7 @@ export async function ensureOwnerAccountSetup(params: { uid: string; email: stri
         ownerEmail: trimmedEmail,
         ownerEmailKey: emailKey,
         visibility: 'restricted',
+        notifyOnNewSlotsAvailable: false,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
@@ -366,14 +452,35 @@ export async function listUpcomingAppointmentsForParticipant(email: string) {
   );
 }
 
+export async function listRecentNotificationsForRecipient(email: string) {
+  const notificationsQuery = query(
+    collectionGroup(db, 'notifications'),
+    where('recipientEmailKey', '==', normalizeEmail(email)),
+    orderBy('createdAt', 'desc'),
+    limit(3)
+  );
+  const snapshots = await getDocs(notificationsQuery);
+
+  return snapshots.docs.map((snapshot) =>
+    mapNotification(snapshot.id, snapshot.data() as Record<string, unknown>)
+  );
+}
+
 export async function getDashboardData(params: { uid: string; email: string }) {
   await ensureOwnerAccountSetup(params);
 
-  const [ownerProfile, ownerCalendar, joinedCalendars, upcomingAppointments] = await Promise.all([
+  const [
+    ownerProfile,
+    ownerCalendar,
+    joinedCalendars,
+    upcomingAppointments,
+    recentNotifications,
+  ] = await Promise.all([
     getOwnerProfile(params.uid),
     getOwnerCalendar(params.uid),
     listJoinedCalendars(params.email),
     listUpcomingAppointmentsForParticipant(params.email),
+    listRecentNotificationsForRecipient(params.email),
   ]);
 
   return {
@@ -381,6 +488,7 @@ export async function getDashboardData(params: { uid: string; email: string }) {
     ownerCalendar,
     joinedCalendars,
     upcomingAppointments,
+    recentNotifications,
   } satisfies DashboardData;
 }
 
@@ -615,6 +723,80 @@ export async function rejectCalendarAccessRequest(params: {
   );
 }
 
+export async function updateCalendarNotificationSettings(params: {
+  calendarId: string;
+  notifyOnNewSlotsAvailable: boolean;
+}) {
+  await updateDoc(calendarDoc(params.calendarId), {
+    notifyOnNewSlotsAvailable: params.notifyOnNewSlotsAvailable,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+async function queueNewSlotsAvailableNotifications(params: {
+  calendarId: string;
+  ownerEmail: string;
+}) {
+  const calendarSnapshot = await getDoc(calendarDoc(params.calendarId));
+
+  if (!calendarSnapshot.exists()) {
+    return 0;
+  }
+
+  const calendar = mapCalendar(
+    calendarSnapshot.id,
+    calendarSnapshot.data() as Record<string, unknown>
+  );
+
+  if (!calendar.notifyOnNewSlotsAvailable) {
+    return 0;
+  }
+
+  const accessSnapshots = await getDocs(
+    query(calendarAccessCollection(params.calendarId), where('status', '==', 'approved'))
+  );
+  const today = new Date();
+  const dayKey = `${today.getFullYear()}-${`${today.getMonth() + 1}`.padStart(2, '0')}-${`${today.getDate()}`.padStart(2, '0')}`;
+  let createdCount = 0;
+
+  for (const accessSnapshot of accessSnapshots.docs) {
+    const access = mapAccess(accessSnapshot.id, accessSnapshot.data() as Record<string, unknown>);
+    const dedupeKey = `new_slots_available:${access.granteeEmailKey}:${dayKey}`;
+    const notificationRef = doc(calendarNotificationsCollection(params.calendarId), dedupeKey);
+    const existingNotification = await getDoc(notificationRef);
+
+    if (existingNotification.exists()) {
+      continue;
+    }
+
+    const content = buildNotificationContent({
+      type: 'new_slots_available',
+      ownerEmail: params.ownerEmail,
+    });
+
+    await setDoc(notificationRef, {
+      calendarId: params.calendarId,
+      appointmentId: null,
+      slotId: null,
+      recipientEmail: access.granteeEmail,
+      recipientEmailKey: access.granteeEmailKey,
+      channel: 'in_app',
+      type: 'new_slots_available',
+      title: content.title,
+      body: content.body,
+      dedupeKey,
+      status: 'pending',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      readAt: null,
+    });
+
+    createdCount += 1;
+  }
+
+  return createdCount;
+}
+
 export async function createCalendarSlot(params: {
   calendarId: string;
   ownerId: string;
@@ -650,6 +832,135 @@ export async function createCalendarSlot(params: {
       statusAfter: 'available',
       note: null,
       createdAt: serverTimestamp(),
+    });
+  });
+
+  const calendarSnapshot = await getDoc(calendarDoc(params.calendarId));
+
+  if (calendarSnapshot.exists()) {
+    const calendar = mapCalendar(
+      calendarSnapshot.id,
+      calendarSnapshot.data() as Record<string, unknown>
+    );
+    await queueNewSlotsAvailableNotifications({
+      calendarId: params.calendarId,
+      ownerEmail: calendar.ownerEmail,
+    });
+  }
+
+  return slotRef.id;
+}
+
+export async function createCalendarSlotWithOptionalAssignment(params: {
+  calendarId: string;
+  ownerId: string;
+  startsAt: Date;
+  endsAt: Date;
+  assigneeEmail?: string | null;
+}) {
+  const trimmedAssigneeEmail = params.assigneeEmail?.trim() ?? '';
+
+  if (!trimmedAssigneeEmail) {
+    return createCalendarSlot({
+      calendarId: params.calendarId,
+      ownerId: params.ownerId,
+      startsAt: params.startsAt,
+      endsAt: params.endsAt,
+    });
+  }
+
+  if (params.endsAt <= params.startsAt) {
+    throw new Error('Slot end must be after slot start.');
+  }
+
+  const assigneeEmailKey = normalizeEmail(trimmedAssigneeEmail);
+  const accessRef = doc(calendarAccessCollection(params.calendarId), assigneeEmailKey);
+  const calendarRef = calendarDoc(params.calendarId);
+  const slotRef = doc(calendarSlotsCollection(params.calendarId));
+  const appointmentRef = doc(calendarAppointmentsCollection(params.calendarId));
+  const eventRef = doc(slotEventsCollection(params.calendarId, slotRef.id));
+  const notificationRef = doc(calendarNotificationsCollection(params.calendarId));
+
+  await runTransaction(db, async (transaction) => {
+    const [calendarSnapshot, accessSnapshot] = await Promise.all([
+      transaction.get(calendarRef),
+      transaction.get(accessRef),
+    ]);
+
+    if (!calendarSnapshot.exists()) {
+      throw new Error('Der Kalender ist nicht mehr verfuegbar.');
+    }
+
+    if (!accessSnapshot.exists() || accessSnapshot.data().status !== 'approved') {
+      throw new Error('Die ausgewaehlte Person ist aktuell nicht freigegeben.');
+    }
+
+    const calendar = mapCalendar(
+      calendarSnapshot.id,
+      calendarSnapshot.data() as Record<string, unknown>
+    );
+    const content = buildNotificationContent({
+      type: 'slot_assigned',
+      ownerEmail: calendar.ownerEmail,
+      startsAt: params.startsAt,
+    });
+
+    transaction.set(slotRef, {
+      calendarId: params.calendarId,
+      ownerId: params.ownerId,
+      startsAt: Timestamp.fromDate(params.startsAt),
+      endsAt: Timestamp.fromDate(params.endsAt),
+      status: 'booked',
+      appointmentId: appointmentRef.id,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    transaction.set(appointmentRef, {
+      calendarId: params.calendarId,
+      slotId: slotRef.id,
+      ownerId: params.ownerId,
+      bookedByUserId: params.ownerId,
+      bookedByEmail: trimmedAssigneeEmail,
+      bookedByEmailKey: assigneeEmailKey,
+      participantEmail: trimmedAssigneeEmail,
+      participantEmailKey: assigneeEmailKey,
+      startsAt: Timestamp.fromDate(params.startsAt),
+      endsAt: Timestamp.fromDate(params.endsAt),
+      source: 'manual',
+      status: 'booked',
+      createdByUserId: params.ownerId,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    transaction.set(eventRef, {
+      calendarId: params.calendarId,
+      slotId: slotRef.id,
+      type: 'assigned_by_owner',
+      actorUid: params.ownerId,
+      actorRole: 'owner',
+      targetEmail: trimmedAssigneeEmail,
+      statusAfter: 'booked',
+      note: null,
+      createdAt: serverTimestamp(),
+    });
+
+    transaction.set(notificationRef, {
+      calendarId: params.calendarId,
+      appointmentId: appointmentRef.id,
+      slotId: slotRef.id,
+      recipientEmail: trimmedAssigneeEmail,
+      recipientEmailKey: assigneeEmailKey,
+      channel: 'in_app',
+      type: 'slot_assigned',
+      title: content.title,
+      body: content.body,
+      dedupeKey: null,
+      status: 'pending',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      readAt: null,
     });
   });
 
@@ -700,6 +1011,19 @@ export async function createCalendarSlotsBatch(params: {
   }
 
   await batch.commit();
+
+  const calendarSnapshot = await getDoc(calendarDoc(params.calendarId));
+
+  if (calendarSnapshot.exists()) {
+    const calendar = mapCalendar(
+      calendarSnapshot.id,
+      calendarSnapshot.data() as Record<string, unknown>
+    );
+    await queueNewSlotsAvailableNotifications({
+      calendarId: params.calendarId,
+      ownerEmail: calendar.ownerEmail,
+    });
+  }
 
   return params.slots.length;
 }
@@ -847,6 +1171,33 @@ export async function createAppointment(params: {
     updatedAt: serverTimestamp(),
   });
 
+  if (params.source === 'manual') {
+    const calendarSnapshot = await getDoc(calendarDoc(params.calendarId));
+
+    if (calendarSnapshot.exists()) {
+      const calendar = mapCalendar(
+        calendarSnapshot.id,
+        calendarSnapshot.data() as Record<string, unknown>
+      );
+      const content = buildNotificationContent({
+        type: 'slot_assigned',
+        ownerEmail: calendar.ownerEmail,
+        startsAt: params.startsAt,
+      });
+
+      await createNotificationRecord({
+        calendarId: params.calendarId,
+        appointmentId: appointmentRef.id,
+        slotId: params.slotId ?? null,
+        recipientEmail: trimmedEmail,
+        type: 'slot_assigned',
+        channel: 'in_app',
+        title: content.title,
+        body: content.body,
+      });
+    }
+  }
+
   return appointmentRef.id;
 }
 
@@ -946,12 +1297,24 @@ export async function bookSharedCalendarSlot(params: {
     transaction.set(notificationRef, {
       calendarId: params.calendarId,
       appointmentId: appointmentRef.id,
+      slotId: params.slotId,
       recipientEmail: calendar.ownerEmail,
+      recipientEmailKey: calendar.ownerEmailKey,
       channel: 'in_app',
       type: 'booking_created',
+      title: buildNotificationContent({
+        type: 'booking_created',
+        ownerEmail: calendar.ownerEmail,
+      }).title,
+      body: buildNotificationContent({
+        type: 'booking_created',
+        ownerEmail: calendar.ownerEmail,
+      }).body,
+      dedupeKey: null,
       status: 'pending',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
+      readAt: null,
     });
 
     return appointmentRef.id;
@@ -963,20 +1326,73 @@ export async function cancelAppointmentByOwner(params: {
   appointmentId: string;
   ownerId: string;
 }) {
-  await updateDoc(doc(calendarAppointmentsCollection(params.calendarId), params.appointmentId), {
-    status: 'cancelled',
-    cancelledByUserId: params.ownerId,
-    cancelledAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+  const appointmentRef = doc(calendarAppointmentsCollection(params.calendarId), params.appointmentId);
+  const notificationRef = doc(calendarNotificationsCollection(params.calendarId));
+  const calendarSnapshot = await getDoc(calendarDoc(params.calendarId));
+
+  if (!calendarSnapshot.exists()) {
+    throw new Error('Der zugehoerige Kalender existiert nicht mehr.');
+  }
+
+  const calendar = mapCalendar(
+    calendarSnapshot.id,
+    calendarSnapshot.data() as Record<string, unknown>
+  );
+
+  await runTransaction(db, async (transaction) => {
+    const appointmentSnapshot = await transaction.get(appointmentRef);
+
+    if (!appointmentSnapshot.exists()) {
+      throw new Error('Der Termin existiert nicht mehr.');
+    }
+
+    const appointment = mapAppointment(
+      appointmentSnapshot.id,
+      appointmentSnapshot.data() as Record<string, unknown>
+    );
+    const content = buildNotificationContent({
+      type: 'slot_cancelled',
+      ownerEmail: calendar.ownerEmail,
+      startsAt: appointment.startsAt,
+    });
+
+    transaction.update(appointmentRef, {
+      status: 'cancelled',
+      cancelledByUserId: params.ownerId,
+      cancelledAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    transaction.set(notificationRef, {
+      calendarId: params.calendarId,
+      appointmentId: params.appointmentId,
+      slotId: appointment.slotId ?? null,
+      recipientEmail: appointment.participantEmail,
+      recipientEmailKey: appointment.participantEmailKey,
+      channel: 'in_app',
+      type: 'slot_cancelled',
+      title: content.title,
+      body: content.body,
+      dedupeKey: null,
+      status: 'pending',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      readAt: null,
+    });
   });
 }
 
 export async function createNotificationRecord(params: {
   calendarId: string;
   recipientEmail: string;
+  recipientEmailKey?: string;
   type: NotificationRecord['type'];
   channel: NotificationRecord['channel'];
   appointmentId?: string;
+  slotId?: string | null;
+  title?: string;
+  body?: string;
+  dedupeKey?: string | null;
 }) {
   const trimmedEmail = params.recipientEmail.trim();
 
@@ -984,14 +1400,43 @@ export async function createNotificationRecord(params: {
     throw new Error('A recipient email is required.');
   }
 
+  const content = buildNotificationContent({
+    type: params.type,
+  });
+
   await addDoc(calendarNotificationsCollection(params.calendarId), {
     calendarId: params.calendarId,
     appointmentId: params.appointmentId ?? null,
+    slotId: params.slotId ?? null,
     recipientEmail: trimmedEmail,
+    recipientEmailKey: params.recipientEmailKey ?? normalizeEmail(trimmedEmail),
     channel: params.channel,
     type: params.type,
+    title: params.title ?? content.title,
+    body: params.body ?? content.body,
+    dedupeKey: params.dedupeKey ?? null,
     status: 'pending',
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
+    readAt: null,
   });
+}
+
+export async function upsertOwnerDeviceToken(params: {
+  ownerUid: string;
+  expoPushToken: string;
+  platform: 'ios' | 'android' | 'web';
+}) {
+  const tokenRef = doc(ownerDevicesCollection(params.ownerUid), params.expoPushToken);
+
+  await setDoc(
+    tokenRef,
+    {
+      ownerUid: params.ownerUid,
+      expoPushToken: params.expoPushToken,
+      platform: params.platform,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
 }

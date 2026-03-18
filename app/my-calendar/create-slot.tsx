@@ -19,7 +19,8 @@ import {
   parseGermanDateInput,
   parseTimeInput,
 } from '../../src/features/mvp/calendar-utils';
-import { createCalendarSlot } from '../../src/features/mvp/repository';
+import { createCalendarSlotWithOptionalAssignment } from '../../src/features/mvp/repository';
+import { useCalendarAccessList } from '../../src/features/mvp/useCalendarAccessList';
 import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useAuth } from '../../src/firebase/useAuth';
@@ -56,6 +57,11 @@ export default function CreateSlotScreen() {
     user ? { uid: user.uid, email: user.email } : null
   );
   const { slots, loading: slotsLoading, error: slotsError } = useOwnerSlots(calendar?.id ?? null);
+  const {
+    records: accessRecords,
+    loading: accessLoading,
+    error: accessError,
+  } = useCalendarAccessList(calendar?.id ?? null);
   const [startDateInput, setStartDateInput] = useState(initialStartDate);
   const [endDateInput, setEndDateInput] = useState('');
   const [startTimeInput, setStartTimeInput] = useState('');
@@ -63,6 +69,8 @@ export default function CreateSlotScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [pickerField, setPickerField] = useState<DateFieldKey | null>(null);
+  const [showAssignmentSection, setShowAssignmentSection] = useState(false);
+  const [selectedAssigneeEmail, setSelectedAssigneeEmail] = useState<string | null>(null);
 
   const parsedStartDate = useMemo(() => parseGermanDateInput(startDateInput), [startDateInput]);
   const parsedEndDate = useMemo(() => parseGermanDateInput(endDateInput), [endDateInput]);
@@ -156,11 +164,12 @@ export default function CreateSlotScreen() {
     setMessage(null);
 
     try {
-      const slotId = await createCalendarSlot({
+      const slotId = await createCalendarSlotWithOptionalAssignment({
         calendarId: calendar.id,
         ownerId: user.uid,
         startsAt,
         endsAt,
+        assigneeEmail: selectedAssigneeEmail,
       });
 
       router.replace(`/my-calendar/${getDayKey(startsAt)}?slotId=${slotId}`);
@@ -173,7 +182,9 @@ export default function CreateSlotScreen() {
     }
   };
 
-  if (authLoading || loading || slotsLoading) {
+  const approvedAccessRecords = accessRecords.filter((record) => record.status === 'approved');
+
+  if (authLoading || loading || slotsLoading || accessLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
         <Text style={{ color: 'black' }}>Loading...</Text>
@@ -247,6 +258,62 @@ export default function CreateSlotScreen() {
         </Text>
 
         <Pressable
+          onPress={() => setShowAssignmentSection((currentValue) => !currentValue)}
+          style={{ marginBottom: 12 }}>
+          <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+            {showAssignmentSection
+              ? 'Optionale Direktzuweisung ausblenden'
+              : 'Optional direkt Terminnehmenden zuweisen'}
+          </Text>
+        </Pressable>
+
+        {showAssignmentSection ? (
+          <View style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 16 }}>
+            <Text style={{ color: 'black', marginBottom: 8 }}>
+              Diese seltene Option belegt den Slot direkt beim Erstellen.
+            </Text>
+
+            {approvedAccessRecords.length ? (
+              approvedAccessRecords.map((record) => {
+                const isSelected = selectedAssigneeEmail === record.granteeEmail;
+
+                return (
+                  <Pressable
+                    key={record.id}
+                    onPress={() =>
+                      setSelectedAssigneeEmail(isSelected ? null : record.granteeEmail)
+                    }
+                    style={{
+                      borderTopWidth: 1,
+                      borderColor: 'black',
+                      paddingTop: 12,
+                      marginTop: 12,
+                      backgroundColor: isSelected ? '#f1f1f1' : 'white',
+                    }}>
+                    <Text style={{ color: 'black', marginBottom: 4 }}>{record.granteeEmail}</Text>
+                    <Text style={{ color: 'black' }}>
+                      {isSelected ? 'Wird direkt zugewiesen' : 'Antippen zum Auswaehlen'}
+                    </Text>
+                  </Pressable>
+                );
+              })
+            ) : (
+              <Text style={{ color: 'black' }}>
+                Es sind aktuell keine freigegebenen Personen verfuegbar.
+              </Text>
+            )}
+
+            {selectedAssigneeEmail ? (
+              <Pressable onPress={() => setSelectedAssigneeEmail(null)} style={{ marginTop: 12 }}>
+                <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                  Direktzuweisung wieder entfernen
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+
+        <Pressable
           onPress={handleCreateSlot}
           disabled={submitting || !calendar}
           style={{
@@ -264,6 +331,7 @@ export default function CreateSlotScreen() {
         {message ? <Text style={{ color: 'black', marginTop: 12 }}>{message}</Text> : null}
         {error ? <Text style={{ color: 'black', marginTop: 12 }}>{error}</Text> : null}
         {slotsError ? <Text style={{ color: 'black', marginTop: 12 }}>{slotsError}</Text> : null}
+        {accessError ? <Text style={{ color: 'black', marginTop: 12 }}>{accessError}</Text> : null}
       </View>
 
       <View style={{ alignItems: 'flex-end' }}>

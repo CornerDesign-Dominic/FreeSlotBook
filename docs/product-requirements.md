@@ -251,6 +251,7 @@ Folgende Themen sind als spaetere Erweiterungen moeglich, gehoeren aber nicht zw
 - Datenbankwechsel
 - weitere Rollen und Rechte
 - Komfortfunktionen rund um lokale Geraetekontakte
+- Terminverschiebung als bestaetigungspflichtiger Vorschlag
 
 ### Umsetzungsleitlinie fuer das MVP
 
@@ -276,6 +277,22 @@ Die folgenden Punkte sind aktuell noch offen und muessen spaeter konkretisiert w
 - Wie Terminstatus und Storno-Status modelliert werden
 - Wie der spaetere Uebergang von E-Mail zu Telefonnummer technisch umgesetzt wird
 - Wie SMS spaeter konkret angebunden wird
+
+## 13. Backlog und spaetere Roadmap-Punkte
+
+### Terminverschiebung
+
+Terminverschiebung ist ausdruecklich noch nicht Teil des aktuellen MVP.
+
+Fuer eine spaetere Ausbaustufe soll Terminverschiebung nicht als einseitige finale Aenderung durch den Kalenderinhaber umgesetzt werden. Stattdessen soll sie als Vorschlag beziehungsweise Anfrage modelliert werden, die vom Terminnehmenden bestaetigt oder abgelehnt werden kann.
+
+Damit ist fuer spaeter vorgesehen:
+
+- keine sofortige einseitige Verschiebung,
+- stattdessen ein Vorschlags- beziehungsweise Anfrageprozess,
+- mit anschliessender Bestaetigung durch den Terminnehmenden.
+
+Dieser Punkt ist bewusst als Backlog-Thema festgehalten und noch nicht umgesetzt.
 
 ## 12. Form und Verwendungszweck
 

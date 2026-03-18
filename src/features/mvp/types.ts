@@ -24,9 +24,12 @@ export type AppointmentStatus = 'booked' | 'cancelled';
 
 export type AppointmentSource = 'self_service' | 'manual';
 
-export type NotificationChannel = 'email' | 'in_app';
+export type NotificationChannel = 'email' | 'in_app' | 'push';
 
 export type NotificationType =
+  | 'slot_assigned'
+  | 'slot_cancelled'
+  | 'new_slots_available'
   | 'booking_created'
   | 'appointment_assigned'
   | 'appointment_cancelled';
@@ -49,6 +52,7 @@ export interface CalendarRecord {
   ownerEmail: string;
   ownerEmailKey: string;
   visibility: CalendarVisibility;
+  notifyOnNewSlotsAvailable: boolean;
   createdAt: Date | null;
   updatedAt: Date | null;
 }
@@ -124,12 +128,18 @@ export interface NotificationRecord {
   id: string;
   calendarId: string;
   appointmentId?: string | null;
+  slotId?: string | null;
   recipientEmail: string;
+  recipientEmailKey: string;
   channel: NotificationChannel;
   type: NotificationType;
+  title: string;
+  body: string;
+  dedupeKey?: string | null;
   status: NotificationStatus;
   createdAt: Date | null;
   updatedAt: Date | null;
+  readAt?: Date | null;
 }
 
 export interface DashboardData {
@@ -137,4 +147,5 @@ export interface DashboardData {
   ownerCalendar: CalendarRecord | null;
   joinedCalendars: CalendarRecord[];
   upcomingAppointments: AppointmentRecord[];
+  recentNotifications: NotificationRecord[];
 }
