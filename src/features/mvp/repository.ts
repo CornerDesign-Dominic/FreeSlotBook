@@ -36,6 +36,22 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+function resolveNormalizedEmailKey(value: unknown) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return normalizeEmail(value);
+}
+
+function resolveAccessEmailKey(id: string, data: Record<string, unknown>) {
+  return (
+    resolveNormalizedEmailKey(data.granteeEmailKey) ||
+    resolveNormalizedEmailKey(data.granteeEmail) ||
+    resolveNormalizedEmailKey(id)
+  );
+}
+
 function asDate(value: unknown): Date | null {
   if (value instanceof Timestamp) {
     return value.toDate();
@@ -110,12 +126,19 @@ function mapCalendar(id: string, data: Record<string, unknown>): CalendarRecord 
 }
 
 function mapAccess(id: string, data: Record<string, unknown>): CalendarAccessRecord {
+  const granteeEmail =
+    typeof data.granteeEmail === 'string' && data.granteeEmail.trim()
+      ? data.granteeEmail.trim()
+      : typeof data.granteeEmailKey === 'string'
+        ? data.granteeEmailKey.trim()
+        : id;
+
   return {
     id,
     calendarId: String(data.calendarId ?? ''),
     ownerId: String(data.ownerId ?? ''),
-    granteeEmail: String(data.granteeEmail ?? ''),
-    granteeEmailKey: String(data.granteeEmailKey ?? ''),
+    granteeEmail,
+    granteeEmailKey: resolveAccessEmailKey(id, data),
     status: data.status === 'revoked' ? 'revoked' : 'approved',
     createdAt: asDate(data.createdAt),
     updatedAt: asDate(data.updatedAt),
@@ -407,15 +430,43 @@ export function subscribeToCalendar(
 }
 
 async function listApprovedCalendarAccess(email: string) {
+  const normalizedEmailKey = normalizeEmail(email);
   const accessQuery = query(
     collectionGroup(db, 'access'),
-    where('granteeEmailKey', '==', normalizeEmail(email)),
+    where('granteeEmailKey', '==', normalizedEmailKey),
     where('status', '==', 'approved')
   );
-  const snapshots = await getDocs(accessQuery);
+  const directSnapshots = await getDocs(accessQuery);
 
-  return snapshots.docs.map((snapshot) =>
-    mapAccess(snapshot.id, snapshot.data() as Record<string, unknown>)
+  if (directSnapshots.docs.length) {
+    return directSnapshots.docs.map((snapshot) =>
+      mapAccess(snapshot.id, snapshot.data() as Record<string, unknown>)
+    );
+  }
+
+  // Defensive fallback for older/inconsistent access docs where only the display email
+  // or document id carries the grantee information with differing casing.
+  const fallbackQuery = query(
+    collectionGroup(db, 'access'),
+    where('status', '==', 'approved')
+  );
+  const fallbackSnapshots = await getDocs(fallbackQuery);
+  const matchingRecords = fallbackSnapshots.docs
+    .map((snapshot) => mapAccess(snapshot.id, snapshot.data() as Record<string, unknown>))
+    .filter((record) => {
+      const normalizedCandidates = new Set([
+        record.granteeEmailKey,
+        resolveNormalizedEmailKey(record.granteeEmail),
+        resolveNormalizedEmailKey(record.id),
+      ]);
+
+      return normalizedCandidates.has(normalizedEmailKey);
+    });
+
+  return Array.from(
+    new Map(
+      matchingRecords.map((record) => [`${record.calendarId}:${record.granteeEmailKey}`, record])
+    ).values()
   );
 }
 
