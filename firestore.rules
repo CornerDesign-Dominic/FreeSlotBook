@@ -10,6 +10,10 @@ service cloud.firestore {
       return request.auth.token.email;
     }
 
+    function signedInEmailKey() {
+      return signedInEmail().lower();
+    }
+
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
@@ -21,8 +25,8 @@ service cloud.firestore {
 
     function hasCalendarAccess(calendarId) {
       return isSignedIn()
-        && exists(/databases/$(database)/documents/calendars/$(calendarId)/access/$(signedInEmail()))
-        && get(/databases/$(database)/documents/calendars/$(calendarId)/access/$(signedInEmail())).data.status == 'approved';
+        && exists(/databases/$(database)/documents/calendars/$(calendarId)/access/$(signedInEmailKey()))
+        && get(/databases/$(database)/documents/calendars/$(calendarId)/access/$(signedInEmailKey())).data.status == 'approved';
     }
 
     match /owners/{userId} {
@@ -36,15 +40,15 @@ service cloud.firestore {
       allow update, delete: if ownsCalendar(calendarId);
 
       match /access/{accessId} {
-        allow read: if ownsCalendar(calendarId) || accessId == signedInEmail();
+        allow read: if ownsCalendar(calendarId) || accessId == signedInEmailKey();
         allow create, update, delete: if ownsCalendar(calendarId);
       }
 
       match /requests/{requestId} {
-        allow read: if ownsCalendar(calendarId) || requestId == signedInEmail();
+        allow read: if ownsCalendar(calendarId) || requestId == signedInEmailKey();
         allow create: if isSignedIn()
-          && requestId == signedInEmail()
-          && request.resource.data.requesterEmail == signedInEmail();
+          && requestId == signedInEmailKey()
+          && request.resource.data.requesterEmailKey == signedInEmailKey();
         allow update, delete: if ownsCalendar(calendarId);
       }
 

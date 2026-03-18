@@ -61,9 +61,40 @@ Warum diese Struktur:
 
 Enthaelt serverseitige Freigaben fuer Kontakte, die den Kalender sehen und buchen duerfen.
 
+Vorgesehene Kernfelder:
+
+- `calendarId`
+- `ownerId`
+- `granteeEmail`
+- `granteeEmailKey`
+- `status`
+- `createdAt`
+- `updatedAt`
+
+MVP-Bedeutung:
+
+- Die Freigabe wird aktuell ueber die E-Mail modelliert.
+- Dokument-IDs werden normalisiert ueber `granteeEmailKey` gefuehrt.
+- Ein `approved`-Eintrag ist die Voraussetzung dafuer, dass fremde Nutzer den Kalender spaeter sehen und buchen duerfen.
+
 ### `requests/{email}`
 
 Enthaelt Zugriffsanfragen von Personen, die noch nicht freigegeben sind.
+
+Vorgesehene Kernfelder:
+
+- `calendarId`
+- `requesterEmail`
+- `requesterEmailKey`
+- `status`
+- `createdAt`
+- `updatedAt`
+
+MVP-Bedeutung:
+
+- Nicht freigegebene Nutzer stellen eine Anfrage auf Basis der E-Mail des Kalenderinhabers.
+- Die Anfrage wird cloudbasiert gespeichert und vom Kalenderinhaber angenommen oder abgelehnt.
+- Bei Annahme entsteht zusaetzlich ein `access`-Eintrag mit `approved`.
 
 ### `slots/{slotId}`
 
@@ -149,6 +180,21 @@ Das Modell ist fuer das MVP geeignet, weil es die wichtigsten Produktentscheidun
 5. Slot-Historie ist als strukturierte Event-Liste vorbereitet.
 6. Das Dashboard kann echte Daten aus Firestore lesen.
 7. Spaetere UI-Flows koennen auf denselben Collections aufbauen, ohne das Fundament neu strukturieren zu muessen.
+
+## Zusammenhang von Freigabe und Anfrage
+
+Die Zugriffsbasis fuer das MVP ist zweistufig:
+
+1. Eine Person ohne bestehende Freigabe stellt eine Anfrage.
+2. Der Kalenderinhaber prueft diese Anfrage.
+3. Bei Annahme wird die Anfrage auf `approved` gesetzt und gleichzeitig eine echte Freigabe in `access` gespeichert.
+4. Bei Ablehnung bleibt kein Zugriff bestehen, die Anfrage wird auf `rejected` gesetzt.
+
+Warum diese Trennung sinnvoll ist:
+
+- Offene Anfragen und echte Zugriffsrechte bleiben klar getrennt.
+- Der Kalenderinhaber kann Anfragen nachvollziehbar bearbeiten.
+- Die spaetere Erweiterung von E-Mail auf Telefonnummer bleibt moeglich, weil bereits mit expliziten Identity-Feldern (`...Email`, `...EmailKey`) gearbeitet wird und keine komplexe lokale Kontaktlogik vorausgesetzt wird.
 
 ## Slot-Erstellung im MVP
 

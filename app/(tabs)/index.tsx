@@ -65,6 +65,13 @@ export default function HomeScreen() {
               </Text>
             </Pressable>
           </Link>
+          <Link href="/my-calendar/access" asChild>
+            <Pressable style={{ alignSelf: 'flex-start', marginTop: 12 }}>
+              <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                Freigaben verwalten
+              </Text>
+            </Pressable>
+          </Link>
         </View>
 
         <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 12 }}>
@@ -99,6 +106,13 @@ export default function HomeScreen() {
               Du bist aktuell keinem fremden Kalender beigetreten.
             </Text>
           )}
+          <Link href="/request-calendar-access" asChild>
+            <Pressable style={{ alignSelf: 'flex-start', marginTop: 12 }}>
+              <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                Zugriff anfragen
+              </Text>
+            </Pressable>
+          </Link>
         </View>
 
         {user.email ? <Text style={{ color: 'black', marginBottom: 16 }}>{user.email}</Text> : null}

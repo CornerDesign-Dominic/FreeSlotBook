@@ -104,6 +104,39 @@ function mapCalendar(id: string, data: Record<string, unknown>): CalendarRecord 
   };
 }
 
+function mapAccess(id: string, data: Record<string, unknown>): CalendarAccessRecord {
+  return {
+    id,
+    calendarId: String(data.calendarId ?? ''),
+    ownerId: String(data.ownerId ?? ''),
+    granteeEmail: String(data.granteeEmail ?? ''),
+    granteeEmailKey: String(data.granteeEmailKey ?? ''),
+    status: data.status === 'revoked' ? 'revoked' : 'approved',
+    createdAt: asDate(data.createdAt),
+    updatedAt: asDate(data.updatedAt),
+  };
+}
+
+function mapAccessRequest(
+  id: string,
+  data: Record<string, unknown>
+): CalendarAccessRequestRecord {
+  return {
+    id,
+    calendarId: String(data.calendarId ?? ''),
+    requesterEmail: String(data.requesterEmail ?? ''),
+    requesterEmailKey: String(data.requesterEmailKey ?? ''),
+    status:
+      data.status === 'approved'
+        ? 'approved'
+        : data.status === 'rejected'
+          ? 'rejected'
+          : 'pending',
+    createdAt: asDate(data.createdAt),
+    updatedAt: asDate(data.updatedAt),
+  };
+}
+
 function mapAppointment(id: string, data: Record<string, unknown>): AppointmentRecord {
   return {
     id,
@@ -284,20 +317,9 @@ async function listApprovedCalendarAccess(email: string) {
   );
   const snapshots = await getDocs(accessQuery);
 
-  return snapshots.docs.map((snapshot) => {
-    const data = snapshot.data() as Record<string, unknown>;
-
-    return {
-      id: snapshot.id,
-      calendarId: String(data.calendarId ?? ''),
-      ownerId: String(data.ownerId ?? ''),
-      granteeEmail: String(data.granteeEmail ?? ''),
-      granteeEmailKey: String(data.granteeEmailKey ?? ''),
-      status: 'approved' as const,
-      createdAt: asDate(data.createdAt),
-      updatedAt: asDate(data.updatedAt),
-    };
-  });
+  return snapshots.docs.map((snapshot) =>
+    mapAccess(snapshot.id, snapshot.data() as Record<string, unknown>)
+  );
 }
 
 export async function listJoinedCalendars(email: string) {
@@ -363,7 +385,8 @@ export async function upsertCalendarAccess(params: {
     throw new Error('A grantee email is required.');
   }
 
-  const accessRef = doc(calendarAccessCollection(params.calendarId), trimmedEmail);
+  const emailKey = normalizeEmail(trimmedEmail);
+  const accessRef = doc(calendarAccessCollection(params.calendarId), emailKey);
 
   await setDoc(
     accessRef,
@@ -371,7 +394,7 @@ export async function upsertCalendarAccess(params: {
       calendarId: params.calendarId,
       ownerId: params.ownerId,
       granteeEmail: trimmedEmail,
-      granteeEmailKey: normalizeEmail(trimmedEmail),
+      granteeEmailKey: emailKey,
       status: params.status ?? 'approved',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -391,19 +414,190 @@ export async function upsertCalendarAccessRequest(params: {
     throw new Error('A requester email is required.');
   }
 
-  const requestRef = doc(
-    calendarRequestsCollection(params.calendarId),
-    trimmedEmail
-  );
+  const emailKey = normalizeEmail(trimmedEmail);
+  const requestRef = doc(calendarRequestsCollection(params.calendarId), emailKey);
 
   await setDoc(
     requestRef,
     {
       calendarId: params.calendarId,
       requesterEmail: trimmedEmail,
-      requesterEmailKey: normalizeEmail(trimmedEmail),
+      requesterEmailKey: emailKey,
       status: params.status ?? 'pending',
       createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
+export function subscribeToCalendarAccessList(
+  calendarId: string,
+  onData: (records: CalendarAccessRecord[]) => void,
+  onError: (error: Error) => void
+) {
+  const accessQuery = query(calendarAccessCollection(calendarId), orderBy('granteeEmailKey', 'asc'));
+
+  return onSnapshot(
+    accessQuery,
+    (snapshot) => {
+      onData(
+        snapshot.docs.map((documentSnapshot) =>
+          mapAccess(documentSnapshot.id, documentSnapshot.data() as Record<string, unknown>)
+        )
+      );
+    },
+    onError
+  );
+}
+
+export function subscribeToCalendarAccessRequests(
+  calendarId: string,
+  onData: (records: CalendarAccessRequestRecord[]) => void,
+  onError: (error: Error) => void
+) {
+  const requestsQuery = query(calendarRequestsCollection(calendarId), orderBy('createdAt', 'desc'));
+
+  return onSnapshot(
+    requestsQuery,
+    (snapshot) => {
+      onData(
+        snapshot.docs.map((documentSnapshot) =>
+          mapAccessRequest(documentSnapshot.id, documentSnapshot.data() as Record<string, unknown>)
+        )
+      );
+    },
+    onError
+  );
+}
+
+export async function requestCalendarAccessByOwnerEmail(params: {
+  ownerEmail: string;
+  requesterEmail: string;
+}) {
+  const trimmedOwnerEmail = params.ownerEmail.trim();
+  const trimmedRequesterEmail = params.requesterEmail.trim();
+
+  if (!trimmedOwnerEmail) {
+    throw new Error('Eine Inhaber-E-Mail ist erforderlich.');
+  }
+
+  if (!trimmedRequesterEmail) {
+    throw new Error('Eine eigene E-Mail ist erforderlich.');
+  }
+
+  const ownerEmailKey = normalizeEmail(trimmedOwnerEmail);
+  const requesterEmailKey = normalizeEmail(trimmedRequesterEmail);
+
+  if (ownerEmailKey === requesterEmailKey) {
+    throw new Error('Fuer den eigenen Kalender muss keine Zugriffsanfrage gestellt werden.');
+  }
+
+  const calendarsQuery = query(
+    collection(db, 'calendars'),
+    where('ownerEmailKey', '==', ownerEmailKey),
+    limit(1)
+  );
+  const calendarSnapshots = await getDocs(calendarsQuery);
+
+  if (!calendarSnapshots.docs.length) {
+    throw new Error('Zu dieser E-Mail wurde kein Kalender gefunden.');
+  }
+
+  const calendarSnapshot = calendarSnapshots.docs[0];
+  const calendar = mapCalendar(
+    calendarSnapshot.id,
+    calendarSnapshot.data() as Record<string, unknown>
+  );
+
+  const existingAccessSnapshot = await getDoc(
+    doc(calendarAccessCollection(calendar.id), requesterEmailKey)
+  );
+
+  if (
+    existingAccessSnapshot.exists() &&
+    existingAccessSnapshot.data().status === 'approved'
+  ) {
+    throw new Error('Du hast bereits Zugriff auf diesen Kalender.');
+  }
+
+  if (calendar.visibility !== 'restricted') {
+    throw new Error('Nur eingeschraenkte Kalender verwenden derzeit die Anfrage-Logik.');
+  }
+
+  await upsertCalendarAccessRequest({
+    calendarId: calendar.id,
+    requesterEmail: trimmedRequesterEmail,
+    status: 'pending',
+  });
+
+  return calendar;
+}
+
+export async function approveCalendarAccessRequest(params: {
+  calendarId: string;
+  ownerId: string;
+  requesterEmail: string;
+}) {
+  const trimmedRequesterEmail = params.requesterEmail.trim();
+
+  if (!trimmedRequesterEmail) {
+    throw new Error('Eine Anfrage-E-Mail ist erforderlich.');
+  }
+
+  const requesterEmailKey = normalizeEmail(trimmedRequesterEmail);
+  const accessRef = doc(calendarAccessCollection(params.calendarId), requesterEmailKey);
+  const requestRef = doc(calendarRequestsCollection(params.calendarId), requesterEmailKey);
+
+  await runTransaction(db, async (transaction) => {
+    const requestSnapshot = await transaction.get(requestRef);
+
+    if (!requestSnapshot.exists()) {
+      throw new Error('Die ausgewaehlte Anfrage existiert nicht mehr.');
+    }
+
+    transaction.set(
+      accessRef,
+      {
+        calendarId: params.calendarId,
+        ownerId: params.ownerId,
+        granteeEmail: trimmedRequesterEmail,
+        granteeEmailKey: requesterEmailKey,
+        status: 'approved',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    transaction.set(
+      requestRef,
+      {
+        status: 'approved',
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  });
+}
+
+export async function rejectCalendarAccessRequest(params: {
+  calendarId: string;
+  requesterEmail: string;
+}) {
+  const trimmedRequesterEmail = params.requesterEmail.trim();
+
+  if (!trimmedRequesterEmail) {
+    throw new Error('Eine Anfrage-E-Mail ist erforderlich.');
+  }
+
+  const requesterEmailKey = normalizeEmail(trimmedRequesterEmail);
+  const requestRef = doc(calendarRequestsCollection(params.calendarId), requesterEmailKey);
+
+  await setDoc(
+    requestRef,
+    {
+      status: 'rejected',
       updatedAt: serverTimestamp(),
     },
     { merge: true }

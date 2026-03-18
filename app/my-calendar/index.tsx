@@ -70,6 +70,14 @@ export default function MyCalendarScreen() {
           </Pressable>
         </Link>
 
+        <Link href="/my-calendar/access" asChild>
+          <Pressable style={{ marginBottom: 16 }}>
+            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+              Freigaben verwalten
+            </Text>
+          </Pressable>
+        </Link>
+
         <View
           style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <Pressable onPress={goToPreviousMonth}>
