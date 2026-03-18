@@ -143,6 +143,9 @@ function mapAppointment(id: string, data: Record<string, unknown>): AppointmentR
     calendarId: String(data.calendarId ?? ''),
     slotId: typeof data.slotId === 'string' ? data.slotId : null,
     ownerId: String(data.ownerId ?? ''),
+    bookedByUserId: String(data.bookedByUserId ?? data.createdByUserId ?? ''),
+    bookedByEmail: String(data.bookedByEmail ?? data.participantEmail ?? ''),
+    bookedByEmailKey: String(data.bookedByEmailKey ?? data.participantEmailKey ?? ''),
     participantEmail: String(data.participantEmail ?? ''),
     participantEmailKey: String(data.participantEmailKey ?? ''),
     startsAt: asDate(data.startsAt),
@@ -295,8 +298,16 @@ export function subscribeToOwnerCalendar(
   onData: (calendar: CalendarRecord | null) => void,
   onError: (error: Error) => void
 ) {
+  return subscribeToCalendar(ownerId, onData, onError);
+}
+
+export function subscribeToCalendar(
+  calendarId: string,
+  onData: (calendar: CalendarRecord | null) => void,
+  onError: (error: Error) => void
+) {
   return onSnapshot(
-    calendarDoc(ownerId),
+    calendarDoc(calendarId),
     (snapshot) => {
       if (!snapshot.exists()) {
         onData(null);
@@ -822,6 +833,9 @@ export async function createAppointment(params: {
     calendarId: params.calendarId,
     slotId: params.slotId ?? null,
     ownerId: params.ownerId,
+    bookedByUserId: params.createdByUserId,
+    bookedByEmail: trimmedEmail,
+    bookedByEmailKey: normalizeEmail(trimmedEmail),
     participantEmail: trimmedEmail,
     participantEmailKey: normalizeEmail(trimmedEmail),
     startsAt: Timestamp.fromDate(params.startsAt),
@@ -834,6 +848,114 @@ export async function createAppointment(params: {
   });
 
   return appointmentRef.id;
+}
+
+export async function bookSharedCalendarSlot(params: {
+  calendarId: string;
+  slotId: string;
+  bookedByUid: string;
+  bookedByEmail: string;
+}) {
+  const trimmedEmail = params.bookedByEmail.trim();
+
+  if (!trimmedEmail) {
+    throw new Error('Eine E-Mail fuer die Buchung ist erforderlich.');
+  }
+
+  const bookedByEmailKey = normalizeEmail(trimmedEmail);
+  const slotRef = calendarSlotDoc(params.calendarId, params.slotId);
+  const calendarRef = calendarDoc(params.calendarId);
+  const accessRef = doc(calendarAccessCollection(params.calendarId), bookedByEmailKey);
+  const appointmentRef = doc(calendarAppointmentsCollection(params.calendarId));
+  const eventRef = doc(slotEventsCollection(params.calendarId, params.slotId));
+  const notificationRef = doc(calendarNotificationsCollection(params.calendarId));
+
+  return runTransaction(db, async (transaction) => {
+    const [calendarSnapshot, accessSnapshot, slotSnapshot] = await Promise.all([
+      transaction.get(calendarRef),
+      transaction.get(accessRef),
+      transaction.get(slotRef),
+    ]);
+
+    if (!calendarSnapshot.exists()) {
+      throw new Error('Der ausgewaehlte Kalender existiert nicht mehr.');
+    }
+
+    if (!accessSnapshot.exists() || accessSnapshot.data().status !== 'approved') {
+      throw new Error('Du hast keinen Zugriff auf diesen Kalender.');
+    }
+
+    if (!slotSnapshot.exists()) {
+      throw new Error('Der ausgewaehlte Slot existiert nicht mehr.');
+    }
+
+    const calendar = mapCalendar(
+      calendarSnapshot.id,
+      calendarSnapshot.data() as Record<string, unknown>
+    );
+    const slot = mapSlot(slotSnapshot.id, slotSnapshot.data() as Record<string, unknown>);
+
+    if (calendar.ownerId === params.bookedByUid) {
+      throw new Error('Eigene Slots werden nicht ueber den Fremdnutzer-Flow gebucht.');
+    }
+
+    if (!slot.startsAt || !slot.endsAt) {
+      throw new Error('Dem Slot fehlen gueltige Zeitdaten.');
+    }
+
+    if (slot.status !== 'available' || slot.appointmentId) {
+      throw new Error('Dieser Slot ist nicht mehr verfuegbar.');
+    }
+
+    transaction.set(appointmentRef, {
+      calendarId: params.calendarId,
+      slotId: params.slotId,
+      ownerId: calendar.ownerId,
+      bookedByUserId: params.bookedByUid,
+      bookedByEmail: trimmedEmail,
+      bookedByEmailKey,
+      participantEmail: trimmedEmail,
+      participantEmailKey: bookedByEmailKey,
+      startsAt: Timestamp.fromDate(slot.startsAt),
+      endsAt: Timestamp.fromDate(slot.endsAt),
+      source: 'self_service',
+      status: 'booked',
+      createdByUserId: params.bookedByUid,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    transaction.update(slotRef, {
+      status: 'booked',
+      appointmentId: appointmentRef.id,
+      updatedAt: serverTimestamp(),
+    });
+
+    transaction.set(eventRef, {
+      calendarId: params.calendarId,
+      slotId: params.slotId,
+      type: 'booked',
+      actorUid: params.bookedByUid,
+      actorRole: 'contact',
+      targetEmail: trimmedEmail,
+      statusAfter: 'booked',
+      note: null,
+      createdAt: serverTimestamp(),
+    });
+
+    transaction.set(notificationRef, {
+      calendarId: params.calendarId,
+      appointmentId: appointmentRef.id,
+      recipientEmail: calendar.ownerEmail,
+      channel: 'in_app',
+      type: 'booking_created',
+      status: 'pending',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    return appointmentRef.id;
+  });
 }
 
 export async function cancelAppointmentByOwner(params: {

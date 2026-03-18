@@ -165,9 +165,21 @@ Warum das fuer das MVP passt:
 
 Enthaelt gebuchte oder manuell vergebene Termine.
 
+Aktuelle MVP-Buchung:
+
+- eine Buchung basiert auf genau einem konkreten `slotId`
+- das Appointment speichert zusaetzlich Zeit-Snapshots in `startsAt` und `endsAt`
+- fuer Self-Service-Buchungen werden `bookedByUserId` und `bookedByEmail` mitgespeichert
+- der Slot wird dabei auf `booked` gesetzt und mit `appointmentId` verknuepft
+
 ### `notifications/{notificationId}`
 
 Enthaelt Benachrichtigungsdatensaetze fuer E-Mail und In-App.
+
+Aktuelle MVP-Buchung:
+
+- bei erfolgreicher Slot-Buchung wird zunaechst eine In-App-/Datenbank-Notification fuer den Kalenderinhaber angelegt
+- der Versandkanal ist als `in_app` modelliert, ohne bereits eine volle Zustellung umzusetzen
 
 ## Warum das Modell fuer dieses MVP passt
 

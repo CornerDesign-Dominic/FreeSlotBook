@@ -97,9 +97,13 @@ export default function HomeScreen() {
           <Text style={{ color: 'black', fontSize: 18, marginBottom: 4 }}>KALENDER VON</Text>
           {data.joinedCalendars.length ? (
             data.joinedCalendars.map((calendar) => (
-              <Text key={calendar.id} style={{ color: 'black', marginTop: 12 }}>
-                {calendar.ownerEmail || 'Kalender ohne hinterlegte Inhaber-E-Mail'}
-              </Text>
+              <Link key={calendar.id} href={`/shared-calendar/${calendar.id}`} asChild>
+                <Pressable style={{ marginTop: 12 }}>
+                  <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                    {calendar.ownerEmail || 'Kalender ohne hinterlegte Inhaber-E-Mail'}
+                  </Text>
+                </Pressable>
+              </Link>
             ))
           ) : (
             <Text style={{ color: 'black' }}>

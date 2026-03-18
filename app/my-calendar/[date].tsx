@@ -131,19 +131,21 @@ export default function CalendarDayScreen() {
       return;
     }
 
-    const hasSelectedSlot = selectedSlotId
-      ? daySlots.some((slot) => slot.id === selectedSlotId)
-      : false;
+    if (!selectedSlotId) {
+      if (!initialSlotId) {
+        return;
+      }
 
-    if (hasSelectedSlot) {
+      const slotFromRoute = daySlots.find((slot) => slot.id === initialSlotId)?.id ?? null;
+      setSelectedSlotId(slotFromRoute);
       return;
     }
 
-    const slotFromRoute = initialSlotId
-      ? daySlots.find((slot) => slot.id === initialSlotId)?.id ?? null
-      : null;
+    const hasSelectedSlot = daySlots.some((slot) => slot.id === selectedSlotId);
 
-    setSelectedSlotId(slotFromRoute ?? daySlots[0].id);
+    if (!hasSelectedSlot) {
+      setSelectedSlotId(null);
+    }
   }, [daySlots, initialSlotId, selectedSlotId]);
 
   const {

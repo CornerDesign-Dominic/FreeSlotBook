@@ -104,6 +104,9 @@ export interface AppointmentRecord {
   calendarId: string;
   slotId?: string | null;
   ownerId: string;
+  bookedByUserId: string;
+  bookedByEmail: string;
+  bookedByEmailKey: string;
   participantEmail: string;
   participantEmailKey: string;
   startsAt: Date | null;
