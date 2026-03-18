@@ -32,8 +32,37 @@ import type {
   OwnerProfile,
 } from './types';
 
+export class DashboardDataLoadError extends Error {
+  debug: NonNullable<DashboardData['debug']>;
+
+  constructor(message: string, debug: NonNullable<DashboardData['debug']>) {
+    super(message);
+    this.name = 'DashboardDataLoadError';
+    this.debug = debug;
+  }
+}
+
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function isMissingFirestoreIndexError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return (
+    error.message.toLowerCase().includes('requires an index') ||
+    error.message.toLowerCase().includes('failed-precondition')
+  );
+}
+
+function getDashboardLoadErrorMessage(error: unknown) {
+  if (isMissingFirestoreIndexError(error)) {
+    return 'Der Firestore-Index fuer die access-collectionGroup fehlt noch.';
+  }
+
+  return error instanceof Error ? error.message : 'Dashboard data could not be loaded.';
 }
 
 function resolveNormalizedEmailKey(value: unknown) {
@@ -99,6 +128,8 @@ function calendarNotificationsCollection(calendarId: string) {
 function ownerDevicesCollection(ownerUid: string) {
   return collection(db, 'owners', ownerUid, 'devices');
 }
+
+const ownerSetupInFlight = new Map<string, Promise<{ calendarId: string }>>();
 
 function mapOwnerProfile(id: string, data: Record<string, unknown>): OwnerProfile {
   return {
@@ -323,63 +354,85 @@ export async function ensureOwnerAccountSetup(params: { uid: string; email: stri
   const calendarId = params.uid;
   const ownerRef = ownerDoc(params.uid);
   const ownCalendarRef = calendarDoc(calendarId);
+  const setupKey = `${params.uid}:${emailKey}`;
+  const existingSetupPromise = ownerSetupInFlight.get(setupKey);
 
-  await runTransaction(db, async (transaction) => {
+  if (existingSetupPromise) {
+    console.log('ensureOwnerAccountSetup:reuse', {
+      uid: params.uid,
+      emailKey,
+    });
+    return existingSetupPromise;
+  }
+
+  console.log('ensureOwnerAccountSetup:start', {
+    uid: params.uid,
+    emailKey,
+  });
+
+  const setupPromise = (async () => {
     const [ownerSnapshot, calendarSnapshot] = await Promise.all([
-      transaction.get(ownerRef),
-      transaction.get(ownCalendarRef),
+      getDoc(ownerRef),
+      getDoc(ownCalendarRef),
     ]);
 
-    if (!ownerSnapshot.exists()) {
-      transaction.set(ownerRef, {
-        uid: params.uid,
-        email: trimmedEmail,
-        emailKey,
-        calendarId,
-        primaryIdentityType: 'email',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-    } else {
-      transaction.set(
+    await Promise.all([
+      setDoc(
         ownerRef,
         {
+          uid: params.uid,
           email: trimmedEmail,
           emailKey,
           calendarId,
           primaryIdentityType: 'email',
+          ...(ownerSnapshot.exists() ? {} : { createdAt: serverTimestamp() }),
           updatedAt: serverTimestamp(),
         },
         { merge: true }
-      );
-    }
-
-    if (!calendarSnapshot.exists()) {
-      transaction.set(ownCalendarRef, {
-        ownerId: params.uid,
-        ownerEmail: trimmedEmail,
-        ownerEmailKey: emailKey,
-        visibility: 'restricted',
-        notifyOnNewSlotsAvailable: false,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-    } else {
-      transaction.set(
+      ),
+      setDoc(
         ownCalendarRef,
         {
           ownerId: params.uid,
           ownerEmail: trimmedEmail,
           ownerEmailKey: emailKey,
           visibility: 'restricted',
+          ...(calendarSnapshot.exists()
+            ? {}
+            : {
+                notifyOnNewSlotsAvailable: false,
+                createdAt: serverTimestamp(),
+              }),
           updatedAt: serverTimestamp(),
         },
         { merge: true }
-      );
-    }
-  });
+      ),
+    ]);
 
-  return { calendarId };
+    console.log('ensureOwnerAccountSetup:success', {
+      uid: params.uid,
+      emailKey,
+      ownerExistsBefore: ownerSnapshot.exists(),
+      calendarExistsBefore: calendarSnapshot.exists(),
+    });
+
+    return { calendarId };
+  })();
+
+  ownerSetupInFlight.set(setupKey, setupPromise);
+
+  try {
+    return await setupPromise;
+  } catch (error) {
+    console.log('ensureOwnerAccountSetup:error', {
+      uid: params.uid,
+      emailKey,
+      error,
+    });
+    throw error;
+  } finally {
+    ownerSetupInFlight.delete(setupKey);
+  }
 }
 
 export async function getOwnerProfile(uid: string) {
@@ -438,6 +491,16 @@ async function listApprovedCalendarAccess(email: string) {
   );
   const directSnapshots = await getDocs(accessQuery);
 
+  console.log('listApprovedCalendarAccess:direct', {
+    email,
+    normalizedEmailKey,
+    count: directSnapshots.docs.length,
+    docs: directSnapshots.docs.map((snapshot) => ({
+      id: snapshot.id,
+      data: snapshot.data(),
+    })),
+  });
+
   if (directSnapshots.docs.length) {
     return directSnapshots.docs.map((snapshot) =>
       mapAccess(snapshot.id, snapshot.data() as Record<string, unknown>)
@@ -463,6 +526,13 @@ async function listApprovedCalendarAccess(email: string) {
       return normalizedCandidates.has(normalizedEmailKey);
     });
 
+  console.log('listApprovedCalendarAccess:fallback', {
+    email,
+    normalizedEmailKey,
+    scannedCount: fallbackSnapshots.docs.length,
+    matchingRecords,
+  });
+
   return Array.from(
     new Map(
       matchingRecords.map((record) => [`${record.calendarId}:${record.granteeEmailKey}`, record])
@@ -470,22 +540,62 @@ async function listApprovedCalendarAccess(email: string) {
   );
 }
 
-export async function listJoinedCalendars(email: string) {
+async function getJoinedCalendarsWithDebug(email: string) {
   const accessRecords = await listApprovedCalendarAccess(email);
   const uniqueCalendarIds = Array.from(
     new Set(accessRecords.map((record) => record.calendarId).filter(Boolean))
   );
 
+  console.log('listJoinedCalendars:accessRecords', {
+    email,
+    accessRecords,
+    uniqueCalendarIds,
+  });
+
   const calendarSnapshots = await Promise.all(
     uniqueCalendarIds.map(async (calendarId) => {
-      const snapshot = await getDoc(calendarDoc(calendarId));
-      return snapshot.exists()
-        ? mapCalendar(snapshot.id, snapshot.data() as Record<string, unknown>)
-        : null;
+      try {
+        const snapshot = await getDoc(calendarDoc(calendarId));
+        const mappedCalendar = snapshot.exists()
+          ? mapCalendar(snapshot.id, snapshot.data() as Record<string, unknown>)
+          : null;
+
+        console.log('listJoinedCalendars:calendarRead', {
+          calendarId,
+          exists: snapshot.exists(),
+          calendar: mappedCalendar,
+        });
+
+        return mappedCalendar;
+      } catch (error) {
+        console.log('listJoinedCalendars:calendarReadError', {
+          calendarId,
+          error,
+        });
+        throw error;
+      }
     })
   );
 
-  return calendarSnapshots.filter((calendar): calendar is CalendarRecord => calendar !== null);
+  console.log('listJoinedCalendars:result', {
+    email,
+    calendars: calendarSnapshots,
+  });
+
+  const joinedCalendars = calendarSnapshots.filter(
+    (calendar): calendar is CalendarRecord => calendar !== null
+  );
+
+  return {
+    accessRecords,
+    uniqueCalendarIds,
+    joinedCalendars,
+  };
+}
+
+export async function listJoinedCalendars(email: string) {
+  const result = await getJoinedCalendarsWithDebug(email);
+  return result.joinedCalendars;
 }
 
 export async function listUpcomingAppointmentsForParticipant(email: string) {
@@ -519,28 +629,58 @@ export async function listRecentNotificationsForRecipient(email: string) {
 
 export async function getDashboardData(params: { uid: string; email: string }) {
   await ensureOwnerAccountSetup(params);
+  const baseDebug: NonNullable<DashboardData['debug']> = {
+    currentEmail: params.email,
+    normalizedEmail: normalizeEmail(params.email),
+    ownerSetupOk: true,
+    accessRecordsCount: 0,
+    accessRecords: [],
+    calendarIds: [],
+    joinedCalendarsCount: 0,
+    joinedCalendarIds: [],
+    errorMessage: null,
+  };
 
-  const [
-    ownerProfile,
-    ownerCalendar,
-    joinedCalendars,
-    upcomingAppointments,
-    recentNotifications,
-  ] = await Promise.all([
-    getOwnerProfile(params.uid),
-    getOwnerCalendar(params.uid),
-    listJoinedCalendars(params.email),
-    listUpcomingAppointmentsForParticipant(params.email),
-    listRecentNotificationsForRecipient(params.email),
-  ]);
+  try {
+    const joinedCalendarDebug = await getJoinedCalendarsWithDebug(params.email);
 
-  return {
-    ownerProfile,
-    ownerCalendar,
-    joinedCalendars,
-    upcomingAppointments,
-    recentNotifications,
-  } satisfies DashboardData;
+    const [
+      ownerProfile,
+      ownerCalendar,
+      upcomingAppointments,
+      recentNotifications,
+    ] = await Promise.all([
+      getOwnerProfile(params.uid),
+      getOwnerCalendar(params.uid),
+      listUpcomingAppointmentsForParticipant(params.email),
+      listRecentNotificationsForRecipient(params.email),
+    ]);
+
+    return {
+      ownerProfile,
+      ownerCalendar,
+      joinedCalendars: joinedCalendarDebug.joinedCalendars,
+      upcomingAppointments,
+      recentNotifications,
+      debug: {
+        ...baseDebug,
+        accessRecordsCount: joinedCalendarDebug.accessRecords.length,
+        accessRecords: joinedCalendarDebug.accessRecords.map((record) => ({
+          calendarId: record.calendarId,
+          status: record.status,
+          granteeEmailKey: record.granteeEmailKey,
+        })),
+        calendarIds: joinedCalendarDebug.uniqueCalendarIds,
+        joinedCalendarsCount: joinedCalendarDebug.joinedCalendars.length,
+        joinedCalendarIds: joinedCalendarDebug.joinedCalendars.map((calendar) => calendar.id),
+      },
+    } satisfies DashboardData;
+  } catch (error) {
+    throw new DashboardDataLoadError(getDashboardLoadErrorMessage(error), {
+      ...baseDebug,
+      errorMessage: getDashboardLoadErrorMessage(error),
+    });
+  }
 }
 
 export async function upsertCalendarAccess(params: {

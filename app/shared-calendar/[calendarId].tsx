@@ -32,6 +32,19 @@ export default function SharedCalendarScreen() {
     [slots]
   );
 
+  console.log('SharedCalendar:state', {
+    routeCalendarId: calendarId,
+    userEmail: user?.email ?? null,
+    calendar,
+    calendarError,
+    slotsCount: slots.length,
+    availableSlotsCount: availableSlots.length,
+    slotsError,
+    authLoading,
+    calendarLoading,
+    slotsLoading,
+  });
+
   useEffect(() => {
     if (!selectedSlotId) {
       return;

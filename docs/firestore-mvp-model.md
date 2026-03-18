@@ -275,3 +275,37 @@ Noch nicht abschliessend entschieden sind unter anderem:
 - die endgueltige Statuslogik fuer Termine,
 - die spaetere telefonnummernbasierte Identitaet,
 - die konkrete Versandarchitektur fuer E-Mail, In-App und spaeter SMS.
+
+## Wichtiger Firestore-Index fuer Freigaben
+
+Der Dashboard-Load fuer `Kalender von` verwendet eine `collectionGroup('access')`-Query mit diesen Filtern:
+
+- `where('granteeEmailKey', '==', normalizeEmail(email))`
+- `where('status', '==', 'approved')`
+
+Warum dafuer ein Index noetig ist:
+
+- Firestore verlangt fuer manche `collectionGroup`-Abfragen mit mehreren Filterfeldern einen zusammengesetzten Index.
+- Ohne diesen Index scheitert die Query mit `failed-precondition` beziehungsweise `The query requires an index`.
+- In diesem Fall bleiben `joinedCalendars` im Dashboard leer, obwohl Access-Daten bereits vorhanden sein koennen.
+
+Benötigter Index:
+
+- Collection Group: `access`
+- Felder:
+  - `granteeEmailKey` aufsteigend
+  - `status` aufsteigend
+
+Wo anlegen:
+
+- entweder direkt ueber den Link in der Firestore-Fehlermeldung
+- oder in der Firebase Console unter:
+  - Firestore Database
+  - Indexes
+  - Composite Indexes
+  - Collection Group `access`
+
+Hinweis fuer dieses MVP:
+
+- Es ist keine zusaetzliche Rueckverknuepfung in `owners/{uid}` noetig.
+- Der Fremdkalender-Flow soll allein ueber `calendars/{calendarId}/access/{emailKey}` plus anschliessendes Laden von `calendars/{calendarId}` funktionieren.

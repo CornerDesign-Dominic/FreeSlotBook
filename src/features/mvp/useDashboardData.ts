@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { getDashboardData } from './repository';
+import { DashboardDataLoadError, getDashboardData } from './repository';
 import type { DashboardData } from './types';
 
 const emptyDashboardData: DashboardData = {
@@ -9,6 +9,17 @@ const emptyDashboardData: DashboardData = {
   joinedCalendars: [],
   upcomingAppointments: [],
   recentNotifications: [],
+  debug: {
+    currentEmail: null,
+    normalizedEmail: null,
+    ownerSetupOk: false,
+    accessRecordsCount: 0,
+    accessRecords: [],
+    calendarIds: [],
+    joinedCalendarsCount: 0,
+    joinedCalendarIds: [],
+    errorMessage: null,
+  },
 };
 
 export function useDashboardData(user: { uid: string; email: string | null } | null) {
@@ -33,17 +44,52 @@ export function useDashboardData(user: { uid: string; email: string | null } | n
       try {
         const nextData = await getDashboardData({ uid: user.uid, email: user.email });
 
+        console.log('useDashboardData:loaded', {
+          userEmail: user.email,
+          ownerCalendarId: nextData.ownerCalendar?.id ?? null,
+          joinedCalendarsCount: nextData.joinedCalendars.length,
+          joinedCalendars: nextData.joinedCalendars,
+          recentNotificationsCount: nextData.recentNotifications.length,
+        });
+
         if (!cancelled) {
           setData(nextData);
         }
       } catch (nextError) {
+        console.log('useDashboardData:error', {
+          userEmail: user.email,
+          error: nextError,
+        });
         if (!cancelled) {
-          setError(
+          const errorMessage =
             nextError instanceof Error
               ? nextError.message
-              : 'Dashboard data could not be loaded.'
+              : 'Dashboard data could not be loaded.';
+
+          setError(
+            errorMessage
           );
-          setData(emptyDashboardData);
+          setData(
+            nextError instanceof DashboardDataLoadError
+              ? {
+                  ...emptyDashboardData,
+                  debug: nextError.debug,
+                }
+              : {
+                  ...emptyDashboardData,
+                  debug: {
+                    currentEmail: user.email,
+                    normalizedEmail: user.email.trim().toLowerCase(),
+                    ownerSetupOk: false,
+                    accessRecordsCount: 0,
+                    accessRecords: [],
+                    calendarIds: [],
+                    joinedCalendarsCount: 0,
+                    joinedCalendarIds: [],
+                    errorMessage: errorMessage,
+                  },
+                }
+          );
         }
       } finally {
         if (!cancelled) {

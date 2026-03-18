@@ -148,4 +148,19 @@ export interface DashboardData {
   joinedCalendars: CalendarRecord[];
   upcomingAppointments: AppointmentRecord[];
   recentNotifications: NotificationRecord[];
+  debug?: {
+    currentEmail: string | null;
+    normalizedEmail: string | null;
+    ownerSetupOk: boolean;
+    accessRecordsCount: number;
+    accessRecords: {
+      calendarId: string;
+      status: AccessStatus;
+      granteeEmailKey: string;
+    }[];
+    calendarIds: string[];
+    joinedCalendarsCount: number;
+    joinedCalendarIds: string[];
+    errorMessage: string | null;
+  };
 }
