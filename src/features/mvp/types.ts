@@ -152,6 +152,13 @@ export interface DashboardData {
     currentEmail: string | null;
     normalizedEmail: string | null;
     ownerSetupOk: boolean;
+    debugQueryName: string | null;
+    debugRawErrorCode: string | null;
+    debugRawErrorMessage: string | null;
+    debugAccessQueryStarted: boolean;
+    debugAccessQuerySucceeded: boolean;
+    debugAccessDocsCount: number;
+    debugJoinedCalendarsLoadSucceeded: boolean;
     accessRecordsCount: number;
     accessRecords: {
       calendarId: string;

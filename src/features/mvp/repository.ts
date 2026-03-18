@@ -46,15 +46,32 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
-function isMissingFirestoreIndexError(error: unknown) {
-  if (!(error instanceof Error)) {
-    return false;
+function getFirestoreErrorCode(error: unknown) {
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    const code = (error as { code?: unknown }).code;
+    return typeof code === 'string' ? code : null;
   }
 
-  return (
-    error.message.toLowerCase().includes('requires an index') ||
-    error.message.toLowerCase().includes('failed-precondition')
-  );
+  return null;
+}
+
+function getFirestoreErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    return typeof message === 'string' ? message : null;
+  }
+
+  return null;
+}
+
+function isMissingFirestoreIndexError(error: unknown) {
+  const message = getFirestoreErrorMessage(error)?.toLowerCase() ?? '';
+
+  return message.includes('requires an index');
 }
 
 function getDashboardLoadErrorMessage(error: unknown) {
@@ -62,7 +79,7 @@ function getDashboardLoadErrorMessage(error: unknown) {
     return 'Der Firestore-Index fuer die access-collectionGroup fehlt noch.';
   }
 
-  return error instanceof Error ? error.message : 'Dashboard data could not be loaded.';
+  return getFirestoreErrorMessage(error) ?? 'Dashboard data could not be loaded.';
 }
 
 function resolveNormalizedEmailKey(value: unknown) {
@@ -540,8 +557,23 @@ async function listApprovedCalendarAccess(email: string) {
   );
 }
 
-async function getJoinedCalendarsWithDebug(email: string) {
+async function getJoinedCalendarsWithDebug(
+  email: string,
+  debugState?: NonNullable<DashboardData['debug']>
+) {
+  if (debugState) {
+    debugState.debugQueryName =
+      "collectionGroup('access') where granteeEmailKey == normalizedEmail and status == approved";
+    debugState.debugAccessQueryStarted = true;
+  }
+
   const accessRecords = await listApprovedCalendarAccess(email);
+
+  if (debugState) {
+    debugState.debugAccessQuerySucceeded = true;
+    debugState.debugAccessDocsCount = accessRecords.length;
+  }
+
   const uniqueCalendarIds = Array.from(
     new Set(accessRecords.map((record) => record.calendarId).filter(Boolean))
   );
@@ -585,6 +617,10 @@ async function getJoinedCalendarsWithDebug(email: string) {
   const joinedCalendars = calendarSnapshots.filter(
     (calendar): calendar is CalendarRecord => calendar !== null
   );
+
+  if (debugState) {
+    debugState.debugJoinedCalendarsLoadSucceeded = true;
+  }
 
   return {
     accessRecords,
@@ -633,6 +669,13 @@ export async function getDashboardData(params: { uid: string; email: string }) {
     currentEmail: params.email,
     normalizedEmail: normalizeEmail(params.email),
     ownerSetupOk: true,
+    debugQueryName: null,
+    debugRawErrorCode: null,
+    debugRawErrorMessage: null,
+    debugAccessQueryStarted: false,
+    debugAccessQuerySucceeded: false,
+    debugAccessDocsCount: 0,
+    debugJoinedCalendarsLoadSucceeded: false,
     accessRecordsCount: 0,
     accessRecords: [],
     calendarIds: [],
@@ -642,7 +685,7 @@ export async function getDashboardData(params: { uid: string; email: string }) {
   };
 
   try {
-    const joinedCalendarDebug = await getJoinedCalendarsWithDebug(params.email);
+    const joinedCalendarDebug = await getJoinedCalendarsWithDebug(params.email, baseDebug);
 
     const [
       ownerProfile,
@@ -678,6 +721,8 @@ export async function getDashboardData(params: { uid: string; email: string }) {
   } catch (error) {
     throw new DashboardDataLoadError(getDashboardLoadErrorMessage(error), {
       ...baseDebug,
+      debugRawErrorCode: getFirestoreErrorCode(error),
+      debugRawErrorMessage: getFirestoreErrorMessage(error),
       errorMessage: getDashboardLoadErrorMessage(error),
     });
   }

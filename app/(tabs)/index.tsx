@@ -122,6 +122,27 @@ export default function HomeScreen() {
               Debug ownerSetupOk: {data.debug?.ownerSetupOk ? 'true' : 'false'}
             </Text>
             <Text style={{ color: 'black', marginBottom: 4 }}>
+              Debug debugQueryName: {data.debug?.debugQueryName ?? '-'}
+            </Text>
+            <Text style={{ color: 'black', marginBottom: 4 }}>
+              Debug debugRawErrorCode: {data.debug?.debugRawErrorCode ?? '-'}
+            </Text>
+            <Text style={{ color: 'black', marginBottom: 4 }}>
+              Debug debugRawErrorMessage: {data.debug?.debugRawErrorMessage ?? '-'}
+            </Text>
+            <Text style={{ color: 'black', marginBottom: 4 }}>
+              Debug debugAccessQueryStarted: {data.debug?.debugAccessQueryStarted ? 'true' : 'false'}
+            </Text>
+            <Text style={{ color: 'black', marginBottom: 4 }}>
+              Debug debugAccessQuerySucceeded: {data.debug?.debugAccessQuerySucceeded ? 'true' : 'false'}
+            </Text>
+            <Text style={{ color: 'black', marginBottom: 4 }}>
+              Debug debugAccessDocsCount: {data.debug?.debugAccessDocsCount ?? 0}
+            </Text>
+            <Text style={{ color: 'black', marginBottom: 4 }}>
+              Debug debugJoinedCalendarsLoadSucceeded: {data.debug?.debugJoinedCalendarsLoadSucceeded ? 'true' : 'false'}
+            </Text>
+            <Text style={{ color: 'black', marginBottom: 4 }}>
               Debug accessRecordsCount: {data.debug?.accessRecordsCount ?? 0}
             </Text>
             <Text style={{ color: 'black', marginBottom: 4 }}>
