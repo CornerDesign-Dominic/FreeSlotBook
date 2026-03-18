@@ -1,98 +1,138 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Link } from 'expo-router';
+import { Pressable, Text, View } from 'react-native';
+
+import { logout } from '../../src/firebase/auth';
+import { useDashboardData } from '../../src/features/mvp/useDashboardData';
+import { useAuth } from '../../src/firebase/useAuth';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const { user, loading } = useAuth();
+  const { data, loading: dashboardLoading, error } = useDashboardData(
+    user ? { uid: user.uid, email: user.email } : null
+  );
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const handleLogout = async () => {
+    await logout();
+  };
+
+  if (loading || dashboardLoading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: 'white',
+          padding: 16,
+        }}>
+        <Text style={{ color: 'black' }}>Loading...</Text>
+      </View>
+    );
+  }
+
+  const nextAppointments = data.upcomingAppointments.slice(0, 3);
+
+  if (user) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: 'white',
+          padding: 16,
+        }}>
+        <Text style={{ color: 'black', fontSize: 28, marginBottom: 24 }}>Dashboard</Text>
+
+        <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 12 }}>
+          <Text style={{ color: 'black', fontSize: 18, marginBottom: 4 }}>MEIN KALENDER</Text>
+          {data.ownerCalendar ? (
+            <>
+              <Text style={{ color: 'black', marginBottom: 4 }}>
+                Dein Kalender ist eingerichtet und deinem Account fest zugeordnet.
+              </Text>
+              <Text style={{ color: 'black', marginBottom: 12 }}>
+                Sichtbarkeit: {data.ownerCalendar.visibility}
+              </Text>
+            </>
+          ) : (
+            <Text style={{ color: 'black', marginBottom: 12 }}>
+              Dein persoenlicher Kalender wird gerade vorbereitet.
+            </Text>
+          )}
+          <Link href="/my-calendar" asChild>
+            <Pressable style={{ alignSelf: 'flex-start' }}>
+              <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                Kalender oeffnen
+              </Text>
+            </Pressable>
+          </Link>
+        </View>
+
+        <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 12 }}>
+          <Text style={{ color: 'black', fontSize: 18, marginBottom: 4 }}>MEINE TERMINE</Text>
+          {nextAppointments.length ? (
+            nextAppointments.map((appointment) => (
+              <View key={appointment.id} style={{ marginTop: 12 }}>
+                <Text style={{ color: 'black' }}>
+                  {appointment.startsAt
+                    ? appointment.startsAt.toLocaleString('de-DE')
+                    : 'Zeitpunkt noch nicht verfuegbar'}
+                </Text>
+              </View>
+            ))
+          ) : (
+            <Text style={{ color: 'black' }}>
+              Du hast aktuell keine bevorstehenden Termine.
+            </Text>
+          )}
+        </View>
+
+        <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 24 }}>
+          <Text style={{ color: 'black', fontSize: 18, marginBottom: 4 }}>KALENDER VON</Text>
+          {data.joinedCalendars.length ? (
+            data.joinedCalendars.map((calendar) => (
+              <Text key={calendar.id} style={{ color: 'black', marginTop: 12 }}>
+                {calendar.ownerEmail || 'Kalender ohne hinterlegte Inhaber-E-Mail'}
+              </Text>
+            ))
+          ) : (
+            <Text style={{ color: 'black' }}>
+              Du bist aktuell keinem fremden Kalender beigetreten.
+            </Text>
+          )}
+        </View>
+
+        {user.email ? <Text style={{ color: 'black', marginBottom: 16 }}>{user.email}</Text> : null}
+        {error ? <Text style={{ color: 'black', marginBottom: 16 }}>{error}</Text> : null}
+
+        <Text style={{ color: 'black' }} onPress={handleLogout}>
+          Logout
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'white',
+        padding: 16,
+      }}>
+      <Text style={{ color: 'black', fontSize: 28, marginBottom: 8 }}>
+        FreeSlotBooking
+      </Text>
+      <Text style={{ color: 'black', fontSize: 16 }}>Choose an option</Text>
+      <Link href="/login" style={{ marginTop: 12 }}>
+        <Text style={{ color: 'black' }}>Login</Text>
+      </Link>
+      <Link href="/register" style={{ marginTop: 16 }}>
+        <Text style={{ color: 'black' }}>Create account</Text>
+      </Link>
+      <Link href="/forgot-password" style={{ marginTop: 12 }}>
+        <Text style={{ color: 'black' }}>Forgot password</Text>
+      </Link>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});

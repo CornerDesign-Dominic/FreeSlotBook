@@ -1,0 +1,74 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function signedInEmail() {
+      return request.auth.token.email;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function ownsCalendar(calendarId) {
+      return isSignedIn()
+        && get(/databases/$(database)/documents/calendars/$(calendarId)).data.ownerId == request.auth.uid;
+    }
+
+    function hasCalendarAccess(calendarId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/calendars/$(calendarId)/access/$(signedInEmail()))
+        && get(/databases/$(database)/documents/calendars/$(calendarId)/access/$(signedInEmail())).data.status == 'approved';
+    }
+
+    match /owners/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /calendars/{calendarId} {
+      allow create: if isOwner(calendarId)
+        && request.resource.data.ownerId == request.auth.uid;
+      allow read: if ownsCalendar(calendarId) || hasCalendarAccess(calendarId);
+      allow update, delete: if ownsCalendar(calendarId);
+
+      match /access/{accessId} {
+        allow read: if ownsCalendar(calendarId) || accessId == signedInEmail();
+        allow create, update, delete: if ownsCalendar(calendarId);
+      }
+
+      match /requests/{requestId} {
+        allow read: if ownsCalendar(calendarId) || requestId == signedInEmail();
+        allow create: if isSignedIn()
+          && requestId == signedInEmail()
+          && request.resource.data.requesterEmail == signedInEmail();
+        allow update, delete: if ownsCalendar(calendarId);
+      }
+
+      match /slots/{slotId} {
+        allow read: if ownsCalendar(calendarId);
+        allow create, update, delete: if ownsCalendar(calendarId);
+
+        match /events/{eventId} {
+          allow read, create, update, delete: if ownsCalendar(calendarId);
+        }
+      }
+
+      match /appointments/{appointmentId} {
+        allow read: if ownsCalendar(calendarId)
+          || (isSignedIn() && resource.data.participantEmail == signedInEmail());
+        allow create: if ownsCalendar(calendarId) || hasCalendarAccess(calendarId);
+        allow update, delete: if ownsCalendar(calendarId);
+      }
+
+      match /notifications/{notificationId} {
+        allow read: if ownsCalendar(calendarId)
+          || (isSignedIn() && resource.data.recipientEmail == signedInEmail());
+        allow create, update, delete: if ownsCalendar(calendarId);
+      }
+    }
+  }
+}
