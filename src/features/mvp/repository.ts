@@ -1763,6 +1763,38 @@ export function subscribeToOwnerSlotEvents(
   );
 }
 
+export function subscribeToParticipantAppointments(
+  email: string,
+  onData: (appointments: AppointmentRecord[]) => void,
+  onError: (error: Error) => void
+) {
+  const appointmentsQuery = query(
+    collectionGroup(db, 'appointments'),
+    where('participantEmailKey', '==', normalizeEmail(email))
+  );
+
+  return onSnapshot(
+    appointmentsQuery,
+    (snapshot) => {
+      const appointments = snapshot.docs
+        .map((documentSnapshot) =>
+          mapAppointment(documentSnapshot.id, documentSnapshot.data() as Record<string, unknown>)
+        )
+        .filter((appointment) => appointment.status === 'booked')
+        .sort((left, right) => {
+          if (!left.startsAt || !right.startsAt) {
+            return 0;
+          }
+
+          return left.startsAt.getTime() - right.startsAt.getTime();
+        });
+
+      onData(appointments);
+    },
+    onError
+  );
+}
+
 export async function createAppointment(params: {
   calendarId: string;
   ownerId: string;

@@ -83,6 +83,22 @@ export default function HomeScreen() {
           </Link>
         </View>
 
+        <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 12 }}>
+          <Text style={{ color: 'black', fontSize: 18, marginBottom: 4 }}>
+            {t('dashboard.myAppointments')}
+          </Text>
+          <Text style={{ color: 'black', marginBottom: 12 }}>
+            {t('dashboard.myAppointmentsDescription')}
+          </Text>
+          <Link href="/my-appointments" asChild>
+            <Pressable style={{ alignSelf: 'flex-start' }}>
+              <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                {t('dashboard.openAppointments')}
+              </Text>
+            </Pressable>
+          </Link>
+        </View>
+
         <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 24 }}>
           <Text style={{ color: 'black', fontSize: 18, marginBottom: 4 }}>{t('dashboard.sharedCalendars')}</Text>
           {data.joinedCalendars.length ? (
