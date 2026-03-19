@@ -1,6 +1,6 @@
 export type IdentityType = 'email';
 
-export type CalendarVisibility = 'restricted';
+export type CalendarVisibility = 'restricted' | 'public';
 
 export type AccessStatus = 'approved' | 'revoked';
 
@@ -31,10 +31,12 @@ export type NotificationType =
   | 'slot_cancelled'
   | 'new_slots_available'
   | 'booking_created'
+  | 'booking_confirmation'
+  | 'account_creation_invite'
   | 'appointment_assigned'
   | 'appointment_cancelled';
 
-export type NotificationStatus = 'pending' | 'sent' | 'failed' | 'read';
+export type NotificationStatus = 'pending' | 'processing' | 'sent' | 'failed' | 'read';
 
 export interface OwnerProfile {
   uid: string;
@@ -108,16 +110,19 @@ export interface AppointmentRecord {
   calendarId: string;
   slotId?: string | null;
   ownerId: string;
-  bookedByUserId: string;
+  bookedByUserId: string | null;
+  participantName: string | null;
   bookedByEmail: string;
   bookedByEmailKey: string;
   participantEmail: string;
   participantEmailKey: string;
+  guestBooking: boolean;
+  accountCreationRequested: boolean;
   startsAt: Date | null;
   endsAt: Date | null;
   source: AppointmentSource;
   status: AppointmentStatus;
-  createdByUserId: string;
+  createdByUserId: string | null;
   cancelledByUserId?: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
@@ -137,6 +142,7 @@ export interface NotificationRecord {
   body: string;
   dedupeKey?: string | null;
   status: NotificationStatus;
+  deliveryError?: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
   readAt?: Date | null;

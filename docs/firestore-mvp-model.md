@@ -54,6 +54,13 @@ Warum diese Struktur:
 - Die 1:1-Beziehung zwischen User und Kalender wird technisch gestuetzt, weil pro User nur ein Dokument mit seiner UID existiert.
 - Dadurch wird die Gefahr mehrfacher Kalender pro User deutlich reduziert.
 - Die Zuordnung bleibt fuer Queries und Security Rules einfach.
+- `visibility` kann fuer das MVP inzwischen `restricted` oder `public` sein.
+
+Oeffentliche Kalender im MVP:
+
+- `restricted`: nur Owner und freigegebene Kontakte duerfen lesen
+- `public`: die oeffentliche Buchungsansicht darf freie Slots auch ohne Login anzeigen
+- die Sichtbarkeit oeffnet dabei nicht automatisch interne Owner-Ansichten oder Slot-Historien
 
 ## Subcollections unter `calendars/{calendarId}`
 
@@ -172,6 +179,19 @@ Aktuelle MVP-Buchung:
 - fuer Self-Service-Buchungen werden `bookedByUserId` und `bookedByEmail` mitgespeichert
 - der Slot wird dabei auf `booked` gesetzt und mit `appointmentId` verknuepft
 
+Ergaenzung fuer Gastbuchungen:
+
+- `participantName`
+- `guestBooking`
+- `accountCreationRequested`
+- `bookedByUserId` und `createdByUserId` koennen bei Gastbuchungen `null` sein
+
+Warum diese Felder:
+
+- Buchungen sind nicht mehr von einem vorhandenen Konto abhaengig
+- Name und E-Mail reichen fuer den Gast-MVP aus
+- spaetere Verknuepfung einer Gastbuchung mit einem echten User bleibt moeglich, ohne das Modell neu zu schneiden
+
 ### `notifications/{notificationId}`
 
 Enthaelt Benachrichtigungsdatensaetze fuer E-Mail und In-App.
@@ -180,6 +200,18 @@ Aktuelle MVP-Buchung:
 
 - bei erfolgreicher Slot-Buchung wird zunaechst eine In-App-/Datenbank-Notification fuer den Kalenderinhaber angelegt
 - der Versandkanal ist als `in_app` modelliert, ohne bereits eine volle Zustellung umzusetzen
+
+Ergaenzung fuer oeffentliche Gastbuchungen:
+
+- `booking_confirmation`
+  - vorbereitet fuer die spaetere E-Mail-Bestaetigung an den Gast
+- `account_creation_invite`
+  - vorbereitet fuer den spaeteren Flow zur E-Mail-Bestaetigung und Passwortsetzung
+
+Wichtig:
+
+- die Infrastruktur fuer echte E-Mail-Zustellung ist damit vorbereitet, aber noch nicht vollstaendig automatisiert
+- die Datenstruktur und Notification-Datensaetze sind jedoch so angelegt, dass spaetere Mail- oder Worker-Prozesse direkt darauf aufsetzen koennen
 
 Vorgesehene Notification-Typen und Texte:
 

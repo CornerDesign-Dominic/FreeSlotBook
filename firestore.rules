@@ -29,12 +29,28 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/calendars/$(calendarId)/access/$(signedInEmailKey())).data.status == 'approved';
     }
 
+    function isPublicCalendar(calendarId) {
+      return get(/databases/$(database)/documents/calendars/$(calendarId)).data.visibility == 'public';
+    }
+
     function calendarOwnerEmail(calendarId) {
       return get(/databases/$(database)/documents/calendars/$(calendarId)).data.ownerEmail;
     }
 
     function isAllowedSlotBookingUpdate(calendarId) {
       return hasCalendarAccess(calendarId)
+        && resource.data.status == 'available'
+        && request.resource.data.status == 'booked'
+        && resource.data.appointmentId == null
+        && request.resource.data.appointmentId is string
+        && request.resource.data.calendarId == resource.data.calendarId
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.startsAt == resource.data.startsAt
+        && request.resource.data.endsAt == resource.data.endsAt;
+    }
+
+    function isAllowedPublicSlotBookingUpdate(calendarId) {
+      return isPublicCalendar(calendarId)
         && resource.data.status == 'available'
         && request.resource.data.status == 'booked'
         && resource.data.appointmentId == null
@@ -56,7 +72,7 @@ service cloud.firestore {
     match /calendars/{calendarId} {
       allow create: if isOwner(calendarId)
         && request.resource.data.ownerId == request.auth.uid;
-      allow read: if ownsCalendar(calendarId) || hasCalendarAccess(calendarId);
+      allow read: if ownsCalendar(calendarId) || hasCalendarAccess(calendarId) || isPublicCalendar(calendarId);
       allow update, delete: if ownsCalendar(calendarId);
 
       match /access/{accessId} {
@@ -73,9 +89,11 @@ service cloud.firestore {
       }
 
       match /slots/{slotId} {
-        allow read: if ownsCalendar(calendarId) || hasCalendarAccess(calendarId);
+        allow read: if ownsCalendar(calendarId) || hasCalendarAccess(calendarId) || isPublicCalendar(calendarId);
         allow create, delete: if ownsCalendar(calendarId);
-        allow update: if ownsCalendar(calendarId) || isAllowedSlotBookingUpdate(calendarId);
+        allow update: if ownsCalendar(calendarId)
+          || isAllowedSlotBookingUpdate(calendarId)
+          || isAllowedPublicSlotBookingUpdate(calendarId);
 
         match /events/{eventId} {
           allow read: if ownsCalendar(calendarId);
@@ -83,6 +101,10 @@ service cloud.firestore {
             || (hasCalendarAccess(calendarId)
               && request.resource.data.type == 'booked'
               && request.resource.data.actorUid == request.auth.uid
+              && request.resource.data.actorRole == 'contact')
+            || (isPublicCalendar(calendarId)
+              && request.resource.data.type == 'booked'
+              && request.resource.data.actorUid == null
               && request.resource.data.actorRole == 'contact');
         }
       }
@@ -95,7 +117,14 @@ service cloud.firestore {
             && request.resource.data.participantEmail == signedInEmail()
             && request.resource.data.bookedByEmail == signedInEmail()
             && request.resource.data.bookedByUserId == request.auth.uid
-            && request.resource.data.status == 'booked');
+            && request.resource.data.status == 'booked')
+          || (isPublicCalendar(calendarId)
+            && request.resource.data.status == 'booked'
+            && request.resource.data.bookedByUserId == null
+            && request.resource.data.createdByUserId == null
+            && request.resource.data.guestBooking == true
+            && request.resource.data.bookedByEmail == request.resource.data.participantEmail
+            && request.resource.data.bookedByEmailKey == request.resource.data.participantEmailKey);
         allow update, delete: if ownsCalendar(calendarId);
       }
 
@@ -106,7 +135,16 @@ service cloud.firestore {
           || (hasCalendarAccess(calendarId)
             && request.resource.data.recipientEmailKey == get(/databases/$(database)/documents/calendars/$(calendarId)).data.ownerEmailKey
             && request.resource.data.type == 'booking_created'
-            && request.resource.data.channel == 'in_app');
+            && request.resource.data.channel == 'in_app')
+          || (isPublicCalendar(calendarId)
+            && (
+              (request.resource.data.type == 'booking_created'
+                && request.resource.data.recipientEmailKey == get(/databases/$(database)/documents/calendars/$(calendarId)).data.ownerEmailKey
+                && (request.resource.data.channel == 'in_app' || request.resource.data.channel == 'email'))
+              || ((request.resource.data.type == 'booking_confirmation'
+                  || request.resource.data.type == 'account_creation_invite')
+                && request.resource.data.channel == 'email')
+            ));
         allow update, delete: if ownsCalendar(calendarId)
           || (isSignedIn() && resource.data.recipientEmailKey == signedInEmailKey());
       }

@@ -7,7 +7,10 @@ import {
   formatMonthTitle,
   getSlotCountsByDay,
 } from '../../src/features/mvp/calendar-utils';
-import { updateCalendarNotificationSettings } from '../../src/features/mvp/repository';
+import {
+  updateCalendarNotificationSettings,
+  updateCalendarVisibility,
+} from '../../src/features/mvp/repository';
 import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useAuth } from '../../src/firebase/useAuth';
@@ -26,6 +29,7 @@ export default function MyCalendarScreen() {
   });
   const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
   const [togglingNotifications, setTogglingNotifications] = useState(false);
+  const [togglingVisibility, setTogglingVisibility] = useState(false);
 
   if (authLoading || loading || slotsLoading) {
     return (
@@ -69,6 +73,31 @@ export default function MyCalendarScreen() {
     }
   };
 
+  const handleToggleVisibility = async () => {
+    if (!calendar) {
+      return;
+    }
+
+    setTogglingVisibility(true);
+    setSettingsMessage(null);
+
+    try {
+      await updateCalendarVisibility({
+        calendarId: calendar.id,
+        visibility: calendar.visibility === 'public' ? 'restricted' : 'public',
+      });
+      setSettingsMessage('Kalendersichtbarkeit wurde aktualisiert.');
+    } catch (nextError) {
+      setSettingsMessage(
+        nextError instanceof Error
+          ? nextError.message
+          : 'Kalendersichtbarkeit konnte nicht aktualisiert werden.'
+      );
+    } finally {
+      setTogglingVisibility(false);
+    }
+  };
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
       <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>Mein Kalender</Text>
@@ -82,6 +111,24 @@ export default function MyCalendarScreen() {
             <Text style={{ color: 'black', marginBottom: 8 }}>
               Neue freie Slots benachrichtigen: {calendar.notifyOnNewSlotsAvailable ? 'aktiv' : 'inaktiv'}
             </Text>
+            <Pressable onPress={handleToggleVisibility} disabled={togglingVisibility}>
+              <Text style={{ color: 'black', textDecorationLine: 'underline', marginBottom: 12 }}>
+                {togglingVisibility
+                  ? 'Aktualisiere Sichtbarkeit...'
+                  : calendar.visibility === 'public'
+                    ? 'Kalender wieder eingeschraenkt machen'
+                    : 'Kalender oeffentlich machen'}
+              </Text>
+            </Pressable>
+            {calendar.visibility === 'public' ? (
+              <Link href={`/public-calendar/${calendar.id}`} asChild>
+                <Pressable style={{ alignSelf: 'flex-start', marginBottom: 12 }}>
+                  <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                    Oeffentliche Buchungsansicht oeffnen
+                  </Text>
+                </Pressable>
+              </Link>
+            ) : null}
             <Pressable onPress={handleToggleNewSlotsNotification} disabled={togglingNotifications}>
               <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
                 {togglingNotifications

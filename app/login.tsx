@@ -106,6 +106,10 @@ export default function LoginScreen() {
         </Pressable>
       </Link>
 
+      <Text>
+        Einladung nach einer Gastbuchung erhalten? Bitte zuerst den Link in der E-Mail nutzen und dort dein Passwort festlegen.
+      </Text>
+
       {message ? <Text>{message}</Text> : null}
     </View>
   );
