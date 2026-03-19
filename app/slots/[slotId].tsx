@@ -38,7 +38,7 @@ export default function SlotDetailRedirectScreen() {
         {error ?? 'Dieser Slot konnte nicht geladen werden.'}
       </Text>
       <Text style={{ color: 'black' }}>
-        Die kombinierte Tagesansicht ist jetzt die zentrale Ansicht fuer Slots und Historie.
+        Die Tagesansicht ist jetzt die zentrale Ansicht für Slots und Verlauf.
       </Text>
     </View>
   );

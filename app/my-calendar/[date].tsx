@@ -29,7 +29,7 @@ const hours = Array.from({ length: 24 }, (_, index) => index);
 
 function formatTime(value: Date | null) {
   if (!value) {
-    return 'Zeit nicht verfuegbar';
+    return 'Zeit nicht verfügbar';
   }
 
   return value.toLocaleTimeString('de-DE', {
@@ -40,7 +40,7 @@ function formatTime(value: Date | null) {
 
 function formatDateTime(value: Date | null) {
   if (!value) {
-    return 'Zeitpunkt nicht verfuegbar';
+    return 'Zeitpunkt nicht verfügbar';
   }
 
   return value.toLocaleString('de-DE');
@@ -59,7 +59,7 @@ function formatSlotStatus(status: SlotStatus) {
 
 function getFooterStatusHint(status: SlotStatus | null, hasAppointment: boolean) {
   if (!status) {
-    return 'Waehle einen Slot fuer Aktionen';
+    return 'Wähle einen Slot für Aktionen aus';
   }
 
   if (status === 'cancelled') {
@@ -67,7 +67,7 @@ function getFooterStatusHint(status: SlotStatus | null, hasAppointment: boolean)
   }
 
   if (status === 'booked' || hasAppointment) {
-    return 'Gebuchte Slots werden spaeter separat behandelt';
+    return 'Gebuchte Slots können hier nicht bearbeitet werden';
   }
 
   return 'Dieser Slot kann storniert werden';
@@ -180,9 +180,9 @@ export default function CalendarDayScreen() {
   if (!selectedDate) {
     return (
       <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black', marginBottom: 16 }}>Das gewaehlte Datum ist ungueltig.</Text>
+        <Text style={{ color: 'black', marginBottom: 16 }}>Das gewählte Datum ist ungültig.</Text>
         <Link href="/my-calendar">
-          <Text style={{ color: 'black', textDecorationLine: 'underline' }}>Zurueck zum Kalender</Text>
+          <Text style={{ color: 'black', textDecorationLine: 'underline' }}>Zurück zum Kalender</Text>
         </Link>
       </View>
     );
@@ -195,7 +195,7 @@ export default function CalendarDayScreen() {
 
     Alert.alert(
       'Slot stornieren',
-      'Der ausgewaehlte Slot wird auf storniert gesetzt und in der Historie vermerkt.',
+      'Der ausgewählte Slot wird storniert und in der Historie vermerkt.',
       [
         { text: 'Abbrechen', style: 'cancel' },
         {
@@ -265,7 +265,7 @@ export default function CalendarDayScreen() {
           }}>
           <Pressable onPress={() => navigateToRelativeDay(-1)}>
             <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-              {'<- vorheriger Tag'}
+              {'← Vorheriger Tag'}
             </Text>
           </Pressable>
 
@@ -275,7 +275,7 @@ export default function CalendarDayScreen() {
 
           <Pressable onPress={() => navigateToRelativeDay(1)}>
             <Text style={{ color: 'black', textDecorationLine: 'underline', textAlign: 'right' }}>
-              {'-> naechster Tag'}
+              {'Nächster Tag →'}
             </Text>
           </Pressable>
         </View>
@@ -359,7 +359,7 @@ export default function CalendarDayScreen() {
                           {formatSlotStatus(slot.status)}
                         </Text>
                         <Text style={{ color: 'black', fontSize: 12 }}>
-                          {slot.appointmentId ? 'Mit Termin verknuepft' : 'Noch nicht gebucht'}
+                          {slot.appointmentId ? 'Mit Termin verknüpft' : 'Noch nicht gebucht'}
                         </Text>
                       </Pressable>
                     );
@@ -367,7 +367,7 @@ export default function CalendarDayScreen() {
                 ) : (
                   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <Text style={{ color: 'black' }}>
-                      Fuer diesen Tag sind noch keine Slots vorhanden.
+                      Für diesen Tag gibt es noch keine Slots.
                     </Text>
                   </View>
                 )}
@@ -381,7 +381,7 @@ export default function CalendarDayScreen() {
 
         <View style={{ borderWidth: 1, borderColor: 'black', padding: 16 }}>
           <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>
-            Aktivitaet und Slot-Status
+            Aktivität und Slot-Status
           </Text>
 
           {selectedSlot ? (
@@ -394,7 +394,7 @@ export default function CalendarDayScreen() {
               </Text>
               <Text style={{ color: 'black', marginBottom: 12 }}>
                 {selectedSlot.appointmentId
-                  ? 'Dieser Slot ist bereits mit einem Termin verknuepft.'
+                  ? 'Dieser Slot ist bereits mit einem Termin verknüpft.'
                   : 'Dieser Slot ist aktuell noch keinem Termin zugeordnet.'}
               </Text>
             </>
@@ -433,7 +433,7 @@ export default function CalendarDayScreen() {
                 ))
               ) : (
                 <Text style={{ color: 'black' }}>
-                  Fuer den ausgewaehlten Slot ist bisher nur der aktuelle Zustand vorhanden.
+                  Für den ausgewählten Slot gibt es bisher nur den aktuellen Status.
                 </Text>
               )
             ) : null}
@@ -446,7 +446,7 @@ export default function CalendarDayScreen() {
         <View style={{ alignItems: 'flex-end', marginTop: 16 }}>
           <Link href="/my-calendar">
             <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-              Zurueck zur Monatsansicht
+              Zurück zur Monatsansicht
             </Text>
           </Link>
         </View>
@@ -465,7 +465,7 @@ export default function CalendarDayScreen() {
         }}>
         <Link href={`/my-calendar/create-slot?date=${rawDate}`} asChild>
           <Pressable style={{ paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: 'black' }}>
-            <Text style={{ color: 'black' }}>Slot hinzufuegen</Text>
+            <Text style={{ color: 'black' }}>Slot hinzufügen</Text>
           </Pressable>
         </Link>
 
@@ -481,7 +481,7 @@ export default function CalendarDayScreen() {
             </Pressable>
           ) : (
             <View style={{ paddingVertical: 10, paddingHorizontal: 12, opacity: 0.55 }}>
-              <Text style={{ color: 'black' }}>Keine Aktion verfuegbar</Text>
+              <Text style={{ color: 'black' }}>Keine Aktion verfügbar</Text>
             </View>
           )}
           <Text style={{ color: 'black', marginTop: 8, maxWidth: 220, textAlign: 'right' }}>

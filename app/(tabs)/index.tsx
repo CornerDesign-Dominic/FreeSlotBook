@@ -47,7 +47,7 @@ export default function HomeScreen() {
           {data.ownerCalendar ? (
             <>
               <Text style={{ color: 'black', marginBottom: 4 }}>
-                Dein Kalender ist eingerichtet und deinem Account fest zugeordnet.
+              Dein Kalender ist eingerichtet und mit deinem Konto verknüpft.
               </Text>
               <Text style={{ color: 'black', marginBottom: 12 }}>
                 Sichtbarkeit: {data.ownerCalendar.visibility}
@@ -55,13 +55,13 @@ export default function HomeScreen() {
             </>
           ) : (
             <Text style={{ color: 'black', marginBottom: 12 }}>
-              Dein persoenlicher Kalender wird gerade vorbereitet.
+              Dein persönlicher Kalender wird gerade eingerichtet.
             </Text>
           )}
           <Link href="/my-calendar" asChild>
             <Pressable style={{ alignSelf: 'flex-start' }}>
               <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-                Kalender oeffnen
+                Kalender öffnen
               </Text>
             </Pressable>
           </Link>
@@ -83,13 +83,13 @@ export default function HomeScreen() {
                   {notification.title || 'Benachrichtigung'}
                 </Text>
                 <Text style={{ color: 'black' }}>
-                  {notification.body || 'Keine weiteren Details verfuegbar.'}
+                  {notification.body || 'Keine weiteren Details verfügbar.'}
                 </Text>
               </View>
             ))
           ) : (
             <Text style={{ color: 'black' }}>
-              Du hast aktuell keine relevanten Termin-Benachrichtigungen.
+              Du hast aktuell keine neuen Termin-Infos.
             </Text>
           )}
         </View>
@@ -108,7 +108,7 @@ export default function HomeScreen() {
             ))
           ) : (
             <Text style={{ color: 'black' }}>
-              Du bist aktuell keinem fremden Kalender beigetreten.
+              Du hast aktuell keinen freigegebenen Kalender.
             </Text>
           )}
           <Link href="/request-calendar-access" asChild>
@@ -124,7 +124,7 @@ export default function HomeScreen() {
         {error ? <Text style={{ color: 'black', marginBottom: 16 }}>{error}</Text> : null}
 
         <Text style={{ color: 'black' }} onPress={handleLogout}>
-          Logout
+          Abmelden
         </Text>
       </View>
     );
@@ -142,7 +142,7 @@ export default function HomeScreen() {
       <Text style={{ color: 'black', fontSize: 28, marginBottom: 8 }}>
         FreeSlotBooking
       </Text>
-      <Text style={{ color: 'black', fontSize: 16 }}>Waehle eine Option</Text>
+      <Text style={{ color: 'black', fontSize: 16 }}>Wähle eine Option</Text>
       <Link href="/login" style={{ marginTop: 12 }}>
         <Text style={{ color: 'black' }}>Anmelden</Text>
       </Link>

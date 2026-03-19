@@ -58,10 +58,10 @@ function isMissingFirestoreIndexError(error: unknown) {
 
 function getDashboardLoadErrorMessage(error: unknown) {
   if (isMissingFirestoreIndexError(error)) {
-    return 'Der Firestore-Index fuer die access-collectionGroup fehlt noch.';
+    return 'Für diese Ansicht fehlt noch ein Firestore-Index.';
   }
 
-  return getFirestoreErrorMessage(error) ?? 'Dashboard data could not be loaded.';
+  return getFirestoreErrorMessage(error) ?? 'Das Dashboard konnte nicht geladen werden.';
 }
 
 function resolveNormalizedEmailKey(value: unknown) {
@@ -376,12 +376,12 @@ function buildNotificationContent(params: {
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-    }) ?? 'Zeitpunkt nicht verfuegbar';
+  }) ?? 'Zeitpunkt nicht verfügbar';
 
   switch (params.type) {
     case 'slot_assigned':
       return {
-        title: 'Slotzeit erhalten',
+        title: 'Slot erhalten',
         body: `Slotzeit am ${dateTimeLabel} erhalten`,
       };
     case 'slot_cancelled':
@@ -406,13 +406,13 @@ function buildNotificationContent(params: {
       };
     case 'booking_confirmation':
       return {
-        title: 'Buchung bestaetigt',
+        title: 'Buchung bestätigt',
         body: `Deine Buchung am ${dateTimeLabel} wurde gespeichert`,
       };
     case 'account_creation_invite':
       return {
         title: 'Konto vorbereiten',
-        body: `Bestaetige deine E-Mail fuer ein spaeteres Konto zu ${ownerLabel}`,
+      body: `Bestätige deine E-Mail für ein späteres Konto bei ${ownerLabel}`,
       };
     default:
       return {
@@ -426,7 +426,7 @@ export async function ensureOwnerAccountSetup(params: { uid: string; email: stri
   const trimmedEmail = params.email.trim();
 
   if (!trimmedEmail) {
-    throw new Error('A signed-in user email is required to initialize calendar data.');
+    throw new Error('Für die Einrichtung des Kalenders ist eine E-Mail-Adresse erforderlich.');
   }
 
   const emailKey = normalizeEmail(trimmedEmail);
@@ -719,7 +719,7 @@ export async function upsertCalendarAccess(params: {
   const trimmedEmail = params.granteeEmail.trim();
 
   if (!trimmedEmail) {
-    throw new Error('A grantee email is required.');
+    throw new Error('Bitte gib eine E-Mail-Adresse ein.');
   }
 
   const emailKey = normalizeEmail(trimmedEmail);
@@ -748,7 +748,7 @@ export async function upsertCalendarAccessRequest(params: {
   const trimmedEmail = params.requesterEmail.trim();
 
   if (!trimmedEmail) {
-    throw new Error('A requester email is required.');
+    throw new Error('Bitte gib eine E-Mail-Adresse an.');
   }
 
   const emailKey = normalizeEmail(trimmedEmail);
@@ -827,7 +827,7 @@ export async function requestCalendarAccessByOwnerEmail(params: {
   const requesterEmailKey = normalizeEmail(trimmedRequesterEmail);
 
   if (ownerEmailKey === requesterEmailKey) {
-    throw new Error('Fuer den eigenen Kalender muss keine Zugriffsanfrage gestellt werden.');
+    throw new Error('Für den eigenen Kalender musst du keine Anfrage stellen.');
   }
 
   const calendarsQuery = query(
@@ -859,7 +859,7 @@ export async function requestCalendarAccessByOwnerEmail(params: {
   }
 
   if (calendar.visibility !== 'restricted') {
-    throw new Error('Nur eingeschraenkte Kalender verwenden derzeit die Anfrage-Logik.');
+    throw new Error('Anfragen sind aktuell nur für eingeschränkte Kalender verfügbar.');
   }
 
   await upsertCalendarAccessRequest({
@@ -879,7 +879,7 @@ export async function approveCalendarAccessRequest(params: {
   const trimmedRequesterEmail = params.requesterEmail.trim();
 
   if (!trimmedRequesterEmail) {
-    throw new Error('Eine Anfrage-E-Mail ist erforderlich.');
+    throw new Error('Für die Anfrage ist eine E-Mail-Adresse erforderlich.');
   }
 
   const requesterEmailKey = normalizeEmail(trimmedRequesterEmail);
@@ -890,7 +890,7 @@ export async function approveCalendarAccessRequest(params: {
     const requestSnapshot = await transaction.get(requestRef);
 
     if (!requestSnapshot.exists()) {
-      throw new Error('Die ausgewaehlte Anfrage existiert nicht mehr.');
+    throw new Error('Die ausgewählte Anfrage existiert nicht mehr.');
     }
 
     transaction.set(
@@ -925,7 +925,7 @@ export async function rejectCalendarAccessRequest(params: {
   const trimmedRequesterEmail = params.requesterEmail.trim();
 
   if (!trimmedRequesterEmail) {
-    throw new Error('Eine Anfrage-E-Mail ist erforderlich.');
+    throw new Error('Für die Anfrage ist eine E-Mail-Adresse erforderlich.');
   }
 
   const requesterEmailKey = normalizeEmail(trimmedRequesterEmail);
@@ -960,7 +960,7 @@ export async function updateCalendarVisibility(params: {
   const normalizedSlug = validatePublicSlug(params.publicSlug);
 
   if (params.visibility === 'public' && !normalizedSlug) {
-    throw new Error('Bitte hinterlege zuerst einen gueltigen oeffentlichen Slug.');
+    throw new Error('Bitte hinterlege zuerst einen gültigen öffentlichen Link.');
   }
 
   await runTransaction(db, async (transaction) => {
@@ -1086,7 +1086,7 @@ export async function createCalendarSlot(params: {
   endsAt: Date;
 }) {
   if (params.endsAt <= params.startsAt) {
-    throw new Error('Slot end must be after slot start.');
+    throw new Error('Die Endzeit muss nach der Startzeit liegen.');
   }
 
   const slotRef = doc(calendarSlotsCollection(params.calendarId));
@@ -1152,7 +1152,7 @@ export async function createCalendarSlotWithOptionalAssignment(params: {
   }
 
   if (params.endsAt <= params.startsAt) {
-    throw new Error('Slot end must be after slot start.');
+    throw new Error('Die Endzeit muss nach der Startzeit liegen.');
   }
 
   const assigneeEmailKey = normalizeEmail(trimmedAssigneeEmail);
@@ -1170,11 +1170,11 @@ export async function createCalendarSlotWithOptionalAssignment(params: {
     ]);
 
     if (!calendarSnapshot.exists()) {
-      throw new Error('Der Kalender ist nicht mehr verfuegbar.');
+    throw new Error('Der Kalender ist nicht mehr verfügbar.');
     }
 
     if (!accessSnapshot.exists() || accessSnapshot.data().status !== 'approved') {
-      throw new Error('Die ausgewaehlte Person ist aktuell nicht freigegeben.');
+    throw new Error('Die ausgewählte Person ist aktuell nicht freigegeben.');
     }
 
     const calendar = mapCalendar(
@@ -1255,14 +1255,14 @@ export async function createCalendarSlotsBatch(params: {
   slots: { startsAt: Date; endsAt: Date }[];
 }) {
   if (!params.slots.length) {
-    throw new Error('No valid slots could be generated from the selected range.');
+    throw new Error('Aus dem gewählten Zeitraum konnten keine gültigen Slots erstellt werden.');
   }
 
   const batch = writeBatch(db);
 
   for (const slotWindow of params.slots) {
     if (slotWindow.endsAt <= slotWindow.startsAt) {
-      throw new Error('Slot end must be after slot start.');
+    throw new Error('Die Endzeit muss nach der Startzeit liegen.');
     }
 
     const slotRef = doc(calendarSlotsCollection(params.calendarId));
@@ -1344,13 +1344,13 @@ export async function cancelCalendarSlot(params: {
     const snapshot = await transaction.get(slotRef);
 
     if (!snapshot.exists()) {
-      throw new Error('The selected slot no longer exists.');
+    throw new Error('Der ausgewählte Slot existiert nicht mehr.');
     }
 
     const slot = mapSlot(snapshot.id, snapshot.data() as Record<string, unknown>);
 
     if (slot.status === 'booked' || slot.appointmentId) {
-      throw new Error('Booked slots cannot be removed.');
+    throw new Error('Gebuchte Slots können nicht entfernt werden.');
     }
 
     if (slot.status === 'cancelled') {
@@ -1432,7 +1432,7 @@ export async function createAppointment(params: {
   const trimmedEmail = params.participantEmail.trim();
 
   if (!trimmedEmail) {
-    throw new Error('A participant email is required.');
+    throw new Error('Für den Termin ist eine E-Mail-Adresse erforderlich.');
   }
 
   const appointmentRef = await addDoc(calendarAppointmentsCollection(params.calendarId), {
@@ -1492,7 +1492,7 @@ export async function bookSharedCalendarSlot(params: {
   const trimmedEmail = params.bookedByEmail.trim();
 
   if (!trimmedEmail) {
-    throw new Error('Eine E-Mail fuer die Buchung ist erforderlich.');
+    throw new Error('Für die Buchung ist eine E-Mail-Adresse erforderlich.');
   }
 
   const bookedByEmailKey = normalizeEmail(trimmedEmail);
@@ -1512,7 +1512,7 @@ export async function bookSharedCalendarSlot(params: {
     ]);
 
     if (!calendarSnapshot.exists()) {
-      throw new Error('Der ausgewaehlte Kalender existiert nicht mehr.');
+    throw new Error('Der ausgewählte Kalender existiert nicht mehr.');
     }
 
     if (!accessSnapshot.exists() || accessSnapshot.data().status !== 'approved') {
@@ -1520,7 +1520,7 @@ export async function bookSharedCalendarSlot(params: {
     }
 
     if (!slotSnapshot.exists()) {
-      throw new Error('Der ausgewaehlte Slot existiert nicht mehr.');
+    throw new Error('Der ausgewählte Slot existiert nicht mehr.');
     }
 
     const calendar = mapCalendar(
@@ -1530,15 +1530,15 @@ export async function bookSharedCalendarSlot(params: {
     const slot = mapSlot(slotSnapshot.id, slotSnapshot.data() as Record<string, unknown>);
 
     if (calendar.ownerId === params.bookedByUid) {
-      throw new Error('Eigene Slots werden nicht ueber den Fremdnutzer-Flow gebucht.');
+    throw new Error('Eigene Slots können nicht über diese Ansicht gebucht werden.');
     }
 
     if (!slot.startsAt || !slot.endsAt) {
-      throw new Error('Dem Slot fehlen gueltige Zeitdaten.');
+    throw new Error('Für diesen Slot fehlen gültige Zeitangaben.');
     }
 
     if (slot.status !== 'available' || slot.appointmentId) {
-      throw new Error('Dieser Slot ist nicht mehr verfuegbar.');
+    throw new Error('Dieser Slot ist nicht mehr verfügbar.');
     }
 
     transaction.set(appointmentRef, {
@@ -1645,7 +1645,7 @@ export async function bookPublicCalendarSlot(params: {
   }
 
   if (!params.termsAccepted || !params.privacyAccepted) {
-    throw new Error('Bitte akzeptiere AGB und Datenschutzerklaerung vor der Buchung.');
+    throw new Error('Bitte akzeptiere vor der Buchung die AGB und die Datenschutzerklärung.');
   }
 
   const participantEmailKey = normalizeEmail(trimmedEmail);
@@ -1664,11 +1664,11 @@ export async function bookPublicCalendarSlot(params: {
     ]);
 
     if (!calendarSnapshot.exists()) {
-      throw new Error('Der ausgewaehlte Kalender existiert nicht mehr.');
+    throw new Error('Der ausgewählte Kalender existiert nicht mehr.');
     }
 
     if (!slotSnapshot.exists()) {
-      throw new Error('Der ausgewaehlte Slot existiert nicht mehr.');
+    throw new Error('Der ausgewählte Slot existiert nicht mehr.');
     }
 
     const calendar = mapCalendar(
@@ -1678,15 +1678,15 @@ export async function bookPublicCalendarSlot(params: {
     const slot = mapSlot(slotSnapshot.id, slotSnapshot.data() as Record<string, unknown>);
 
     if (calendar.visibility !== 'public') {
-      throw new Error('Dieser Kalender ist nicht oeffentlich buchbar.');
+    throw new Error('Dieser Kalender kann nicht öffentlich gebucht werden.');
     }
 
     if (!slot.startsAt || !slot.endsAt) {
-      throw new Error('Dem Slot fehlen gueltige Zeitdaten.');
+    throw new Error('Für diesen Slot fehlen gültige Zeitangaben.');
     }
 
     if (slot.status !== 'available' || slot.appointmentId) {
-      throw new Error('Dieser Slot ist nicht mehr verfuegbar.');
+    throw new Error('Dieser Slot ist nicht mehr verfügbar.');
     }
 
     const ownerContent = buildNotificationContent({
@@ -1817,7 +1817,7 @@ export async function cancelAppointmentByOwner(params: {
   const calendarSnapshot = await getDoc(calendarDoc(params.calendarId));
 
   if (!calendarSnapshot.exists()) {
-    throw new Error('Der zugehoerige Kalender existiert nicht mehr.');
+    throw new Error('Der zugehörige Kalender existiert nicht mehr.');
   }
 
   const calendar = mapCalendar(
@@ -1883,7 +1883,7 @@ export async function createNotificationRecord(params: {
   const trimmedEmail = params.recipientEmail.trim();
 
   if (!trimmedEmail) {
-    throw new Error('A recipient email is required.');
+    throw new Error('Für die Benachrichtigung ist eine E-Mail-Adresse erforderlich.');
   }
 
   const content = buildNotificationContent({

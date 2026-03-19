@@ -46,7 +46,7 @@ export function useOwnerCalendar(user: { uid: string; email: string | null } | n
           setError(
             nextError instanceof Error
               ? nextError.message
-              : 'Calendar data could not be loaded.'
+              : 'Die Kalenderdaten konnten nicht geladen werden.'
           );
           setLoading(false);
         }

@@ -10,7 +10,7 @@ import { useAuth } from '../../src/firebase/useAuth';
 
 function formatDateTime(value: Date | null) {
   if (!value) {
-    return 'Zeitpunkt nicht verfuegbar';
+    return 'Zeitpunkt nicht verfügbar';
   }
 
   return value.toLocaleString('de-DE');
@@ -91,7 +91,7 @@ export default function SharedCalendarScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
-      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>Freigegebener Kalender</Text>
+      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>Geteilter Kalender</Text>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
         {calendar ? (
@@ -108,7 +108,7 @@ export default function SharedCalendarScreen() {
       </View>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>Verfuegbare Slots</Text>
+        <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>Verfügbare Slots</Text>
         {availableSlots.length ? (
           availableSlots.map((slot) => (
             <Pressable
@@ -137,7 +137,7 @@ export default function SharedCalendarScreen() {
           ))
         ) : (
           <Text style={{ color: 'black' }}>
-            In diesem freigegebenen Kalender sind aktuell keine verfuegbaren Slots vorhanden.
+            In diesem geteilten Kalender sind aktuell keine verfügbaren Slots vorhanden.
           </Text>
         )}
 
@@ -149,17 +149,17 @@ export default function SharedCalendarScreen() {
         {selectedSlot ? (
           <>
             <Text style={{ color: 'black', marginBottom: 4 }}>
-              Ausgewaehlter Slot: {formatDateTime(selectedSlot.startsAt)} bis {formatDateTime(selectedSlot.endsAt)}
+              Ausgewählter Slot: {formatDateTime(selectedSlot.startsAt)} bis {formatDateTime(selectedSlot.endsAt)}
             </Text>
             <Text style={{ color: 'black', marginBottom: 12 }}>
               {calendar?.ownerId === user?.uid
-                ? 'Eigene Slots werden nicht ueber diese Fremdansicht gebucht.'
-                : 'Dieser verfuegbare Slot kann jetzt direkt gebucht werden.'}
+                ? 'Eigene Slots können nicht über diese Ansicht gebucht werden.'
+                : 'Diesen freien Slot kannst du jetzt direkt buchen.'}
             </Text>
           </>
         ) : (
           <Text style={{ color: 'black', marginBottom: 12 }}>
-            Waehle oben einen verfuegbaren Slot aus, um ihn zu buchen.
+            Wähle oben einen freien Slot aus, um ihn zu buchen.
           </Text>
         )}
 
@@ -174,7 +174,7 @@ export default function SharedCalendarScreen() {
             opacity: !canBook || submitting ? 0.55 : 1,
           }}>
           <Text style={{ color: 'black' }}>
-            {submitting ? 'Buche Slot...' : 'Slot buchen'}
+            {submitting ? 'Buche Slot...' : 'Jetzt buchen'}
           </Text>
         </Pressable>
 
@@ -184,7 +184,7 @@ export default function SharedCalendarScreen() {
       <View style={{ alignItems: 'flex-end' }}>
         <Link href="/(tabs)">
           <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-            Zurueck zum Dashboard
+            Zurück zum Dashboard
           </Text>
         </Link>
       </View>

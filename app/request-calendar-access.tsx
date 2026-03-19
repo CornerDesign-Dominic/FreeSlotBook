@@ -33,7 +33,7 @@ export default function RequestCalendarAccessScreen() {
         requesterEmail: user.email,
       });
       setMessage(
-        `Deine Anfrage fuer den Kalender von ${calendar.ownerEmail || trimmedOwnerEmail} wurde gespeichert.`
+        `Deine Anfrage für den Kalender von ${calendar.ownerEmail || trimmedOwnerEmail} wurde gespeichert.`
       );
       setOwnerEmailInput('');
     } catch (nextError) {
@@ -74,12 +74,12 @@ export default function RequestCalendarAccessScreen() {
           disabled={submitting || !user?.email}
           style={{ borderWidth: 1, borderColor: 'black', paddingVertical: 12, alignItems: 'center', opacity: submitting ? 0.6 : 1 }}>
           <Text style={{ color: 'black' }}>
-            {submitting ? 'Sende Anfrage...' : 'Zugriffsanfrage senden'}
+            {submitting ? 'Sende Anfrage...' : 'Anfrage senden'}
           </Text>
         </Pressable>
 
         <Text style={{ color: 'black', marginTop: 12 }}>
-          Die Anfrage wird als echter Firestore-Datensatz gespeichert und kann vom Kalenderinhaber angenommen oder abgelehnt werden.
+          Deine Anfrage wird gespeichert und kann vom Kalenderinhaber angenommen oder abgelehnt werden.
         </Text>
         {message ? <Text style={{ color: 'black', marginTop: 12 }}>{message}</Text> : null}
       </View>
@@ -87,7 +87,7 @@ export default function RequestCalendarAccessScreen() {
       <View style={{ alignItems: 'flex-end' }}>
         <Link href="/(tabs)">
           <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-            Zurueck zum Dashboard
+            Zurück zum Dashboard
           </Text>
         </Link>
       </View>

@@ -15,17 +15,17 @@ function getRegisterErrorMessage(error: unknown) {
   if (error instanceof FirebaseError) {
     switch (error.code) {
       case 'auth/email-already-in-use':
-        return 'An account with this email already exists.';
+        return 'Für diese E-Mail-Adresse gibt es bereits ein Konto.';
       case 'auth/invalid-email':
-        return 'Please enter a valid email address.';
+        return 'Bitte gib eine gültige E-Mail-Adresse ein.';
       case 'auth/weak-password':
-        return 'Password must be at least 6 characters.';
+        return 'Das Passwort muss mindestens 6 Zeichen lang sein.';
       default:
-        return 'Unable to create your account. Please try again.';
+        return 'Dein Konto konnte gerade nicht erstellt werden. Bitte versuche es noch einmal.';
     }
   }
 
-  return 'Unable to create your account. Please try again.';
+  return 'Dein Konto konnte gerade nicht erstellt werden. Bitte versuche es noch einmal.';
 }
 
 export default function RegisterScreen() {
@@ -47,22 +47,22 @@ export default function RegisterScreen() {
     const trimmedEmail = email.trim();
 
     if (!trimmedEmail) {
-      setMessage('Email is required.');
+      setMessage('Bitte gib deine E-Mail-Adresse ein.');
       return;
     }
 
     if (!isValidEmail(trimmedEmail)) {
-      setMessage('Please enter a valid email address.');
+      setMessage('Bitte gib eine gültige E-Mail-Adresse ein.');
       return;
     }
 
     if (!password) {
-      setMessage('Password is required.');
+      setMessage('Bitte gib ein Passwort ein.');
       return;
     }
 
     if (password.length < 6) {
-      setMessage('Password must be at least 6 characters.');
+      setMessage('Das Passwort muss mindestens 6 Zeichen lang sein.');
       return;
     }
 
@@ -79,7 +79,7 @@ export default function RegisterScreen() {
       await logout();
       setAwaitingVerification(true);
       setMessage(
-        'Wir haben dir eine E-Mail geschickt. Bitte bestaetige deine Adresse, bevor du dich einloggen kannst.'
+        'Wir haben dir eine E-Mail geschickt. Bitte bestätige deine Adresse, bevor du dich anmelden kannst.'
       );
     } catch (error) {
       setMessage(getRegisterErrorMessage(error));
@@ -90,10 +90,10 @@ export default function RegisterScreen() {
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 24 }}>Register</Text>
+      <Text style={{ fontSize: 24 }}>Konto erstellen</Text>
 
       <TextInput
-        placeholder="Email"
+        placeholder="E-Mail"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -102,7 +102,7 @@ export default function RegisterScreen() {
       />
 
       <TextInput
-        placeholder="Password"
+        placeholder="Passwort"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -110,7 +110,7 @@ export default function RegisterScreen() {
       />
 
       <Button
-        title={submitting ? 'Creating account...' : 'Create account'}
+        title={submitting ? 'Erstelle Konto...' : 'Konto erstellen'}
         onPress={handleRegister}
         disabled={submitting}
       />

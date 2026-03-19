@@ -108,7 +108,7 @@ export default function CreateSlotScreen() {
 
   const handleCreateSlot = async () => {
     if (!calendar || !user) {
-      setMessage('Dein Kalender ist noch nicht verfuegbar.');
+      setMessage('Dein Kalender ist noch nicht verfügbar.');
       return;
     }
 
@@ -116,12 +116,12 @@ export default function CreateSlotScreen() {
     const endDate = endDateInput.trim() ? parseGermanDateInput(endDateInput) : startDate;
 
     if (!startDate) {
-      setMessage('Bitte gib ein gueltiges Startdatum im Format TT.MM.YYYY ein.');
+      setMessage('Bitte gib ein gültiges Startdatum im Format TT.MM.JJJJ ein.');
       return;
     }
 
     if (!endDate) {
-      setMessage('Bitte gib ein gueltiges Enddatum im Format TT.MM.YYYY ein.');
+      setMessage('Bitte gib ein gültiges Enddatum im Format TT.MM.JJJJ ein.');
       return;
     }
 
@@ -156,7 +156,7 @@ export default function CreateSlotScreen() {
     const overlappingSlots = findOverlappingSlots(slots, [{ startsAt, endsAt }]);
 
     if (overlappingSlots.length) {
-      setMessage('Der neue Slot ueberschneidet sich mit einem bereits vorhandenen Slot.');
+      setMessage('Dieser Slot überschneidet sich mit einem bestehenden Slot.');
       return;
     }
 
@@ -175,7 +175,7 @@ export default function CreateSlotScreen() {
       router.replace(`/my-calendar/${getDayKey(startsAt)}?slotId=${slotId}`);
     } catch (nextError) {
       setMessage(
-        nextError instanceof Error ? nextError.message : 'Der Slot konnte nicht erstellt werden.'
+        nextError instanceof Error ? nextError.message : 'Der Slot konnte nicht gespeichert werden.'
       );
     } finally {
       setSubmitting(false);
@@ -201,7 +201,7 @@ export default function CreateSlotScreen() {
       <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>Slot erstellen</Text>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', marginBottom: 8 }}>Slotdatum von</Text>
+        <Text style={{ color: 'black', marginBottom: 8 }}>Datum</Text>
         <View style={{ flexDirection: 'row', marginBottom: 12 }}>
           <TextInput
             placeholder="TT.MM.YYYY"
@@ -217,7 +217,7 @@ export default function CreateSlotScreen() {
           </Pressable>
         </View>
 
-        <Text style={{ color: 'black', marginBottom: 8 }}>Slotzeit von</Text>
+        <Text style={{ color: 'black', marginBottom: 8 }}>Startzeit</Text>
         <TextInput
           placeholder="HH:MM"
           value={startTimeInput}
@@ -227,7 +227,7 @@ export default function CreateSlotScreen() {
           style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 12 }}
         />
 
-        <Text style={{ color: 'black', marginBottom: 8 }}>Slotzeit bis</Text>
+        <Text style={{ color: 'black', marginBottom: 8 }}>Endzeit</Text>
         <TextInput
           placeholder="HH:MM"
           value={endTimeInput}
@@ -237,7 +237,7 @@ export default function CreateSlotScreen() {
           style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 12 }}
         />
 
-        <Text style={{ color: 'black', marginBottom: 8 }}>Slotdatum bis (optional)</Text>
+        <Text style={{ color: 'black', marginBottom: 8 }}>Enddatum (optional)</Text>
         <View style={{ flexDirection: 'row', marginBottom: 12 }}>
           <TextInput
             placeholder="TT.MM.YYYY"
@@ -254,7 +254,7 @@ export default function CreateSlotScreen() {
         </View>
 
         <Text style={{ color: 'black', marginBottom: 16 }}>
-          Wenn kein Enddatum gesetzt ist, endet der Slot am selben Tag wie er beginnt.
+          Wenn du kein Enddatum angibst, endet der Slot am selben Tag.
         </Text>
 
         <Pressable
@@ -262,15 +262,15 @@ export default function CreateSlotScreen() {
           style={{ marginBottom: 12 }}>
           <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
             {showAssignmentSection
-              ? 'Optionale Direktzuweisung ausblenden'
-              : 'Optional direkt Terminnehmenden zuweisen'}
+              ? 'Direktzuweisung ausblenden'
+              : 'Slot direkt einer Person zuweisen'}
           </Text>
         </Pressable>
 
         {showAssignmentSection ? (
           <View style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 16 }}>
             <Text style={{ color: 'black', marginBottom: 8 }}>
-              Diese seltene Option belegt den Slot direkt beim Erstellen.
+              Damit wird der Slot direkt beim Erstellen vergeben.
             </Text>
 
             {approvedAccessRecords.length ? (
@@ -292,21 +292,21 @@ export default function CreateSlotScreen() {
                     }}>
                     <Text style={{ color: 'black', marginBottom: 4 }}>{record.granteeEmail}</Text>
                     <Text style={{ color: 'black' }}>
-                      {isSelected ? 'Wird direkt zugewiesen' : 'Antippen zum Auswaehlen'}
+                      {isSelected ? 'Wird direkt zugewiesen' : 'Antippen zum Auswählen'}
                     </Text>
                   </Pressable>
                 );
               })
             ) : (
               <Text style={{ color: 'black' }}>
-                Es sind aktuell keine freigegebenen Personen verfuegbar.
+                Es sind aktuell keine freigegebenen Personen verfügbar.
               </Text>
             )}
 
             {selectedAssigneeEmail ? (
               <Pressable onPress={() => setSelectedAssigneeEmail(null)} style={{ marginTop: 12 }}>
                 <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-                  Direktzuweisung wieder entfernen
+                  Direktzuweisung entfernen
                 </Text>
               </Pressable>
             ) : null}
@@ -324,7 +324,7 @@ export default function CreateSlotScreen() {
             opacity: submitting || !calendar ? 0.6 : 1,
           }}>
           <Text style={{ color: 'black' }}>
-            {submitting ? 'Slot wird erstellt...' : 'Slot speichern'}
+            {submitting ? 'Speichere Slot...' : 'Slot speichern'}
           </Text>
         </Pressable>
 
@@ -342,7 +342,7 @@ export default function CreateSlotScreen() {
             )
           }>
           <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-            {preselectedDateParam ? 'Zurueck zur Tagesansicht' : 'Zurueck zum Kalender'}
+            {preselectedDateParam ? 'Zurück zur Tagesansicht' : 'Zurück zum Kalender'}
           </Text>
         </Pressable>
       </View>
@@ -369,7 +369,7 @@ export default function CreateSlotScreen() {
                       new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
                   )
                 }>
-                <Text style={{ color: 'black', textDecorationLine: 'underline' }}>Zurueck</Text>
+                <Text style={{ color: 'black', textDecorationLine: 'underline' }}>Zurück</Text>
               </Pressable>
               <Text style={{ color: 'black', fontSize: 18 }}>{formatMonthTitle(pickerMonth)}</Text>
               <Pressable
@@ -428,7 +428,7 @@ export default function CreateSlotScreen() {
             <View style={{ marginTop: 16, alignItems: 'flex-end' }}>
               <Pressable onPress={closePicker}>
                 <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-                  Kalender schliessen
+                  Kalender schließen
                 </Text>
               </Pressable>
             </View>

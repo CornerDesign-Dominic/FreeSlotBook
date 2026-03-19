@@ -14,36 +14,36 @@ function getLoginErrorMessage(error: unknown) {
   if (error instanceof FirebaseError) {
     switch (error.code) {
       case 'auth/invalid-email':
-        return 'Please enter a valid email address.';
+        return 'Bitte gib eine gültige E-Mail-Adresse ein.';
       case 'auth/invalid-credential':
       case 'auth/wrong-password':
-        return 'Incorrect email or password.';
+        return 'E-Mail oder Passwort ist nicht korrekt.';
       case 'auth/user-not-found':
-        return 'No account found for this email.';
+        return 'Für diese E-Mail-Adresse wurde kein Konto gefunden.';
       default:
-        return 'Unable to log in right now. Please try again.';
+        return 'Anmeldung ist gerade nicht möglich. Bitte versuche es noch einmal.';
     }
   }
 
-  return 'Unable to log in right now. Please try again.';
+  return 'Anmeldung ist gerade nicht möglich. Bitte versuche es noch einmal.';
 }
 
 function getVerificationEmailErrorMessage(error: unknown) {
   if (error instanceof FirebaseError) {
     switch (error.code) {
       case 'auth/too-many-requests':
-        return 'Die Bestaetigungs-E-Mail konnte gerade nicht erneut gesendet werden. Bitte versuche es spaeter noch einmal.';
+        return 'Die Bestätigungs-E-Mail konnte gerade nicht erneut gesendet werden. Bitte versuche es später noch einmal.';
       case 'auth/network-request-failed':
-        return 'Die Bestaetigungs-E-Mail konnte wegen eines Netzwerkproblems nicht gesendet werden.';
+        return 'Die Bestätigungs-E-Mail konnte wegen eines Netzwerkproblems nicht gesendet werden.';
       case 'auth/user-token-expired':
       case 'auth/requires-recent-login':
-        return 'Bitte melde dich erneut an, um die Bestaetigungs-E-Mail zu senden.';
+        return 'Bitte melde dich erneut an, um die Bestätigungs-E-Mail zu senden.';
       default:
-        return 'Die Bestaetigungs-E-Mail konnte gerade nicht gesendet werden.';
+        return 'Die Bestätigungs-E-Mail konnte gerade nicht gesendet werden.';
     }
   }
 
-  return 'Die Bestaetigungs-E-Mail konnte gerade nicht gesendet werden.';
+  return 'Die Bestätigungs-E-Mail konnte gerade nicht gesendet werden.';
 }
 
 function getSafeRedirectTarget(value: string | string[] | undefined) {
@@ -81,17 +81,17 @@ export default function LoginScreen() {
     const trimmedEmail = email.trim();
 
     if (!trimmedEmail) {
-      setMessage('Email is required.');
+      setMessage('Bitte gib deine E-Mail-Adresse ein.');
       return;
     }
 
     if (!isValidEmail(trimmedEmail)) {
-      setMessage('Please enter a valid email address.');
+      setMessage('Bitte gib eine gültige E-Mail-Adresse ein.');
       return;
     }
 
     if (!password) {
-      setMessage('Password is required.');
+      setMessage('Bitte gib dein Passwort ein.');
       return;
     }
 
@@ -106,7 +106,7 @@ export default function LoginScreen() {
         await logout();
         setCanResendVerification(true);
         setMessage(
-          'Bitte bestaetige zuerst deine E-Mail-Adresse ueber den Link in der Willkommensmail.'
+          'Bitte bestätige zuerst deine E-Mail-Adresse über den Link in der Willkommens-E-Mail.'
         );
         return;
       }
@@ -123,7 +123,7 @@ export default function LoginScreen() {
     const trimmedEmail = email.trim();
 
     if (!trimmedEmail || !password) {
-      setMessage('Bitte gib E-Mail und Passwort ein, damit wir die Bestaetigungs-E-Mail erneut senden koennen.');
+      setMessage('Bitte gib deine E-Mail-Adresse und dein Passwort ein, damit wir die Bestätigungs-E-Mail erneut senden können.');
       return;
     }
 
@@ -136,7 +136,7 @@ export default function LoginScreen() {
 
       await sendVerificationEmail(verificationUser);
       await logout();
-      setMessage('Die Bestaetigungs-E-Mail wurde erneut gesendet.');
+      setMessage('Die Bestätigungs-E-Mail wurde erneut gesendet.');
     } catch (error) {
       setMessage(getVerificationEmailErrorMessage(error));
     } finally {
@@ -146,10 +146,10 @@ export default function LoginScreen() {
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 24 }}>Login</Text>
+      <Text style={{ fontSize: 24 }}>Anmelden</Text>
 
       <TextInput
-        placeholder="Email"
+        placeholder="E-Mail"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -158,7 +158,7 @@ export default function LoginScreen() {
       />
 
       <TextInput
-        placeholder="Password"
+        placeholder="Passwort"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -166,26 +166,26 @@ export default function LoginScreen() {
       />
 
       <Button
-        title={submitting ? 'Logging in...' : 'Login'}
+        title={submitting ? 'Melde an...' : 'Anmelden'}
         onPress={handleLogin}
         disabled={submitting}
       />
 
       <Link href="/forgot-password" asChild>
         <Pressable>
-          <Text>Forgot password?</Text>
+          <Text>Passwort vergessen?</Text>
         </Pressable>
       </Link>
 
       <Text>
-        Einladung nach einer Gastbuchung erhalten? Bitte zuerst den Link in der E-Mail nutzen und dort dein Passwort festlegen.
+        Einladung nach einer Gastbuchung erhalten? Nutze bitte zuerst den Link in der E-Mail und lege dort dein Passwort fest.
       </Text>
 
       {message ? <Text>{message}</Text> : null}
 
       {canResendVerification ? (
         <Button
-          title={submitting ? 'Sende erneut...' : 'Bestaetigungs-E-Mail erneut senden'}
+          title={submitting ? 'Sende erneut...' : 'Bestätigungs-E-Mail erneut senden'}
           onPress={handleResendVerification}
           disabled={submitting}
         />

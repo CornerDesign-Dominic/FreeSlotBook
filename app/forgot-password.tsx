@@ -12,15 +12,15 @@ function getResetErrorMessage(error: unknown) {
   if (error instanceof FirebaseError) {
     switch (error.code) {
       case 'auth/invalid-email':
-        return 'Please enter a valid email address.';
+        return 'Bitte gib eine gültige E-Mail-Adresse ein.';
       case 'auth/user-not-found':
-        return 'No account found for this email.';
+        return 'Für diese E-Mail-Adresse wurde kein Konto gefunden.';
       default:
-        return 'Unable to send the reset email. Please try again.';
+        return 'Die E-Mail zum Zurücksetzen konnte nicht gesendet werden. Bitte versuche es noch einmal.';
     }
   }
 
-  return 'Unable to send the reset email. Please try again.';
+  return 'Die E-Mail zum Zurücksetzen konnte nicht gesendet werden. Bitte versuche es noch einmal.';
 }
 
 export default function ForgotPasswordScreen() {
@@ -32,12 +32,12 @@ export default function ForgotPasswordScreen() {
     const trimmedEmail = email.trim();
 
     if (!trimmedEmail) {
-      setMessage('Email is required.');
+      setMessage('Bitte gib deine E-Mail-Adresse ein.');
       return;
     }
 
     if (!isValidEmail(trimmedEmail)) {
-      setMessage('Please enter a valid email address.');
+      setMessage('Bitte gib eine gültige E-Mail-Adresse ein.');
       return;
     }
 
@@ -46,7 +46,7 @@ export default function ForgotPasswordScreen() {
 
     try {
       await sendResetPassword(trimmedEmail);
-      setMessage('Password reset email sent.');
+      setMessage('Die E-Mail zum Zurücksetzen wurde gesendet.');
     } catch (error) {
       setMessage(getResetErrorMessage(error));
     } finally {
@@ -56,10 +56,10 @@ export default function ForgotPasswordScreen() {
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 24 }}>Reset password</Text>
+      <Text style={{ fontSize: 24 }}>Passwort zurücksetzen</Text>
 
       <TextInput
-        placeholder="Email"
+        placeholder="E-Mail"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -68,7 +68,7 @@ export default function ForgotPasswordScreen() {
       />
 
       <Button
-        title={submitting ? 'Sending...' : 'Send reset email'}
+        title={submitting ? 'Sende E-Mail...' : 'E-Mail zum Zurücksetzen senden'}
         onPress={handleReset}
         disabled={submitting}
       />

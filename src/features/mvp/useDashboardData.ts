@@ -41,7 +41,7 @@ export function useDashboardData(user: { uid: string; email: string | null } | n
           const errorMessage =
             nextError instanceof Error
               ? nextError.message
-              : 'Dashboard data could not be loaded.';
+              : 'Das Dashboard konnte nicht geladen werden.';
 
           setError(
             errorMessage

@@ -42,7 +42,7 @@ export default function CalendarAccessScreen() {
 
   const handleGrantAccess = async () => {
     if (!calendar || !user) {
-      setMessage('Dein Kalender ist noch nicht verfuegbar.');
+      setMessage('Dein Kalender ist noch nicht verfügbar.');
       return;
     }
 
@@ -64,7 +64,7 @@ export default function CalendarAccessScreen() {
         status: 'approved',
       });
       setEmailInput('');
-      setMessage('Freigabe wurde gespeichert.');
+      setMessage('Die Freigabe wurde gespeichert.');
     } catch (nextError) {
       setMessage(
         nextError instanceof Error ? nextError.message : 'Freigabe konnte nicht gespeichert werden.'
@@ -88,7 +88,7 @@ export default function CalendarAccessScreen() {
         ownerId: user.uid,
         requesterEmail,
       });
-      setMessage(`Anfrage von ${requesterEmail} wurde angenommen.`);
+      setMessage(`Die Anfrage von ${requesterEmail} wurde angenommen.`);
     } catch (nextError) {
       setMessage(
         nextError instanceof Error ? nextError.message : 'Anfrage konnte nicht angenommen werden.'
@@ -111,7 +111,7 @@ export default function CalendarAccessScreen() {
         calendarId: calendar.id,
         requesterEmail,
       });
-      setMessage(`Anfrage von ${requesterEmail} wurde abgelehnt.`);
+      setMessage(`Die Anfrage von ${requesterEmail} wurde abgelehnt.`);
     } catch (nextError) {
       setMessage(
         nextError instanceof Error ? nextError.message : 'Anfrage konnte nicht abgelehnt werden.'
@@ -148,7 +148,7 @@ export default function CalendarAccessScreen() {
           disabled={submitting || !calendar}
           style={{ borderWidth: 1, borderColor: 'black', paddingVertical: 12, alignItems: 'center', opacity: submitting ? 0.6 : 1 }}>
           <Text style={{ color: 'black' }}>
-            {submitting ? 'Speichere...' : 'Freigabe hinzufuegen'}
+            {submitting ? 'Speichere...' : 'Freigabe hinzufügen'}
           </Text>
         </Pressable>
         {message ? <Text style={{ color: 'black', marginTop: 12 }}>{message}</Text> : null}
@@ -168,7 +168,7 @@ export default function CalendarAccessScreen() {
           ))
         ) : (
           <Text style={{ color: 'black' }}>
-            Es gibt aktuell noch keine freigegebenen Personen fuer diesen Kalender.
+            Es gibt noch keine freigegebenen Personen für diesen Kalender.
           </Text>
         )}
       </View>
@@ -211,7 +211,7 @@ export default function CalendarAccessScreen() {
       <View style={{ alignItems: 'flex-end' }}>
         <Link href="/my-calendar">
           <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-            Zurueck zu meinem Kalender
+            Zurück zu meinem Kalender
           </Text>
         </Link>
       </View>

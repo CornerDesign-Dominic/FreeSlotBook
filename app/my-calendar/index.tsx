@@ -69,7 +69,7 @@ export default function MyCalendarScreen() {
         calendarId: calendar.id,
         notifyOnNewSlotsAvailable: !calendar.notifyOnNewSlotsAvailable,
       });
-      setSettingsMessage('Kalendereinstellung wurde aktualisiert.');
+      setSettingsMessage('Die Kalendereinstellung wurde aktualisiert.');
     } catch (nextError) {
       setSettingsMessage(
         nextError instanceof Error ? nextError.message : 'Einstellung konnte nicht aktualisiert werden.'
@@ -94,7 +94,7 @@ export default function MyCalendarScreen() {
         visibility: calendar.visibility === 'public' ? 'restricted' : 'public',
         publicSlug,
       });
-      setSettingsMessage('Kalendersichtbarkeit wurde aktualisiert.');
+      setSettingsMessage('Die Sichtbarkeit wurde aktualisiert.');
     } catch (nextError) {
       setSettingsMessage(
         nextError instanceof Error
@@ -121,10 +121,10 @@ export default function MyCalendarScreen() {
         visibility: calendar.visibility,
         publicSlug,
       });
-      setSettingsMessage('Oeffentlicher Slug wurde aktualisiert.');
+      setSettingsMessage('Der öffentliche Link wurde aktualisiert.');
     } catch (nextError) {
       setSettingsMessage(
-        nextError instanceof Error ? nextError.message : 'Oeffentlicher Slug konnte nicht gespeichert werden.'
+        nextError instanceof Error ? nextError.message : 'Der öffentliche Link konnte nicht gespeichert werden.'
       );
     } finally {
       setSavingSlug(false);
@@ -141,7 +141,7 @@ export default function MyCalendarScreen() {
             <Text style={{ color: 'black', marginBottom: 8 }}>Kalender-ID: {calendar.id}</Text>
             <Text style={{ color: 'black', marginBottom: 8 }}>Inhaber: {calendar.ownerEmail}</Text>
             <Text style={{ color: 'black', marginBottom: 8 }}>Sichtbarkeit: {calendar.visibility}</Text>
-            <Text style={{ color: 'black', marginBottom: 8 }}>Oeffentlicher Slug</Text>
+            <Text style={{ color: 'black', marginBottom: 8 }}>Öffentlicher Link</Text>
             <TextInput
               value={publicSlug}
               onChangeText={setPublicSlug}
@@ -151,12 +151,11 @@ export default function MyCalendarScreen() {
               style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 8 }}
             />
             <Text style={{ color: 'black', marginBottom: 8 }}>
-              Erlaubt: a-z, 0-9 und Bindestriche. Laenge 3 bis 30 Zeichen. Der Slug wird fuer deine
-              oeffentliche URL verwendet.
+              Erlaubt sind a-z, 0-9 und Bindestriche. Länge: 3 bis 30 Zeichen. Dieser Teil wird in deiner öffentlichen URL verwendet.
             </Text>
             <Pressable onPress={handleSavePublicSlug} disabled={savingSlug}>
               <Text style={{ color: 'black', textDecorationLine: 'underline', marginBottom: 12 }}>
-                {savingSlug ? 'Speichere Slug...' : 'Slug speichern'}
+                {savingSlug ? 'Speichere...' : 'Link speichern'}
               </Text>
             </Pressable>
             <Text style={{ color: 'black', marginBottom: 8 }}>
@@ -167,26 +166,26 @@ export default function MyCalendarScreen() {
                 {togglingVisibility
                   ? 'Aktualisiere Sichtbarkeit...'
                   : calendar.visibility === 'public'
-                    ? 'Kalender wieder eingeschraenkt machen'
-                    : 'Kalender oeffentlich machen'}
+                    ? 'Kalender wieder einschränken'
+                    : 'Kalender öffentlich machen'}
               </Text>
             </Pressable>
             {calendar.visibility === 'public' && calendar.publicSlug ? (
               <>
                 <Text style={{ color: 'black', marginBottom: 8 }}>
-                  Oeffentlicher Link: /{calendar.publicSlug}
+                  Öffentlicher Link: /{calendar.publicSlug}
                 </Text>
                 <Link href={`/${calendar.publicSlug}`} asChild>
                   <Pressable style={{ alignSelf: 'flex-start', marginBottom: 12 }}>
                     <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-                      Oeffentliche Buchungsansicht oeffnen
+                      Öffentliche Buchungsseite öffnen
                     </Text>
                   </Pressable>
                 </Link>
               </>
             ) : calendar.visibility === 'public' ? (
               <Text style={{ color: 'black', marginBottom: 12 }}>
-                Bitte hinterlege einen gueltigen Slug, damit dein Kalender oeffentlich erreichbar ist.
+                Bitte hinterlege einen gültigen Link, damit dein Kalender öffentlich erreichbar ist.
               </Text>
             ) : null}
             <Pressable onPress={handleToggleNewSlotsNotification} disabled={togglingNotifications}>
@@ -200,7 +199,7 @@ export default function MyCalendarScreen() {
             </Pressable>
           </>
         ) : (
-          <Text style={{ color: 'black' }}>Dein persoenlicher Kalender ist noch nicht verfuegbar.</Text>
+          <Text style={{ color: 'black' }}>Dein persönlicher Kalender ist noch nicht verfügbar.</Text>
         )}
 
         {error ? <Text style={{ color: 'black', marginTop: 12 }}>{error}</Text> : null}
@@ -231,7 +230,7 @@ export default function MyCalendarScreen() {
           </Pressable>
           <Text style={{ color: 'black', fontSize: 18 }}>{formatMonthTitle(visibleMonth)}</Text>
           <Pressable onPress={goToNextMonth}>
-            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>Naechster Monat</Text>
+            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>Nächster Monat</Text>
           </Pressable>
         </View>
 
@@ -274,7 +273,7 @@ export default function MyCalendarScreen() {
         ))}
 
         <Text style={{ color: 'black', marginTop: 12 }}>
-          Tage mit vorhandenen Slots sind direkt aus Firestore markiert.
+          Tage mit vorhandenen Slots sind direkt markiert.
         </Text>
 
         {slotsError ? <Text style={{ color: 'black', marginTop: 12 }}>{slotsError}</Text> : null}
@@ -282,7 +281,7 @@ export default function MyCalendarScreen() {
 
       <View style={{ alignItems: 'flex-end' }}>
         <Link href="/(tabs)" style={{ marginTop: 16 }}>
-          <Text style={{ color: 'black' }}>Zurueck zum Dashboard</Text>
+          <Text style={{ color: 'black' }}>Zurück zum Dashboard</Text>
         </Link>
       </View>
     </ScrollView>

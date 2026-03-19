@@ -30,7 +30,7 @@ export default function PublicSlugScreen() {
           setError(
             nextError instanceof Error
               ? nextError.message
-              : 'Der oeffentliche Kalender konnte nicht geladen werden.'
+              : 'Der öffentliche Kalender konnte nicht geladen werden.'
           );
         }
       } finally {
@@ -59,7 +59,7 @@ export default function PublicSlugScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
         <Text style={{ color: 'black', marginBottom: 12 }}>
-          Dieser oeffentliche Kalender ist aktuell nicht verfuegbar.
+          Dieser öffentliche Kalender ist aktuell nicht verfügbar.
         </Text>
         {error ? <Text style={{ color: 'black' }}>{error}</Text> : null}
       </View>
