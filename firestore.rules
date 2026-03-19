@@ -99,7 +99,8 @@ service cloud.firestore {
 
       match /slots/{slotId} {
         allow read: if ownsCalendar(calendarId)
-          || hasCalendarAccess(calendarId)
+          || (hasCalendarAccess(calendarId) && resource.data.status == 'available')
+          || isBookedSlotParticipant(calendarId)
           || (isPublicCalendar(calendarId) && resource.data.status == 'available');
         allow create, delete: if ownsCalendar(calendarId);
         allow update: if ownsCalendar(calendarId)
@@ -168,3 +169,9 @@ service cloud.firestore {
     }
   }
 }
+    function isBookedSlotParticipant(calendarId) {
+      return isSignedIn()
+        && resource.data.status == 'booked'
+        && resource.data.appointmentId is string
+        && get(/databases/$(database)/documents/calendars/$(calendarId)/appointments/$(resource.data.appointmentId)).data.participantEmail == signedInEmail();
+    }

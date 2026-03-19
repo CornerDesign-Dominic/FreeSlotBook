@@ -154,7 +154,7 @@ export function getWeekdayLabels(
 
 export function getSlotCountsByDay(slots: CalendarSlotRecord[]) {
   return slots.reduce<Record<string, number>>((accumulator, slot) => {
-    if (!slot.startsAt || slot.status === 'cancelled') {
+    if (!slot.startsAt) {
       return accumulator;
     }
 
@@ -259,10 +259,12 @@ export function parseTimeInput(value: string, baseDate: Date) {
 
 export function findOverlappingSlots(
   existingSlots: CalendarSlotRecord[],
-  candidateSlots: { startsAt: Date; endsAt: Date }[]
+  candidateSlots: { startsAt: Date; endsAt: Date }[],
+  options?: { excludeSlotIds?: string[] }
 ) {
+  const excludedIds = new Set(options?.excludeSlotIds ?? []);
   const relevantExistingSlots = existingSlots.filter(
-    (slot) => slot.status !== 'cancelled' && slot.startsAt && slot.endsAt
+    (slot) => !excludedIds.has(slot.id) && slot.startsAt && slot.endsAt
   );
 
   return candidateSlots.filter((candidateSlot) =>

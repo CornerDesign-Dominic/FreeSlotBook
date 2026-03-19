@@ -166,8 +166,14 @@ Wichtige Felder:
 Moegliche Werte:
 
 - `available`
+- `inactive`
 - `booked`
-- `cancelled`
+
+### Sichtbarkeit
+
+- `available`: sichtbar fuer Owner, freigegebene Nutzer und oeffentliche Buchung bei `public`
+- `inactive`: sichtbar nur fuer den Owner
+- `booked`: sichtbar fuer Owner und den Terminnehmer
 
 ## slot events
 
@@ -196,11 +202,12 @@ Wichtige Felder:
 Aktuell vorgesehene Werte:
 
 - `created`
+- `edited`
 - `booked`
 - `assigned_by_owner`
+- `set_inactive`
 - `cancelled_by_owner`
-- `released`
-- `updated`
+- `reactivated`
 
 ## appointments
 

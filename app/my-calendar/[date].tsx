@@ -17,7 +17,8 @@ import {
   parseDayKey,
 } from '../../src/features/mvp/calendar-utils';
 import {
-  cancelCalendarSlot,
+  cancelAppointmentByOwner,
+  setCalendarSlotInactive,
   updateCalendarSlotAvailability,
 } from '../../src/features/mvp/repository';
 import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
@@ -59,6 +60,7 @@ export default function CalendarDayScreen() {
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [deactivatingSlotId, setDeactivatingSlotId] = useState<string | null>(null);
   const [updatingAvailabilitySlotId, setUpdatingAvailabilitySlotId] = useState<string | null>(null);
+  const [cancellingAppointmentId, setCancellingAppointmentId] = useState<string | null>(null);
 
   const daySlots = useMemo(
     () => (selectedDate ? getSlotsForDay(slots, selectedDate) : []),
@@ -136,12 +138,10 @@ export default function CalendarDayScreen() {
 
   const formatSlotStatus = (status: SlotStatus) => {
     switch (status) {
-      case 'hold':
-        return t('day.statusHold');
+      case 'inactive':
+        return t('day.statusInactive');
       case 'booked':
         return t('day.statusBooked');
-      case 'cancelled':
-        return t('day.statusCancelled');
       default:
         return t('day.statusAvailable');
     }
@@ -152,19 +152,15 @@ export default function CalendarDayScreen() {
       return t('day.selectHint');
     }
 
-    if (status === 'cancelled') {
-      return t('day.cancelledHint');
-    }
-
-    if (status === 'hold') {
-      return t('day.holdHint');
+    if (status === 'inactive') {
+      return t('day.inactiveHint');
     }
 
     if (status === 'booked' || hasAppointment) {
       return t('day.bookedHint');
     }
 
-    return t('day.cancellableHint');
+    return t('day.availableHint');
   };
 
   const formatEventText = (event: CalendarSlotEventRecord) => {
@@ -181,14 +177,14 @@ export default function CalendarDayScreen() {
         return t('day.eventBooked', { actor: target });
       case 'assigned_by_owner':
         return t('day.eventAssigned', { actor: target });
-      case 'held_by_owner':
-        return t('day.eventHeld');
+      case 'set_inactive':
+        return t('day.eventSetInactive');
       case 'cancelled_by_owner':
         return t('day.eventCancelled', { actor: actorLabel });
-      case 'released':
-        return t('day.eventReleased');
-      case 'updated':
-        return t('day.eventUpdated');
+      case 'reactivated':
+        return t('day.eventReactivated');
+      case 'edited':
+        return t('day.eventEdited');
       default:
         return t('day.eventCreated', { actor: actorLabel });
     }
@@ -210,25 +206,26 @@ export default function CalendarDayScreen() {
       return;
     }
 
-    Alert.alert(t('day.cancelAlertTitle'), t('day.cancelAlertBody'), [
+    Alert.alert(t('day.setInactiveAlertTitle'), t('day.setInactiveAlertBody'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
-        text: t('day.cancelAlertConfirm'),
-        style: 'destructive',
+        text: t('day.setInactiveAlertConfirm'),
         onPress: async () => {
           setDeactivatingSlotId(selectedSlot.id);
           setActionMessage(null);
 
           try {
-            const result = await cancelCalendarSlot({
+            const result = await setCalendarSlotInactive({
               calendarId: calendar.id,
               slotId: selectedSlot.id,
               actorUid: user.uid,
             });
 
-            setActionMessage(result === 'already_cancelled' ? t('day.cancelAlready') : t('day.cancelSuccess'));
+            setActionMessage(
+              result === 'already_inactive' ? t('day.inactiveAlready') : t('day.inactiveSuccess')
+            );
           } catch (nextError) {
-            setActionMessage(nextError instanceof Error ? nextError.message : t('day.cancelError'));
+            setActionMessage(nextError instanceof Error ? nextError.message : t('day.inactiveError'));
           } finally {
             setDeactivatingSlotId(null);
           }
@@ -246,7 +243,7 @@ export default function CalendarDayScreen() {
     setActionMessage(null);
 
     try {
-      const nextStatus = selectedSlot.status === 'hold' ? 'available' : 'hold';
+      const nextStatus = selectedSlot.status === 'inactive' ? 'available' : 'inactive';
       const result = await updateCalendarSlotAvailability({
         calendarId: calendar.id,
         slotId: selectedSlot.id,
@@ -256,18 +253,75 @@ export default function CalendarDayScreen() {
 
       setActionMessage(
         result === 'already_set'
-          ? nextStatus === 'hold'
-            ? t('day.holdAlready')
+          ? nextStatus === 'inactive'
+            ? t('day.inactiveAlready')
             : t('day.releaseAlready')
-          : nextStatus === 'hold'
-            ? t('day.holdSuccess')
+          : nextStatus === 'inactive'
+            ? t('day.inactiveSuccess')
             : t('day.releaseSuccess')
       );
     } catch (nextError) {
-      setActionMessage(nextError instanceof Error ? nextError.message : t('day.holdError'));
+      setActionMessage(nextError instanceof Error ? nextError.message : t('day.statusChangeError'));
     } finally {
       setUpdatingAvailabilitySlotId(null);
     }
+  };
+
+  const handleCancelAppointment = () => {
+    if (!calendar || !user || !selectedSlot?.appointmentId) {
+      return;
+    }
+
+    Alert.alert(t('day.cancelAppointmentTitle'), t('day.cancelAppointmentBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('day.cancelToAvailable'),
+        onPress: async () => {
+          setCancellingAppointmentId(selectedSlot.appointmentId!);
+          setActionMessage(null);
+
+          try {
+            await cancelAppointmentByOwner({
+              calendarId: calendar.id,
+              appointmentId: selectedSlot.appointmentId!,
+              ownerId: user.uid,
+              nextSlotStatus: 'available',
+            });
+            setActionMessage(t('day.cancelAppointmentAvailableSuccess'));
+          } catch (nextError) {
+            setActionMessage(
+              nextError instanceof Error ? nextError.message : t('day.cancelAppointmentError')
+            );
+          } finally {
+            setCancellingAppointmentId(null);
+          }
+        },
+      },
+      {
+        text: t('day.cancelToInactive'),
+        style: 'destructive',
+        onPress: async () => {
+          setCancellingAppointmentId(selectedSlot.appointmentId!);
+          setActionMessage(null);
+
+          try {
+            await cancelAppointmentByOwner({
+              calendarId: calendar.id,
+              appointmentId: selectedSlot.appointmentId!,
+              ownerId: user.uid,
+              nextSlotStatus: 'inactive',
+            });
+            setActionMessage(t('day.cancelAppointmentInactiveSuccess'));
+          } catch (nextError) {
+            setActionMessage(
+              nextError instanceof Error ? nextError.message : t('day.cancelAppointmentError')
+            );
+          } finally {
+            setCancellingAppointmentId(null);
+          }
+        },
+      },
+    ]);
   };
 
   if (authLoading || loading || slotsLoading) {
@@ -279,12 +333,14 @@ export default function CalendarDayScreen() {
   }
 
   const historyPanelMaxHeight = Math.max(Math.min(screenHeight * 0.33, 260), 180);
-  const selectedSlotCanDeactivate =
-    (selectedSlot?.status === 'available' || selectedSlot?.status === 'hold') &&
-    !selectedSlot.appointmentId;
+  const selectedSlotCanDeactivate = selectedSlot?.status === 'available' && !selectedSlot.appointmentId;
   const selectedSlotCanToggleHold =
-    (selectedSlot?.status === 'available' || selectedSlot?.status === 'hold') &&
+    (selectedSlot?.status === 'available' || selectedSlot?.status === 'inactive') &&
     !selectedSlot.appointmentId;
+  const selectedSlotCanEdit =
+    Boolean(selectedSlot) && selectedSlot?.status !== 'booked' && !selectedSlot?.appointmentId;
+  const selectedSlotCanCancelAppointment =
+    selectedSlot?.status === 'booked' && Boolean(selectedSlot?.appointmentId);
   const timeRailWidth = hourWidth * 24;
   const footerStatusHint = getFooterStatusHint(
     selectedSlot?.status ?? null,
@@ -396,10 +452,10 @@ export default function CalendarDayScreen() {
                           borderWidth: 2,
                           borderColor: isSelected ? 'black' : '#666666',
                           backgroundColor:
-                            slot.status === 'cancelled'
-                              ? '#f1f1f1'
-                              : slot.status === 'hold'
-                                ? '#fff6d6'
+                            slot.status === 'inactive'
+                              ? '#fff6d6'
+                              : slot.status === 'booked'
+                                ? '#f1f1f1'
                                 : 'white',
                         }}>
                         <Text style={{ color: 'black', marginBottom: 6 }}>
@@ -520,6 +576,20 @@ export default function CalendarDayScreen() {
         </Link>
 
         <View style={{ alignItems: 'flex-end' }}>
+          {selectedSlotCanEdit ? (
+            <Link href={`/my-calendar/create-slot?date=${rawDate}&slotId=${selectedSlot?.id}`} asChild>
+              <Pressable
+                style={{
+                  paddingVertical: 10,
+                  paddingHorizontal: 12,
+                  borderWidth: 1,
+                  borderColor: 'black',
+                  marginBottom: 8,
+                }}>
+                <Text style={{ color: 'black' }}>{t('day.editSlot')}</Text>
+              </Pressable>
+            </Link>
+          ) : null}
           {selectedSlotCanToggleHold ? (
             <Pressable
               onPress={handleToggleHold}
@@ -534,9 +604,9 @@ export default function CalendarDayScreen() {
               <Text style={{ color: 'black' }}>
                 {updatingAvailabilitySlotId === selectedSlot?.id
                   ? t('day.processing')
-                  : selectedSlot?.status === 'hold'
+                  : selectedSlot?.status === 'inactive'
                     ? t('day.releaseSlot')
-                    : t('day.holdSlot')}
+                    : t('day.setInactive')}
               </Text>
             </Pressable>
           ) : null}
@@ -546,7 +616,18 @@ export default function CalendarDayScreen() {
               disabled={deactivatingSlotId === selectedSlot?.id}
               style={{ paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: 'black' }}>
               <Text style={{ color: 'black' }}>
-                {deactivatingSlotId === selectedSlot?.id ? t('day.processing') : t('day.cancelSlot')}
+                {deactivatingSlotId === selectedSlot?.id ? t('day.processing') : t('day.setInactive')}
+              </Text>
+            </Pressable>
+          ) : selectedSlotCanCancelAppointment ? (
+            <Pressable
+              onPress={handleCancelAppointment}
+              disabled={cancellingAppointmentId === selectedSlot?.appointmentId}
+              style={{ paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: 'black' }}>
+              <Text style={{ color: 'black' }}>
+                {cancellingAppointmentId === selectedSlot?.appointmentId
+                  ? t('day.processing')
+                  : t('day.cancelAppointment')}
               </Text>
             </Pressable>
           ) : (

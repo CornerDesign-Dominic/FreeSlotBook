@@ -327,11 +327,9 @@ function mapSlot(id: string, data: Record<string, unknown>): CalendarSlotRecord 
     status:
       data.status === 'booked'
         ? 'booked'
-        : data.status === 'cancelled'
-          ? 'cancelled'
-          : data.status === 'hold'
-            ? 'hold'
-            : 'available',
+        : data.status === 'inactive' || data.status === 'hold' || data.status === 'cancelled'
+          ? 'inactive'
+          : 'available',
     appointmentId: typeof data.appointmentId === 'string' ? data.appointmentId : null,
     createdAt: asDate(data.createdAt),
     updatedAt: asDate(data.updatedAt),
@@ -344,13 +342,22 @@ function mapSlotEvent(id: string, data: Record<string, unknown>): CalendarSlotEv
     calendarId: String(data.calendarId ?? ''),
     slotId: String(data.slotId ?? ''),
     type:
+      data.type === 'edited' ||
       data.type === 'booked' ||
       data.type === 'assigned_by_owner' ||
+      data.type === 'set_inactive' ||
       data.type === 'held_by_owner' ||
       data.type === 'cancelled_by_owner' ||
+      data.type === 'reactivated' ||
       data.type === 'released' ||
       data.type === 'updated'
-        ? data.type
+        ? data.type === 'held_by_owner'
+          ? 'set_inactive'
+          : data.type === 'released'
+            ? 'reactivated'
+            : data.type === 'updated'
+              ? 'edited'
+              : data.type
         : 'created',
     actorUid: typeof data.actorUid === 'string' ? data.actorUid : null,
     actorRole:
@@ -358,9 +365,13 @@ function mapSlotEvent(id: string, data: Record<string, unknown>): CalendarSlotEv
     targetEmail: typeof data.targetEmail === 'string' ? data.targetEmail : null,
     statusAfter:
       data.statusAfter === 'booked' ||
-      data.statusAfter === 'cancelled' ||
-      data.statusAfter === 'hold'
+      data.statusAfter === 'inactive' ||
+      data.statusAfter === 'hold' ||
+      data.statusAfter === 'cancelled'
         ? data.statusAfter
+            === 'hold' || data.statusAfter === 'cancelled'
+          ? 'inactive'
+          : data.statusAfter
         : data.statusAfter === 'available'
           ? 'available'
           : null,
@@ -1260,7 +1271,6 @@ export async function createCalendarSlotWithOptionalAssignment(params: {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-
     transaction.set(appointmentRef, {
       calendarId: params.calendarId,
       slotId: slotRef.id,
@@ -1393,7 +1403,7 @@ export function subscribeToOwnerSlots(
   );
 }
 
-export async function cancelCalendarSlot(params: {
+export async function setCalendarSlotInactive(params: {
   calendarId: string;
   slotId: string;
   actorUid?: string;
@@ -1402,7 +1412,7 @@ export async function cancelCalendarSlot(params: {
   const eventRef = doc(slotEventsCollection(params.calendarId, params.slotId));
 
   return runTransaction<
-    'cancelled' | 'already_cancelled'
+    'inactive' | 'already_inactive'
   >(db, async (transaction) => {
     const snapshot = await transaction.get(slotRef);
 
@@ -1416,36 +1426,44 @@ export async function cancelCalendarSlot(params: {
     throw new Error('Gebuchte Slots können nicht entfernt werden.');
     }
 
-    if (slot.status === 'cancelled') {
-      return 'already_cancelled';
+    if (slot.status === 'inactive') {
+      return 'already_inactive';
     }
 
     transaction.update(slotRef, {
-      status: 'cancelled',
+      status: 'inactive',
       updatedAt: serverTimestamp(),
     });
 
     transaction.set(eventRef, {
       calendarId: params.calendarId,
       slotId: params.slotId,
-      type: 'cancelled_by_owner',
+      type: 'set_inactive',
       actorUid: params.actorUid ?? null,
       actorRole: 'owner',
       targetEmail: null,
-      statusAfter: 'cancelled',
+      statusAfter: 'inactive',
       note: null,
       createdAt: serverTimestamp(),
     });
 
-    return 'cancelled';
+    return 'inactive';
   });
+}
+
+export async function cancelCalendarSlot(params: {
+  calendarId: string;
+  slotId: string;
+  actorUid?: string;
+}) {
+  return setCalendarSlotInactive(params);
 }
 
 export async function updateCalendarSlotAvailability(params: {
   calendarId: string;
   slotId: string;
   actorUid?: string;
-  nextStatus: 'available' | 'hold';
+  nextStatus: 'available' | 'inactive';
 }) {
   const slotRef = calendarSlotDoc(params.calendarId, params.slotId);
   const eventRef = doc(slotEventsCollection(params.calendarId, params.slotId));
@@ -1463,10 +1481,6 @@ export async function updateCalendarSlotAvailability(params: {
       throw new Error('Gebuchte Slots können nicht umgestellt werden.');
     }
 
-    if (slot.status === 'cancelled') {
-      throw new Error('Stornierte Slots können nicht umgestellt werden.');
-    }
-
     if (slot.status === params.nextStatus) {
       return 'already_set';
     }
@@ -1479,11 +1493,85 @@ export async function updateCalendarSlotAvailability(params: {
     transaction.set(eventRef, {
       calendarId: params.calendarId,
       slotId: params.slotId,
-      type: params.nextStatus === 'hold' ? 'held_by_owner' : 'released',
+      type: params.nextStatus === 'inactive' ? 'set_inactive' : 'reactivated',
       actorUid: params.actorUid ?? null,
       actorRole: 'owner',
       targetEmail: null,
       statusAfter: params.nextStatus,
+      note: null,
+      createdAt: serverTimestamp(),
+    });
+
+    return 'updated';
+  });
+}
+
+export async function updateCalendarSlotTimes(params: {
+  calendarId: string;
+  slotId: string;
+  actorUid?: string;
+  startsAt: Date;
+  endsAt: Date;
+}) {
+  if (params.endsAt <= params.startsAt) {
+    throw new Error('Die Endzeit muss nach der Startzeit liegen.');
+  }
+
+  const slotRef = calendarSlotDoc(params.calendarId, params.slotId);
+  const eventRef = doc(slotEventsCollection(params.calendarId, params.slotId));
+
+  return runTransaction<'updated' | 'unchanged'>(db, async (transaction) => {
+    const [slotSnapshot, existingSlotsSnapshot] = await Promise.all([
+      transaction.get(slotRef),
+      transaction.get(query(calendarSlotsCollection(params.calendarId), orderBy('startsAt', 'asc'))),
+    ]);
+
+    if (!slotSnapshot.exists()) {
+      throw new Error('Der ausgewählte Slot existiert nicht mehr.');
+    }
+
+    const slot = mapSlot(slotSnapshot.id, slotSnapshot.data() as Record<string, unknown>);
+
+    if (slot.status === 'booked' || slot.appointmentId) {
+      throw new Error('Gebuchte Slots können zeitlich nicht bearbeitet werden.');
+    }
+
+    const overlappingSlots = findOverlappingSlots(
+      existingSlotsSnapshot.docs.map((documentSnapshot) =>
+        mapSlot(documentSnapshot.id, documentSnapshot.data() as Record<string, unknown>)
+      ),
+      [{ startsAt: params.startsAt, endsAt: params.endsAt }],
+      { excludeSlotIds: [params.slotId] }
+    );
+
+    if (overlappingSlots.length) {
+      throw new Error('Dieser Slot überschneidet sich mit einem bestehenden Slot.');
+    }
+
+    const hasChanged =
+      !slot.startsAt ||
+      !slot.endsAt ||
+      slot.startsAt.getTime() !== params.startsAt.getTime() ||
+      slot.endsAt.getTime() !== params.endsAt.getTime();
+
+    if (!hasChanged) {
+      return 'unchanged';
+    }
+
+    transaction.update(slotRef, {
+      startsAt: Timestamp.fromDate(params.startsAt),
+      endsAt: Timestamp.fromDate(params.endsAt),
+      updatedAt: serverTimestamp(),
+    });
+
+    transaction.set(eventRef, {
+      calendarId: params.calendarId,
+      slotId: params.slotId,
+      type: 'edited',
+      actorUid: params.actorUid ?? null,
+      actorRole: 'owner',
+      targetEmail: null,
+      statusAfter: slot.status,
       note: null,
       createdAt: serverTimestamp(),
     });
@@ -1694,6 +1782,12 @@ export async function bookSharedCalendarSlot(params: {
       createdAt: serverTimestamp(),
     });
 
+    const ownerContent = buildNotificationContent({
+      type: 'booking_created',
+      ownerEmail: calendar.ownerEmail,
+      startsAt: slot.startsAt,
+    });
+
     transaction.set(ownerInAppNotificationRef, {
       calendarId: params.calendarId,
       appointmentId: appointmentRef.id,
@@ -1702,14 +1796,8 @@ export async function bookSharedCalendarSlot(params: {
       recipientEmailKey: calendar.ownerEmailKey,
       channel: 'in_app',
       type: 'booking_created',
-      title: buildNotificationContent({
-        type: 'booking_created',
-        ownerEmail: calendar.ownerEmail,
-      }).title,
-      body: buildNotificationContent({
-        type: 'booking_created',
-        ownerEmail: calendar.ownerEmail,
-      }).body,
+      title: ownerContent.title,
+      body: ownerContent.body,
       dedupeKey: null,
       status: 'pending',
       createdAt: serverTimestamp(),
@@ -1925,6 +2013,7 @@ export async function cancelAppointmentByOwner(params: {
   calendarId: string;
   appointmentId: string;
   ownerId: string;
+  nextSlotStatus: 'available' | 'inactive';
 }) {
   const appointmentRef = doc(calendarAppointmentsCollection(params.calendarId), params.appointmentId);
   const notificationRef = doc(calendarNotificationsCollection(params.calendarId));
@@ -1950,11 +2039,23 @@ export async function cancelAppointmentByOwner(params: {
       appointmentSnapshot.id,
       appointmentSnapshot.data() as Record<string, unknown>
     );
+    const slotRef = appointment.slotId
+      ? calendarSlotDoc(params.calendarId, appointment.slotId)
+      : null;
+    const slotSnapshot = slotRef ? await transaction.get(slotRef) : null;
     const content = buildNotificationContent({
       type: 'slot_cancelled',
       ownerEmail: calendar.ownerEmail,
       startsAt: appointment.startsAt,
     });
+
+    if (appointment.status === 'cancelled') {
+      throw new Error('Der Termin wurde bereits storniert.');
+    }
+
+    if (appointment.slotId && (!slotSnapshot || !slotSnapshot.exists())) {
+      throw new Error('Der zugehörige Slot existiert nicht mehr.');
+    }
 
     transaction.update(appointmentRef, {
       status: 'cancelled',
@@ -1962,6 +2063,26 @@ export async function cancelAppointmentByOwner(params: {
       cancelledAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+
+    if (slotRef && slotSnapshot?.exists()) {
+      transaction.update(slotRef, {
+        status: params.nextSlotStatus,
+        appointmentId: null,
+        updatedAt: serverTimestamp(),
+      });
+
+      transaction.set(doc(slotEventsCollection(params.calendarId, appointment.slotId!)), {
+        calendarId: params.calendarId,
+        slotId: appointment.slotId,
+        type: 'cancelled_by_owner',
+        actorUid: params.ownerId,
+        actorRole: 'owner',
+        targetEmail: appointment.participantEmail,
+        statusAfter: params.nextSlotStatus,
+        note: null,
+        createdAt: serverTimestamp(),
+      });
+    }
 
     transaction.set(notificationRef, {
       calendarId: params.calendarId,

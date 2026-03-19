@@ -147,26 +147,25 @@ Warum diese Struktur:
 
 #### Aktueller Slot-Status im MVP
 
-Aktiv genutzt werden derzeit vor allem diese Status:
+Aktiv genutzt werden derzeit diese Status:
 
-- `available`: der Slot ist offen und grundsaetzlich fuer spaetere Buchung vorgesehen
-- `cancelled`: der Slot wurde durch den Kalenderinhaber storniert beziehungsweise deaktiviert
-
-Bereits im Modell vorbereitet, aber noch nicht vollstaendig im UI-Flow umgesetzt:
-
-- `booked`
+- `available`: der Slot ist offen und buchbar
+- `inactive`: der Slot bleibt bestehen, ist aber voruebergehend nicht freigegeben
+- `booked`: der Slot ist an einen Termin gebunden
 
 Statuswechsel im aktuellen MVP:
 
 - Bei Slot-Erstellung wird der Status auf `available` gesetzt.
-- Bei Storno durch den Kalenderinhaber wird der Status auf `cancelled` gesetzt.
-- Gleichzeitig wird ein strukturiertes Event vom Typ `cancelled_by_owner` angelegt.
+- Der Kalenderinhaber kann freie Slots auf `inactive` setzen und spaeter wieder auf `available`.
+- Bei Buchung wird der Status auf `booked` gesetzt.
+- Bei Termin-Storno durch den Kalenderinhaber wird das Appointment auf `cancelled` gesetzt und der Slot danach auf `available` oder `inactive` umgestellt.
+- Statuswechsel werden weiter als strukturierte Events dokumentiert.
 
 Warum das fuer das MVP passt:
 
 - Die kombinierte Tagesseite kann den aktuellen Status direkt anzeigen.
-- Der Kalenderinhaber kann offene Slots sauber deaktivieren.
-- Die Historie bleibt nachvollziehbar und spaeter fuer Buchung und weitere Statuswechsel erweiterbar.
+- Der Kalenderinhaber kann offene Slots sauber deaktivieren oder wieder freigeben.
+- Die Historie bleibt nachvollziehbar und spaeter fuer weitere Terminfluesse erweiterbar.
 
 ### `appointments/{appointmentId}`
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   Modal,
@@ -20,7 +20,10 @@ import {
   parseGermanDateInput,
   parseTimeInput,
 } from '../../src/features/mvp/calendar-utils';
-import { createCalendarSlotWithOptionalAssignment } from '../../src/features/mvp/repository';
+import {
+  createCalendarSlotWithOptionalAssignment,
+  updateCalendarSlotTimes,
+} from '../../src/features/mvp/repository';
 import { useCalendarAccessList } from '../../src/features/mvp/useCalendarAccessList';
 import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
@@ -52,8 +55,9 @@ export default function CreateSlotScreen() {
   const { t, language } = useTranslation();
   const { weekStartsOn } = useAppSettings();
   const locale = language === 'de' ? 'de-DE' : 'en-US';
-  const params = useLocalSearchParams<{ date?: string | string[] }>();
+  const params = useLocalSearchParams<{ date?: string | string[]; slotId?: string | string[] }>();
   const preselectedDateParam = Array.isArray(params.date) ? params.date[0] : params.date ?? '';
+  const editingSlotId = Array.isArray(params.slotId) ? params.slotId[0] : params.slotId ?? '';
   const preselectedDate = parseDayKey(preselectedDateParam);
   const initialStartDate = preselectedDate ? formatDateInput(preselectedDate) : '';
 
@@ -83,6 +87,11 @@ export default function CreateSlotScreen() {
     const base = preselectedDate ?? new Date();
     return new Date(base.getFullYear(), base.getMonth(), 1);
   });
+  const editingSlot = useMemo(
+    () => slots.find((slot) => slot.id === editingSlotId) ?? null,
+    [editingSlotId, slots]
+  );
+  const isEditing = Boolean(editingSlotId);
 
   const openPicker = (field: DateFieldKey) => {
     setPickerField(field);
@@ -98,6 +107,35 @@ export default function CreateSlotScreen() {
   const closePicker = () => {
     setPickerField(null);
   };
+
+  useEffect(() => {
+    if (!editingSlot?.startsAt || !editingSlot.endsAt) {
+      return;
+    }
+
+    setStartDateInput(formatDateInput(editingSlot.startsAt));
+    setEndDateInput(
+      getDayKey(editingSlot.startsAt) === getDayKey(editingSlot.endsAt)
+        ? ''
+        : formatDateInput(editingSlot.endsAt)
+    );
+    setStartTimeInput(
+      editingSlot.startsAt.toLocaleTimeString('de-DE', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+    );
+    setEndTimeInput(
+      editingSlot.endsAt.toLocaleTimeString('de-DE', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+    );
+    setShowAssignmentSection(false);
+    setSelectedAssigneeEmail(null);
+  }, [editingSlot]);
 
   const applyPickedDate = (date: Date) => {
     const formattedDate = formatDateInput(date);
@@ -158,9 +196,13 @@ export default function CreateSlotScreen() {
       return;
     }
 
-    const overlappingSlots = findOverlappingSlots(slots, [{ startsAt, endsAt }]);
+    const overlappingSlotIds = findOverlappingSlots(
+      slots,
+      [{ startsAt, endsAt }],
+      isEditing ? { excludeSlotIds: [editingSlotId] } : undefined
+    );
 
-    if (overlappingSlots.length) {
+    if (overlappingSlotIds.length) {
       setMessage(t('createSlot.overlap'));
       return;
     }
@@ -169,13 +211,29 @@ export default function CreateSlotScreen() {
     setMessage(null);
 
     try {
-      const slotId = await createCalendarSlotWithOptionalAssignment({
-        calendarId: calendar.id,
-        ownerId: user.uid,
-        startsAt,
-        endsAt,
-        assigneeEmail: selectedAssigneeEmail,
-      });
+      const slotId = isEditing
+        ? editingSlotId
+        : await createCalendarSlotWithOptionalAssignment({
+            calendarId: calendar.id,
+            ownerId: user.uid,
+            startsAt,
+            endsAt,
+            assigneeEmail: selectedAssigneeEmail,
+          });
+
+      if (isEditing) {
+        if (!editingSlot || editingSlot.status === 'booked' || editingSlot.appointmentId) {
+          throw new Error(t('createSlot.editBookedError'));
+        }
+
+        await updateCalendarSlotTimes({
+          calendarId: calendar.id,
+          slotId: editingSlotId,
+          actorUid: user.uid,
+          startsAt,
+          endsAt,
+        });
+      }
 
       router.replace(`/my-calendar/${getDayKey(startsAt)}?slotId=${slotId}`);
     } catch (nextError) {
@@ -202,7 +260,9 @@ export default function CreateSlotScreen() {
       style={{ flex: 1, backgroundColor: 'white' }}
       contentContainerStyle={{ padding: 16 }}>
       <LanguageSwitcher />
-      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>{t('createSlot.title')}</Text>
+      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>
+        {isEditing ? t('createSlot.editTitle') : t('createSlot.title')}
+      </Text>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
         <Text style={{ color: 'black', marginBottom: 8 }}>{t('createSlot.date')}</Text>
@@ -261,15 +321,17 @@ export default function CreateSlotScreen() {
           {t('createSlot.sameDayHint')}
         </Text>
 
-        <Pressable
-          onPress={() => setShowAssignmentSection((currentValue) => !currentValue)}
-          style={{ marginBottom: 12 }}>
-          <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-            {showAssignmentSection ? t('createSlot.hideAssignment') : t('createSlot.showAssignment')}
-          </Text>
-        </Pressable>
+        {!isEditing ? (
+          <Pressable
+            onPress={() => setShowAssignmentSection((currentValue) => !currentValue)}
+            style={{ marginBottom: 12 }}>
+            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+              {showAssignmentSection ? t('createSlot.hideAssignment') : t('createSlot.showAssignment')}
+            </Text>
+          </Pressable>
+        ) : null}
 
-        {showAssignmentSection ? (
+        {!isEditing && showAssignmentSection ? (
           <View style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 16 }}>
             <Text style={{ color: 'black', marginBottom: 8 }}>
               {t('createSlot.assignmentHint')}
@@ -313,18 +375,35 @@ export default function CreateSlotScreen() {
           </View>
         ) : null}
 
+        {isEditing ? (
+          <Text style={{ color: 'black', marginBottom: 16 }}>{t('createSlot.editHint')}</Text>
+        ) : null}
+
         <Pressable
           onPress={handleCreateSlot}
-          disabled={submitting || !calendar}
+          disabled={
+            submitting ||
+            !calendar ||
+            (isEditing && (!editingSlot || editingSlot.status === 'booked' || Boolean(editingSlot.appointmentId)))
+          }
           style={{
             borderWidth: 1,
             borderColor: 'black',
             paddingVertical: 12,
             alignItems: 'center',
-            opacity: submitting || !calendar ? 0.6 : 1,
+            opacity:
+              submitting ||
+              !calendar ||
+              (isEditing && (!editingSlot || editingSlot.status === 'booked' || Boolean(editingSlot.appointmentId)))
+                ? 0.6
+                : 1,
           }}>
           <Text style={{ color: 'black' }}>
-            {submitting ? t('createSlot.saving') : t('createSlot.save')}
+            {submitting
+              ? t('createSlot.saving')
+              : isEditing
+                ? t('createSlot.saveEdit')
+                : t('createSlot.save')}
           </Text>
         </Pressable>
 
