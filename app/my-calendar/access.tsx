@@ -11,21 +11,12 @@ import { useCalendarAccessList } from '../../src/features/mvp/useCalendarAccessL
 import { useCalendarAccessRequests } from '../../src/features/mvp/useCalendarAccessRequests';
 import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
 import { useAuth } from '../../src/firebase/useAuth';
-
-function formatRequestStatus(status: 'pending' | 'approved' | 'rejected') {
-  if (status === 'approved') {
-    return 'angenommen';
-  }
-
-  if (status === 'rejected') {
-    return 'abgelehnt';
-  }
-
-  return 'offen';
-}
+import { LanguageSwitcher } from '../../src/i18n/language-switcher';
+import { useTranslation } from '../../src/i18n/provider';
 
 export default function CalendarAccessScreen() {
   const { user, loading: authLoading } = useAuth();
+  const { t } = useTranslation();
   const { calendar, loading, error } = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
   );
@@ -40,16 +31,28 @@ export default function CalendarAccessScreen() {
 
   const pendingRequests = requestRecords.filter((record) => record.status === 'pending');
 
+  const formatRequestStatus = (status: 'pending' | 'approved' | 'rejected') => {
+    if (status === 'approved') {
+      return t('access.statusApproved');
+    }
+
+    if (status === 'rejected') {
+      return t('access.statusRejected');
+    }
+
+    return t('access.statusOpen');
+  };
+
   const handleGrantAccess = async () => {
     if (!calendar || !user) {
-      setMessage('Dein Kalender ist noch nicht verfügbar.');
+      setMessage(t('access.noCalendar'));
       return;
     }
 
     const trimmedEmail = emailInput.trim();
 
     if (!trimmedEmail) {
-      setMessage('Bitte gib eine E-Mail-Adresse ein.');
+      setMessage(t('access.emailRequired'));
       return;
     }
 
@@ -64,11 +67,9 @@ export default function CalendarAccessScreen() {
         status: 'approved',
       });
       setEmailInput('');
-      setMessage('Die Freigabe wurde gespeichert.');
+      setMessage(t('access.saved'));
     } catch (nextError) {
-      setMessage(
-        nextError instanceof Error ? nextError.message : 'Freigabe konnte nicht gespeichert werden.'
-      );
+      setMessage(nextError instanceof Error ? nextError.message : t('access.error'));
     } finally {
       setSubmitting(false);
     }
@@ -88,11 +89,9 @@ export default function CalendarAccessScreen() {
         ownerId: user.uid,
         requesterEmail,
       });
-      setMessage(`Die Anfrage von ${requesterEmail} wurde angenommen.`);
+      setMessage(t('access.approvedMessage', { email: requesterEmail }));
     } catch (nextError) {
-      setMessage(
-        nextError instanceof Error ? nextError.message : 'Anfrage konnte nicht angenommen werden.'
-      );
+      setMessage(nextError instanceof Error ? nextError.message : t('access.approveError'));
     } finally {
       setProcessingEmail(null);
     }
@@ -111,11 +110,9 @@ export default function CalendarAccessScreen() {
         calendarId: calendar.id,
         requesterEmail,
       });
-      setMessage(`Die Anfrage von ${requesterEmail} wurde abgelehnt.`);
+      setMessage(t('access.rejectedMessage', { email: requesterEmail }));
     } catch (nextError) {
-      setMessage(
-        nextError instanceof Error ? nextError.message : 'Anfrage konnte nicht abgelehnt werden.'
-      );
+      setMessage(nextError instanceof Error ? nextError.message : t('access.rejectError'));
     } finally {
       setProcessingEmail(null);
     }
@@ -124,19 +121,20 @@ export default function CalendarAccessScreen() {
   if (authLoading || loading || accessLoading || requestsLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black' }}>Wird geladen...</Text>
+        <Text style={{ color: 'black' }}>{t('common.loading')}</Text>
       </View>
     );
   }
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
-      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>Freigaben verwalten</Text>
+      <LanguageSwitcher />
+      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>{t('access.title')}</Text>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', marginBottom: 8 }}>Neue Freigabe per E-Mail</Text>
+        <Text style={{ color: 'black', marginBottom: 8 }}>{t('access.newGrant')}</Text>
         <TextInput
-          placeholder="kontakt@beispiel.de"
+          placeholder={t('access.placeholder')}
           value={emailInput}
           onChangeText={setEmailInput}
           autoCapitalize="none"
@@ -148,7 +146,7 @@ export default function CalendarAccessScreen() {
           disabled={submitting || !calendar}
           style={{ borderWidth: 1, borderColor: 'black', paddingVertical: 12, alignItems: 'center', opacity: submitting ? 0.6 : 1 }}>
           <Text style={{ color: 'black' }}>
-            {submitting ? 'Speichere...' : 'Freigabe hinzufügen'}
+            {submitting ? t('access.adding') : t('access.add')}
           </Text>
         </Pressable>
         {message ? <Text style={{ color: 'black', marginTop: 12 }}>{message}</Text> : null}
@@ -158,29 +156,29 @@ export default function CalendarAccessScreen() {
       </View>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>Freigegebene Personen</Text>
+        <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>{t('access.people')}</Text>
         {accessRecords.length ? (
           accessRecords.map((record) => (
             <View key={record.id} style={{ borderTopWidth: 1, borderColor: 'black', paddingTop: 12, marginTop: 12 }}>
               <Text style={{ color: 'black', marginBottom: 4 }}>{record.granteeEmail}</Text>
-              <Text style={{ color: 'black' }}>Status: {record.status}</Text>
+              <Text style={{ color: 'black' }}>
+                {t('common.status')}: {record.status}
+              </Text>
             </View>
           ))
         ) : (
-          <Text style={{ color: 'black' }}>
-            Es gibt noch keine freigegebenen Personen für diesen Kalender.
-          </Text>
+          <Text style={{ color: 'black' }}>{t('access.peopleEmpty')}</Text>
         )}
       </View>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>Eingehende Anfragen</Text>
+        <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>{t('access.requests')}</Text>
         {pendingRequests.length ? (
           pendingRequests.map((record) => (
             <View key={record.id} style={{ borderTopWidth: 1, borderColor: 'black', paddingTop: 12, marginTop: 12 }}>
               <Text style={{ color: 'black', marginBottom: 4 }}>{record.requesterEmail}</Text>
               <Text style={{ color: 'black', marginBottom: 8 }}>
-                Status: {formatRequestStatus(record.status)}
+                {t('common.status')}: {formatRequestStatus(record.status)}
               </Text>
               <View style={{ flexDirection: 'row' }}>
                 <Pressable
@@ -188,30 +186,28 @@ export default function CalendarAccessScreen() {
                   disabled={processingEmail === record.requesterEmail}
                   style={{ marginRight: 16 }}>
                   <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-                    Annehmen
+                    {t('access.approve')}
                   </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => handleRejectRequest(record.requesterEmail)}
                   disabled={processingEmail === record.requesterEmail}>
                   <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-                    Ablehnen
+                    {t('access.reject')}
                   </Text>
                 </Pressable>
               </View>
             </View>
           ))
         ) : (
-          <Text style={{ color: 'black' }}>
-            Es liegen aktuell keine offenen Zugriffsanfragen vor.
-          </Text>
+          <Text style={{ color: 'black' }}>{t('access.requestsEmpty')}</Text>
         )}
       </View>
 
       <View style={{ alignItems: 'flex-end' }}>
         <Link href="/my-calendar">
           <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-            Zurück zu meinem Kalender
+            {t('access.backToCalendar')}
           </Text>
         </Link>
       </View>

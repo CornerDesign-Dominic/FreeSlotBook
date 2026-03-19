@@ -4,23 +4,26 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { requestCalendarAccessByOwnerEmail } from '../src/features/mvp/repository';
 import { useAuth } from '../src/firebase/useAuth';
+import { LanguageSwitcher } from '../src/i18n/language-switcher';
+import { useTranslation } from '../src/i18n/provider';
 
 export default function RequestCalendarAccessScreen() {
   const { user, loading } = useAuth();
+  const { t } = useTranslation();
   const [ownerEmailInput, setOwnerEmailInput] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const handleRequestAccess = async () => {
     if (!user?.email) {
-      setMessage('Du musst eingeloggt sein, um eine Zugriffsanfrage zu stellen.');
+      setMessage(t('requestAccess.loginRequired'));
       return;
     }
 
     const trimmedOwnerEmail = ownerEmailInput.trim();
 
     if (!trimmedOwnerEmail) {
-      setMessage('Bitte gib die E-Mail des Kalenderinhabers ein.');
+      setMessage(t('requestAccess.emailRequired'));
       return;
     }
 
@@ -33,13 +36,11 @@ export default function RequestCalendarAccessScreen() {
         requesterEmail: user.email,
       });
       setMessage(
-        `Deine Anfrage für den Kalender von ${calendar.ownerEmail || trimmedOwnerEmail} wurde gespeichert.`
+        t('requestAccess.success', { email: calendar.ownerEmail || trimmedOwnerEmail })
       );
       setOwnerEmailInput('');
     } catch (nextError) {
-      setMessage(
-        nextError instanceof Error ? nextError.message : 'Anfrage konnte nicht gespeichert werden.'
-      );
+      setMessage(nextError instanceof Error ? nextError.message : t('requestAccess.error'));
     } finally {
       setSubmitting(false);
     }
@@ -48,21 +49,22 @@ export default function RequestCalendarAccessScreen() {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black' }}>Wird geladen...</Text>
+        <Text style={{ color: 'black' }}>{t('common.loading')}</Text>
       </View>
     );
   }
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
-      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>Zugriff anfragen</Text>
+      <LanguageSwitcher />
+      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>{t('requestAccess.title')}</Text>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
         <Text style={{ color: 'black', marginBottom: 8 }}>
-          E-Mail des Kalenderinhabers
+          {t('requestAccess.ownerEmail')}
         </Text>
         <TextInput
-          placeholder="inhaber@beispiel.de"
+          placeholder={t('requestAccess.placeholder')}
           value={ownerEmailInput}
           onChangeText={setOwnerEmailInput}
           autoCapitalize="none"
@@ -74,20 +76,18 @@ export default function RequestCalendarAccessScreen() {
           disabled={submitting || !user?.email}
           style={{ borderWidth: 1, borderColor: 'black', paddingVertical: 12, alignItems: 'center', opacity: submitting ? 0.6 : 1 }}>
           <Text style={{ color: 'black' }}>
-            {submitting ? 'Sende Anfrage...' : 'Anfrage senden'}
+            {submitting ? t('requestAccess.submitting') : t('requestAccess.submit')}
           </Text>
         </Pressable>
 
-        <Text style={{ color: 'black', marginTop: 12 }}>
-          Deine Anfrage wird gespeichert und kann vom Kalenderinhaber angenommen oder abgelehnt werden.
-        </Text>
+        <Text style={{ color: 'black', marginTop: 12 }}>{t('requestAccess.hint')}</Text>
         {message ? <Text style={{ color: 'black', marginTop: 12 }}>{message}</Text> : null}
       </View>
 
       <View style={{ alignItems: 'flex-end' }}>
         <Link href="/(tabs)">
           <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-            Zurück zum Dashboard
+            {t('nav.backToDashboard')}
           </Text>
         </Link>
       </View>

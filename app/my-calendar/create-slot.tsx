@@ -24,8 +24,13 @@ import { useCalendarAccessList } from '../../src/features/mvp/useCalendarAccessL
 import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useAuth } from '../../src/firebase/useAuth';
+import { LanguageSwitcher } from '../../src/i18n/language-switcher';
+import { useTranslation } from '../../src/i18n/provider';
 
-const weekdayLabels = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+const weekdayLabels = {
+  de: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
+  en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+} as const;
 
 function sanitizeDateInput(value: string) {
   const digitsOnly = value.replace(/\D/g, '').slice(0, 8);
@@ -47,6 +52,8 @@ function sanitizeTimeInput(value: string) {
 type DateFieldKey = 'start' | 'end';
 
 export default function CreateSlotScreen() {
+  const { t, language } = useTranslation();
+  const locale = language === 'de' ? 'de-DE' : 'en-US';
   const params = useLocalSearchParams<{ date?: string | string[] }>();
   const preselectedDateParam = Array.isArray(params.date) ? params.date[0] : params.date ?? '';
   const preselectedDate = parseDayKey(preselectedDateParam);
@@ -108,7 +115,7 @@ export default function CreateSlotScreen() {
 
   const handleCreateSlot = async () => {
     if (!calendar || !user) {
-      setMessage('Dein Kalender ist noch nicht verfügbar.');
+      setMessage(t('createSlot.notAvailable'));
       return;
     }
 
@@ -116,12 +123,12 @@ export default function CreateSlotScreen() {
     const endDate = endDateInput.trim() ? parseGermanDateInput(endDateInput) : startDate;
 
     if (!startDate) {
-      setMessage('Bitte gib ein gültiges Startdatum im Format TT.MM.JJJJ ein.');
+      setMessage(t('createSlot.invalidStartDate'));
       return;
     }
 
     if (!endDate) {
-      setMessage('Bitte gib ein gültiges Enddatum im Format TT.MM.JJJJ ein.');
+      setMessage(t('createSlot.invalidEndDate'));
       return;
     }
 
@@ -129,34 +136,34 @@ export default function CreateSlotScreen() {
     const endsAt = parseTimeInput(endTimeInput, endDate);
 
     if (!startTimeInput.trim()) {
-      setMessage('Bitte gib eine Startzeit ein.');
+      setMessage(t('createSlot.startTimeRequired'));
       return;
     }
 
     if (!endTimeInput.trim()) {
-      setMessage('Bitte gib eine Endzeit ein.');
+      setMessage(t('createSlot.endTimeRequired'));
       return;
     }
 
     if (!startsAt) {
-      setMessage('Bitte gib die Startzeit im Format HH:MM ein.');
+      setMessage(t('createSlot.invalidStartTime'));
       return;
     }
 
     if (!endsAt) {
-      setMessage('Bitte gib die Endzeit im Format HH:MM ein.');
+      setMessage(t('createSlot.invalidEndTime'));
       return;
     }
 
     if (endsAt <= startsAt) {
-      setMessage('Der Endzeitpunkt muss nach dem Startzeitpunkt liegen.');
+      setMessage(t('createSlot.endAfterStart'));
       return;
     }
 
     const overlappingSlots = findOverlappingSlots(slots, [{ startsAt, endsAt }]);
 
     if (overlappingSlots.length) {
-      setMessage('Dieser Slot überschneidet sich mit einem bestehenden Slot.');
+      setMessage(t('createSlot.overlap'));
       return;
     }
 
@@ -174,34 +181,32 @@ export default function CreateSlotScreen() {
 
       router.replace(`/my-calendar/${getDayKey(startsAt)}?slotId=${slotId}`);
     } catch (nextError) {
-      setMessage(
-        nextError instanceof Error ? nextError.message : 'Der Slot konnte nicht gespeichert werden.'
-      );
+      setMessage(nextError instanceof Error ? nextError.message : t('createSlot.saveError'));
     } finally {
       setSubmitting(false);
     }
   };
 
   const approvedAccessRecords = accessRecords.filter((record) => record.status === 'approved');
+  const monthGrid = buildMonthGrid(pickerMonth);
 
   if (authLoading || loading || slotsLoading || accessLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black' }}>Wird geladen...</Text>
+        <Text style={{ color: 'black' }}>{t('common.loading')}</Text>
       </View>
     );
   }
-
-  const monthGrid = buildMonthGrid(pickerMonth);
 
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: 'white' }}
       contentContainerStyle={{ padding: 16 }}>
-      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>Slot erstellen</Text>
+      <LanguageSwitcher />
+      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>{t('createSlot.title')}</Text>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', marginBottom: 8 }}>Datum</Text>
+        <Text style={{ color: 'black', marginBottom: 8 }}>{t('createSlot.date')}</Text>
         <View style={{ flexDirection: 'row', marginBottom: 12 }}>
           <TextInput
             placeholder="TT.MM.YYYY"
@@ -213,11 +218,11 @@ export default function CreateSlotScreen() {
           <Pressable
             onPress={() => openPicker('start')}
             style={{ borderWidth: 1, borderColor: 'black', paddingHorizontal: 12, justifyContent: 'center' }}>
-            <Text style={{ color: 'black' }}>Kalender</Text>
+            <Text style={{ color: 'black' }}>{t('createSlot.calendarButton')}</Text>
           </Pressable>
         </View>
 
-        <Text style={{ color: 'black', marginBottom: 8 }}>Startzeit</Text>
+        <Text style={{ color: 'black', marginBottom: 8 }}>{t('createSlot.startTime')}</Text>
         <TextInput
           placeholder="HH:MM"
           value={startTimeInput}
@@ -227,7 +232,7 @@ export default function CreateSlotScreen() {
           style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 12 }}
         />
 
-        <Text style={{ color: 'black', marginBottom: 8 }}>Endzeit</Text>
+        <Text style={{ color: 'black', marginBottom: 8 }}>{t('createSlot.endTime')}</Text>
         <TextInput
           placeholder="HH:MM"
           value={endTimeInput}
@@ -237,7 +242,7 @@ export default function CreateSlotScreen() {
           style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 12 }}
         />
 
-        <Text style={{ color: 'black', marginBottom: 8 }}>Enddatum (optional)</Text>
+        <Text style={{ color: 'black', marginBottom: 8 }}>{t('createSlot.endDateOptional')}</Text>
         <View style={{ flexDirection: 'row', marginBottom: 12 }}>
           <TextInput
             placeholder="TT.MM.YYYY"
@@ -249,28 +254,26 @@ export default function CreateSlotScreen() {
           <Pressable
             onPress={() => openPicker('end')}
             style={{ borderWidth: 1, borderColor: 'black', paddingHorizontal: 12, justifyContent: 'center' }}>
-            <Text style={{ color: 'black' }}>Kalender</Text>
+            <Text style={{ color: 'black' }}>{t('createSlot.calendarButton')}</Text>
           </Pressable>
         </View>
 
         <Text style={{ color: 'black', marginBottom: 16 }}>
-          Wenn du kein Enddatum angibst, endet der Slot am selben Tag.
+          {t('createSlot.sameDayHint')}
         </Text>
 
         <Pressable
           onPress={() => setShowAssignmentSection((currentValue) => !currentValue)}
           style={{ marginBottom: 12 }}>
           <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-            {showAssignmentSection
-              ? 'Direktzuweisung ausblenden'
-              : 'Slot direkt einer Person zuweisen'}
+            {showAssignmentSection ? t('createSlot.hideAssignment') : t('createSlot.showAssignment')}
           </Text>
         </Pressable>
 
         {showAssignmentSection ? (
           <View style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 16 }}>
             <Text style={{ color: 'black', marginBottom: 8 }}>
-              Damit wird der Slot direkt beim Erstellen vergeben.
+              {t('createSlot.assignmentHint')}
             </Text>
 
             {approvedAccessRecords.length ? (
@@ -292,21 +295,19 @@ export default function CreateSlotScreen() {
                     }}>
                     <Text style={{ color: 'black', marginBottom: 4 }}>{record.granteeEmail}</Text>
                     <Text style={{ color: 'black' }}>
-                      {isSelected ? 'Wird direkt zugewiesen' : 'Antippen zum Auswählen'}
+                      {isSelected ? t('createSlot.assignedDirectly') : t('createSlot.tapToSelect')}
                     </Text>
                   </Pressable>
                 );
               })
             ) : (
-              <Text style={{ color: 'black' }}>
-                Es sind aktuell keine freigegebenen Personen verfügbar.
-              </Text>
+              <Text style={{ color: 'black' }}>{t('createSlot.noAssignees')}</Text>
             )}
 
             {selectedAssigneeEmail ? (
               <Pressable onPress={() => setSelectedAssigneeEmail(null)} style={{ marginTop: 12 }}>
                 <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-                  Direktzuweisung entfernen
+                  {t('createSlot.removeAssignment')}
                 </Text>
               </Pressable>
             ) : null}
@@ -324,7 +325,7 @@ export default function CreateSlotScreen() {
             opacity: submitting || !calendar ? 0.6 : 1,
           }}>
           <Text style={{ color: 'black' }}>
-            {submitting ? 'Speichere Slot...' : 'Slot speichern'}
+            {submitting ? t('createSlot.saving') : t('createSlot.save')}
           </Text>
         </Pressable>
 
@@ -342,7 +343,7 @@ export default function CreateSlotScreen() {
             )
           }>
           <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-            {preselectedDateParam ? 'Zurück zur Tagesansicht' : 'Zurück zum Kalender'}
+            {preselectedDateParam ? t('createSlot.backToDayView') : t('nav.backToCalendar')}
           </Text>
         </Pressable>
       </View>
@@ -369,9 +370,11 @@ export default function CreateSlotScreen() {
                       new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
                   )
                 }>
-                <Text style={{ color: 'black', textDecorationLine: 'underline' }}>Zurück</Text>
+                <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                  {t('createSlot.pickerBack')}
+                </Text>
               </Pressable>
-              <Text style={{ color: 'black', fontSize: 18 }}>{formatMonthTitle(pickerMonth)}</Text>
+              <Text style={{ color: 'black', fontSize: 18 }}>{formatMonthTitle(pickerMonth, locale)}</Text>
               <Pressable
                 onPress={() =>
                   setPickerMonth(
@@ -379,12 +382,14 @@ export default function CreateSlotScreen() {
                       new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)
                   )
                 }>
-                <Text style={{ color: 'black', textDecorationLine: 'underline' }}>Weiter</Text>
+                <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                  {t('createSlot.pickerNext')}
+                </Text>
               </Pressable>
             </View>
 
             <View style={{ flexDirection: 'row', marginBottom: 8 }}>
-              {weekdayLabels.map((label) => (
+              {weekdayLabels[language].map((label) => (
                 <View key={label} style={{ flex: 1 }}>
                   <Text style={{ color: 'black', textAlign: 'center' }}>{label}</Text>
                 </View>
@@ -428,7 +433,7 @@ export default function CreateSlotScreen() {
             <View style={{ marginTop: 16, alignItems: 'flex-end' }}>
               <Pressable onPress={closePicker}>
                 <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-                  Kalender schließen
+                  {t('createSlot.pickerClose')}
                 </Text>
               </Pressable>
             </View>

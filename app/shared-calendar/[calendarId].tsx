@@ -7,17 +7,13 @@ import { bookSharedCalendarSlot } from '../../src/features/mvp/repository';
 import { useCalendar } from '../../src/features/mvp/useCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useAuth } from '../../src/firebase/useAuth';
-
-function formatDateTime(value: Date | null) {
-  if (!value) {
-    return 'Zeitpunkt nicht verfügbar';
-  }
-
-  return value.toLocaleString('de-DE');
-}
+import { LanguageSwitcher } from '../../src/i18n/language-switcher';
+import { useTranslation } from '../../src/i18n/provider';
 
 export default function SharedCalendarScreen() {
   const params = useLocalSearchParams<{ calendarId?: string | string[] }>();
+  const { t, language } = useTranslation();
+  const locale = language === 'de' ? 'de-DE' : 'en-US';
   const calendarId = Array.isArray(params.calendarId) ? params.calendarId[0] : params.calendarId ?? null;
   const { user, loading: authLoading } = useAuth();
   const { calendar, loading: calendarLoading, error: calendarError } = useCalendar(calendarId);
@@ -25,6 +21,14 @@ export default function SharedCalendarScreen() {
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  const formatDateTime = (value: Date | null) => {
+    if (!value) {
+      return t('day.dateTimeUnavailable');
+    }
+
+    return value.toLocaleString(locale);
+  };
 
   const availableSlots = useMemo(
     () =>
@@ -47,7 +51,7 @@ export default function SharedCalendarScreen() {
   if (authLoading || calendarLoading || slotsLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black' }}>Wird geladen...</Text>
+        <Text style={{ color: 'black' }}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -78,12 +82,10 @@ export default function SharedCalendarScreen() {
         bookedByUid: user.uid,
         bookedByEmail: user.email,
       });
-      setMessage('Der Slot wurde erfolgreich gebucht.');
+      setMessage(t('shared.success'));
       setSelectedSlotId(null);
     } catch (nextError) {
-      setMessage(
-        nextError instanceof Error ? nextError.message : 'Die Buchung konnte nicht abgeschlossen werden.'
-      );
+      setMessage(nextError instanceof Error ? nextError.message : t('shared.error'));
     } finally {
       setSubmitting(false);
     }
@@ -91,24 +93,31 @@ export default function SharedCalendarScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
-      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>Geteilter Kalender</Text>
+      <LanguageSwitcher />
+      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>{t('shared.title')}</Text>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
         {calendar ? (
           <>
-            <Text style={{ color: 'black', marginBottom: 8 }}>Inhaber: {calendar.ownerEmail}</Text>
-            <Text style={{ color: 'black', marginBottom: 8 }}>Kalender-ID: {calendar.id}</Text>
-            <Text style={{ color: 'black' }}>Sichtbarkeit: {calendar.visibility}</Text>
+            <Text style={{ color: 'black', marginBottom: 8 }}>
+              {t('shared.owner', { email: calendar.ownerEmail })}
+            </Text>
+            <Text style={{ color: 'black', marginBottom: 8 }}>
+              {t('shared.calendarId', { id: calendar.id })}
+            </Text>
+            <Text style={{ color: 'black' }}>
+              {t('dashboard.visibilityValue', { visibility: calendar.visibility })}
+            </Text>
           </>
         ) : (
-          <Text style={{ color: 'black' }}>Dieser Kalender konnte nicht geladen werden.</Text>
+          <Text style={{ color: 'black' }}>{t('shared.notLoaded')}</Text>
         )}
 
         {calendarError ? <Text style={{ color: 'black', marginTop: 12 }}>{calendarError}</Text> : null}
       </View>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>Verfügbare Slots</Text>
+        <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>{t('shared.freeSlots')}</Text>
         {availableSlots.length ? (
           availableSlots.map((slot) => (
             <Pressable
@@ -127,40 +136,36 @@ export default function SharedCalendarScreen() {
               <Text style={{ color: 'black', marginBottom: 4 }}>
                 {formatDateTime(slot.startsAt)} bis {formatDateTime(slot.endsAt)}
               </Text>
-              <Text style={{ color: 'black', marginBottom: 4 }}>Status: offen</Text>
+              <Text style={{ color: 'black', marginBottom: 4 }}>{t('shared.statusOpen')}</Text>
               {slot.startsAt ? (
                 <Text style={{ color: 'black' }}>
-                  Tag: {getDayKey(slot.startsAt)}
+                  {t('public.day', { day: getDayKey(slot.startsAt) })}
                 </Text>
               ) : null}
             </Pressable>
           ))
         ) : (
-          <Text style={{ color: 'black' }}>
-            In diesem geteilten Kalender sind aktuell keine verfügbaren Slots vorhanden.
-          </Text>
+          <Text style={{ color: 'black' }}>{t('shared.noSlots')}</Text>
         )}
 
         {slotsError ? <Text style={{ color: 'black', marginTop: 12 }}>{slotsError}</Text> : null}
       </View>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>Buchung</Text>
+        <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>{t('shared.bookingTitle')}</Text>
         {selectedSlot ? (
           <>
             <Text style={{ color: 'black', marginBottom: 4 }}>
-              Ausgewählter Slot: {formatDateTime(selectedSlot.startsAt)} bis {formatDateTime(selectedSlot.endsAt)}
+              {t('shared.selectedSlot', {
+                range: `${formatDateTime(selectedSlot.startsAt)} bis ${formatDateTime(selectedSlot.endsAt)}`,
+              })}
             </Text>
             <Text style={{ color: 'black', marginBottom: 12 }}>
-              {calendar?.ownerId === user?.uid
-                ? 'Eigene Slots können nicht über diese Ansicht gebucht werden.'
-                : 'Diesen freien Slot kannst du jetzt direkt buchen.'}
+              {calendar?.ownerId === user?.uid ? t('shared.ownSlotsLocked') : t('shared.canBook')}
             </Text>
           </>
         ) : (
-          <Text style={{ color: 'black', marginBottom: 12 }}>
-            Wähle oben einen freien Slot aus, um ihn zu buchen.
-          </Text>
+          <Text style={{ color: 'black', marginBottom: 12 }}>{t('shared.selectSlot')}</Text>
         )}
 
         <Pressable
@@ -174,7 +179,7 @@ export default function SharedCalendarScreen() {
             opacity: !canBook || submitting ? 0.55 : 1,
           }}>
           <Text style={{ color: 'black' }}>
-            {submitting ? 'Buche Slot...' : 'Jetzt buchen'}
+            {submitting ? t('shared.submitting') : t('shared.submit')}
           </Text>
         </Pressable>
 
@@ -184,7 +189,7 @@ export default function SharedCalendarScreen() {
       <View style={{ alignItems: 'flex-end' }}>
         <Link href="/(tabs)">
           <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-            Zurück zum Dashboard
+            {t('shared.backToDashboard')}
           </Text>
         </Link>
       </View>

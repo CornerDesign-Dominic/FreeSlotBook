@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Alert,
@@ -22,80 +22,12 @@ import { useOwnerSlotDetail } from '../../src/features/mvp/useOwnerSlotDetail';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import type { CalendarSlotEventRecord, SlotStatus } from '../../src/features/mvp/types';
 import { useAuth } from '../../src/firebase/useAuth';
+import { LanguageSwitcher } from '../../src/i18n/language-switcher';
+import { useTranslation } from '../../src/i18n/provider';
 
 const hourWidth = 96;
 const timelineHeight = 164;
 const hours = Array.from({ length: 24 }, (_, index) => index);
-
-function formatTime(value: Date | null) {
-  if (!value) {
-    return 'Zeit nicht verfügbar';
-  }
-
-  return value.toLocaleTimeString('de-DE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function formatDateTime(value: Date | null) {
-  if (!value) {
-    return 'Zeitpunkt nicht verfügbar';
-  }
-
-  return value.toLocaleString('de-DE');
-}
-
-function formatSlotStatus(status: SlotStatus) {
-  switch (status) {
-    case 'booked':
-      return 'gebucht';
-    case 'cancelled':
-      return 'storniert';
-    default:
-      return 'offen';
-  }
-}
-
-function getFooterStatusHint(status: SlotStatus | null, hasAppointment: boolean) {
-  if (!status) {
-    return 'Wähle einen Slot für Aktionen aus';
-  }
-
-  if (status === 'cancelled') {
-    return 'Dieser Slot wurde bereits storniert';
-  }
-
-  if (status === 'booked' || hasAppointment) {
-    return 'Gebuchte Slots können hier nicht bearbeitet werden';
-  }
-
-  return 'Dieser Slot kann storniert werden';
-}
-
-function formatEventText(event: CalendarSlotEventRecord) {
-  const actorLabel =
-    event.actorRole === 'owner'
-      ? 'Kalenderinhaber'
-      : event.actorRole === 'contact'
-        ? 'Kontakt'
-        : 'System';
-
-  switch (event.type) {
-    case 'booked':
-      return `Gebucht durch ${event.targetEmail ?? actorLabel}`;
-    case 'assigned_by_owner':
-      return `Manuell vergeben an ${event.targetEmail ?? 'Kontakt'}`;
-    case 'cancelled_by_owner':
-      return `Durch ${actorLabel} storniert`;
-    case 'released':
-      return 'Wieder freigegeben';
-    case 'updated':
-      return 'Slot aktualisiert';
-    default:
-      return `Slot erstellt durch ${actorLabel}`;
-  }
-}
 
 function isSameDay(left: Date, right: Date) {
   return (
@@ -107,6 +39,8 @@ function isSameDay(left: Date, right: Date) {
 
 export default function CalendarDayScreen() {
   const router = useRouter();
+  const { t, language } = useTranslation();
+  const locale = language === 'de' ? 'de-DE' : 'en-US';
   const params = useLocalSearchParams<{ date?: string | string[]; slotId?: string | string[] }>();
   const rawDate = Array.isArray(params.date) ? params.date[0] : params.date ?? '';
   const initialSlotId = Array.isArray(params.slotId) ? params.slotId[0] : params.slotId ?? null;
@@ -177,12 +111,83 @@ export default function CalendarDayScreen() {
     setActionMessage(null);
   }, [rawDate]);
 
+  const formatTime = (value: Date | null) => {
+    if (!value) {
+      return t('day.timeUnavailable');
+    }
+
+    return value.toLocaleTimeString(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const formatDateTime = (value: Date | null) => {
+    if (!value) {
+      return t('day.dateTimeUnavailable');
+    }
+
+    return value.toLocaleString(locale);
+  };
+
+  const formatSlotStatus = (status: SlotStatus) => {
+    switch (status) {
+      case 'booked':
+        return t('day.statusBooked');
+      case 'cancelled':
+        return t('day.statusCancelled');
+      default:
+        return t('day.statusAvailable');
+    }
+  };
+
+  const getFooterStatusHint = (status: SlotStatus | null, hasAppointment: boolean) => {
+    if (!status) {
+      return t('day.selectHint');
+    }
+
+    if (status === 'cancelled') {
+      return t('day.cancelledHint');
+    }
+
+    if (status === 'booked' || hasAppointment) {
+      return t('day.bookedHint');
+    }
+
+    return t('day.cancellableHint');
+  };
+
+  const formatEventText = (event: CalendarSlotEventRecord) => {
+    const actorLabel =
+      event.actorRole === 'owner'
+        ? t('day.eventActorOwner')
+        : event.actorRole === 'contact'
+          ? t('day.eventActorContact')
+          : t('day.eventActorSystem');
+    const target = event.targetEmail ?? actorLabel;
+
+    switch (event.type) {
+      case 'booked':
+        return t('day.eventBooked', { actor: target });
+      case 'assigned_by_owner':
+        return t('day.eventAssigned', { actor: target });
+      case 'cancelled_by_owner':
+        return t('day.eventCancelled', { actor: actorLabel });
+      case 'released':
+        return t('day.eventReleased');
+      case 'updated':
+        return t('day.eventUpdated');
+      default:
+        return t('day.eventCreated', { actor: actorLabel });
+    }
+  };
+
   if (!selectedDate) {
     return (
       <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black', marginBottom: 16 }}>Das gewählte Datum ist ungültig.</Text>
+        <Text style={{ color: 'black', marginBottom: 16 }}>{t('day.invalidDate')}</Text>
         <Link href="/my-calendar">
-          <Text style={{ color: 'black', textDecorationLine: 'underline' }}>Zurück zum Kalender</Text>
+          <Text style={{ color: 'black', textDecorationLine: 'underline' }}>{t('nav.backToCalendar')}</Text>
         </Link>
       </View>
     );
@@ -193,47 +198,37 @@ export default function CalendarDayScreen() {
       return;
     }
 
-    Alert.alert(
-      'Slot stornieren',
-      'Der ausgewählte Slot wird storniert und in der Historie vermerkt.',
-      [
-        { text: 'Abbrechen', style: 'cancel' },
-        {
-          text: 'Stornieren',
-          style: 'destructive',
-          onPress: async () => {
-            setDeactivatingSlotId(selectedSlot.id);
-            setActionMessage(null);
+    Alert.alert(t('day.cancelAlertTitle'), t('day.cancelAlertBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('day.cancelAlertConfirm'),
+        style: 'destructive',
+        onPress: async () => {
+          setDeactivatingSlotId(selectedSlot.id);
+          setActionMessage(null);
 
-            try {
-              const result = await cancelCalendarSlot({
-                calendarId: calendar.id,
-                slotId: selectedSlot.id,
-                actorUid: user.uid,
-              });
+          try {
+            const result = await cancelCalendarSlot({
+              calendarId: calendar.id,
+              slotId: selectedSlot.id,
+              actorUid: user.uid,
+            });
 
-              setActionMessage(
-                result === 'already_cancelled'
-                  ? 'Der Slot war bereits storniert.'
-                  : 'Slot wurde storniert.'
-              );
-            } catch (nextError) {
-              setActionMessage(
-                nextError instanceof Error ? nextError.message : 'Slot konnte nicht storniert werden.'
-              );
-            } finally {
-              setDeactivatingSlotId(null);
-            }
-          },
+            setActionMessage(result === 'already_cancelled' ? t('day.cancelAlready') : t('day.cancelSuccess'));
+          } catch (nextError) {
+            setActionMessage(nextError instanceof Error ? nextError.message : t('day.cancelError'));
+          } finally {
+            setDeactivatingSlotId(null);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   if (authLoading || loading || slotsLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black' }}>Wird geladen...</Text>
+        <Text style={{ color: 'black' }}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -256,6 +251,7 @@ export default function CalendarDayScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: 'white' }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
+        <LanguageSwitcher />
         <View
           style={{
             flexDirection: 'row',
@@ -265,23 +261,23 @@ export default function CalendarDayScreen() {
           }}>
           <Pressable onPress={() => navigateToRelativeDay(-1)}>
             <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-              {'← Vorheriger Tag'}
+              {'<- '}{t('day.previous')}
             </Text>
           </Pressable>
 
           <Text style={{ color: 'black', fontSize: 24, flex: 1, textAlign: 'center' }}>
-            {formatDayTitle(selectedDate)}
+            {formatDayTitle(selectedDate, locale)}
           </Text>
 
           <Pressable onPress={() => navigateToRelativeDay(1)}>
             <Text style={{ color: 'black', textDecorationLine: 'underline', textAlign: 'right' }}>
-              {'Nächster Tag →'}
+              {t('day.next')}{' ->'}
             </Text>
           </Pressable>
         </View>
 
         <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-          <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>Tageszeitstrahl</Text>
+          <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>{t('day.timeline')}</Text>
 
           <ScrollView
             ref={timelineScrollRef}
@@ -359,16 +355,14 @@ export default function CalendarDayScreen() {
                           {formatSlotStatus(slot.status)}
                         </Text>
                         <Text style={{ color: 'black', fontSize: 12 }}>
-                          {slot.appointmentId ? 'Mit Termin verknüpft' : 'Noch nicht gebucht'}
+                          {slot.appointmentId ? t('day.linkedAppointment') : t('day.noAppointment')}
                         </Text>
                       </Pressable>
                     );
                   })
                 ) : (
                   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                    <Text style={{ color: 'black' }}>
-                      Für diesen Tag gibt es noch keine Slots.
-                    </Text>
+                    <Text style={{ color: 'black' }}>{t('day.noSlots')}</Text>
                   </View>
                 )}
               </View>
@@ -381,21 +375,21 @@ export default function CalendarDayScreen() {
 
         <View style={{ borderWidth: 1, borderColor: 'black', padding: 16 }}>
           <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>
-            Aktivität und Slot-Status
+            {t('day.activity')}
           </Text>
 
           {selectedSlot ? (
             <>
               <Text style={{ color: 'black', marginBottom: 6 }}>
-                Zeit: {formatTime(selectedSlot.startsAt)} - {formatTime(selectedSlot.endsAt)}
+                {t('day.timeLabel', {
+                  time: `${formatTime(selectedSlot.startsAt)} - ${formatTime(selectedSlot.endsAt)}`,
+                })}
               </Text>
               <Text style={{ color: 'black', marginBottom: 6 }}>
-                Status: {formatSlotStatus(selectedSlot.status)}
+                {t('day.statusLabel', { status: formatSlotStatus(selectedSlot.status) })}
               </Text>
               <Text style={{ color: 'black', marginBottom: 12 }}>
-                {selectedSlot.appointmentId
-                  ? 'Dieser Slot ist bereits mit einem Termin verknüpft.'
-                  : 'Dieser Slot ist aktuell noch keinem Termin zugeordnet.'}
+                {selectedSlot.appointmentId ? t('day.hasAppointment') : t('day.hasNoAppointment')}
               </Text>
             </>
           ) : null}
@@ -403,7 +397,7 @@ export default function CalendarDayScreen() {
           <ScrollView style={{ maxHeight: historyPanelMaxHeight }}>
             {selectedSlot ? (
               slotDetailLoading ? (
-                <Text style={{ color: 'black' }}>Historie wird geladen...</Text>
+                <Text style={{ color: 'black' }}>{t('day.historyLoading')}</Text>
               ) : events.length ? (
                 events.map((event) => (
                   <View
@@ -416,25 +410,27 @@ export default function CalendarDayScreen() {
                     }}>
                     <Text style={{ color: 'black', marginBottom: 4 }}>{formatEventText(event)}</Text>
                     <Text style={{ color: 'black', marginBottom: 4 }}>
-                      Zeitpunkt: {formatDateTime(event.createdAt)}
+                      {t('day.eventTime', { time: formatDateTime(event.createdAt) })}
                     </Text>
                     {event.statusAfter ? (
                       <Text style={{ color: 'black', marginBottom: 4 }}>
-                        Status danach: {formatSlotStatus(event.statusAfter)}
+                        {t('day.eventStatusAfter', { status: formatSlotStatus(event.statusAfter) })}
                       </Text>
                     ) : null}
                     {event.targetEmail ? (
                       <Text style={{ color: 'black', marginBottom: 4 }}>
-                        Bezug: {event.targetEmail}
+                        {t('day.eventReference', { email: event.targetEmail })}
                       </Text>
                     ) : null}
-                    {event.note ? <Text style={{ color: 'black' }}>Hinweis: {event.note}</Text> : null}
+                    {event.note ? (
+                      <Text style={{ color: 'black' }}>
+                        {t('day.eventNote', { note: event.note })}
+                      </Text>
+                    ) : null}
                   </View>
                 ))
               ) : (
-                <Text style={{ color: 'black' }}>
-                  Für den ausgewählten Slot gibt es bisher nur den aktuellen Status.
-                </Text>
+                <Text style={{ color: 'black' }}>{t('day.historyEmpty')}</Text>
               )
             ) : null}
           </ScrollView>
@@ -446,7 +442,7 @@ export default function CalendarDayScreen() {
         <View style={{ alignItems: 'flex-end', marginTop: 16 }}>
           <Link href="/my-calendar">
             <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-              Zurück zur Monatsansicht
+              {t('day.backToMonth')}
             </Text>
           </Link>
         </View>
@@ -465,7 +461,7 @@ export default function CalendarDayScreen() {
         }}>
         <Link href={`/my-calendar/create-slot?date=${rawDate}`} asChild>
           <Pressable style={{ paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: 'black' }}>
-            <Text style={{ color: 'black' }}>Slot hinzufügen</Text>
+            <Text style={{ color: 'black' }}>{t('day.addSlot')}</Text>
           </Pressable>
         </Link>
 
@@ -476,12 +472,12 @@ export default function CalendarDayScreen() {
               disabled={deactivatingSlotId === selectedSlot?.id}
               style={{ paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: 'black' }}>
               <Text style={{ color: 'black' }}>
-                {deactivatingSlotId === selectedSlot?.id ? 'Bearbeite...' : 'Slot stornieren'}
+                {deactivatingSlotId === selectedSlot?.id ? t('day.processing') : t('day.cancelSlot')}
               </Text>
             </Pressable>
           ) : (
             <View style={{ paddingVertical: 10, paddingHorizontal: 12, opacity: 0.55 }}>
-              <Text style={{ color: 'black' }}>Keine Aktion verfügbar</Text>
+              <Text style={{ color: 'black' }}>{t('day.noAction')}</Text>
             </View>
           )}
           <Text style={{ color: 'black', marginTop: 8, maxWidth: 220, textAlign: 'right' }}>

@@ -218,7 +218,7 @@ export function PublicCalendarScreenContent(props: {
               </Text>
               {slot.startsAt ? (
                 <Text style={{ color: 'black' }}>
-                  {t('public.bookSlot')} {t('public.selectedSlot', { range: getDayKey(slot.startsAt) }).replace('Ausgewaehlter Slot: ', '').replace('Selected slot: ', '')}
+                  {t('public.day', { day: getDayKey(slot.startsAt) })}
                 </Text>
               ) : null}
             </Pressable>
