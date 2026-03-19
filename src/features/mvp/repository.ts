@@ -20,6 +20,7 @@ import {
 
 import { db } from '@/src/firebase/config';
 
+import { PRIVACY_VERSION, TERMS_VERSION } from './types';
 import type {
   AppointmentRecord,
   CalendarAccessRecord,
@@ -30,8 +31,6 @@ import type {
   DashboardData,
   NotificationRecord,
   OwnerProfile,
-  PRIVACY_VERSION,
-  TERMS_VERSION,
 } from './types';
 
 export class DashboardDataLoadError extends Error {
