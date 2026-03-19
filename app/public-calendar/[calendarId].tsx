@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocalSearchParams } from 'expo-router';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { getDayKey } from '../../src/features/mvp/calendar-utils';
 import { bookPublicCalendarSlot } from '../../src/features/mvp/repository';
+import { PRIVACY_VERSION, TERMS_VERSION } from '../../src/features/mvp/types';
 import { useCalendar } from '../../src/features/mvp/useCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 
@@ -24,6 +25,9 @@ export default function PublicCalendarScreen() {
   const [participantName, setParticipantName] = useState('');
   const [participantEmail, setParticipantEmail] = useState('');
   const [requestAccountCreation, setRequestAccountCreation] = useState(false);
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -73,8 +77,9 @@ export default function PublicCalendarScreen() {
       participantEmail.trim() &&
       !submitting
   );
+  const canConfirmConsent = termsAccepted && privacyAccepted && !submitting;
 
-  const handleBookSlot = async () => {
+  const handleStartBooking = () => {
     if (!selectedSlot) {
       setMessage('Bitte waehle zuerst einen freien Slot aus.');
       return;
@@ -90,6 +95,19 @@ export default function PublicCalendarScreen() {
       return;
     }
 
+    setMessage(null);
+    setTermsAccepted(false);
+    setPrivacyAccepted(false);
+    setShowConsentModal(true);
+  };
+
+  const handleConfirmBooking = async () => {
+    if (!selectedSlot) {
+      setShowConsentModal(false);
+      setMessage('Bitte waehle zuerst einen freien Slot aus.');
+      return;
+    }
+
     setSubmitting(true);
     setMessage(null);
 
@@ -100,6 +118,8 @@ export default function PublicCalendarScreen() {
         participantName,
         participantEmail,
         requestAccountCreation,
+        termsAccepted,
+        privacyAccepted,
       });
 
       setMessage(
@@ -111,6 +131,9 @@ export default function PublicCalendarScreen() {
       setParticipantName('');
       setParticipantEmail('');
       setRequestAccountCreation(false);
+      setTermsAccepted(false);
+      setPrivacyAccepted(false);
+      setShowConsentModal(false);
     } catch (nextError) {
       setMessage(
         nextError instanceof Error ? nextError.message : 'Die Buchung konnte nicht gespeichert werden.'
@@ -214,7 +237,7 @@ export default function PublicCalendarScreen() {
         </Pressable>
 
         <Pressable
-          onPress={handleBookSlot}
+          onPress={handleStartBooking}
           disabled={!canBook}
           style={{
             borderWidth: 1,
@@ -232,12 +255,122 @@ export default function PublicCalendarScreen() {
       </View>
 
       <View style={{ alignItems: 'flex-end' }}>
-        <Link href="/login">
+        <Link
+          href={{
+            pathname: '/login',
+            params: { redirect: `/public-calendar/${calendar.id}` },
+          }}>
           <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
             Mit bestehendem Konto anmelden
           </Text>
         </Link>
       </View>
+
+      <Modal
+        visible={showConsentModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => {
+          if (!submitting) {
+            setShowConsentModal(false);
+          }
+        }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.35)',
+            justifyContent: 'center',
+            padding: 16,
+          }}>
+          <View style={{ backgroundColor: 'white', borderWidth: 1, borderColor: 'black', padding: 16 }}>
+            <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>Buchung bestaetigen</Text>
+            <Text style={{ color: 'black', marginBottom: 16 }}>
+              Mit der Buchung akzeptiere ich die AGB und bestaetige, die Datenschutzerklaerung gelesen zu
+              haben.
+            </Text>
+
+            <Pressable
+              onPress={() => setTermsAccepted((currentValue) => !currentValue)}
+              style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <View
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderWidth: 1,
+                  borderColor: 'black',
+                  marginRight: 8,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                {termsAccepted ? <Text style={{ color: 'black' }}>x</Text> : null}
+              </View>
+              <Text style={{ color: 'black', flex: 1 }}>AGB akzeptieren</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setPrivacyAccepted((currentValue) => !currentValue)}
+              style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <View
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderWidth: 1,
+                  borderColor: 'black',
+                  marginRight: 8,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                {privacyAccepted ? <Text style={{ color: 'black' }}>x</Text> : null}
+              </View>
+              <Text style={{ color: 'black', flex: 1 }}>Datenschutzerklaerung gelesen</Text>
+            </Pressable>
+
+            <View style={{ marginBottom: 16 }}>
+              <Link href="/agb" style={{ marginBottom: 8 }}>
+                <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                  AGB ansehen (Version {TERMS_VERSION})
+                </Text>
+              </Link>
+              <Link href="/datenschutz">
+                <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                  Datenschutzerklaerung ansehen (Version {PRIVACY_VERSION})
+                </Text>
+              </Link>
+            </View>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
+              <Pressable
+                onPress={() => setShowConsentModal(false)}
+                disabled={submitting}
+                style={{
+                  flex: 1,
+                  borderWidth: 1,
+                  borderColor: 'black',
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                  opacity: submitting ? 0.55 : 1,
+                }}>
+                <Text style={{ color: 'black' }}>Abbrechen</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleConfirmBooking}
+                disabled={!canConfirmConsent}
+                style={{
+                  flex: 1,
+                  borderWidth: 1,
+                  borderColor: 'black',
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                  opacity: canConfirmConsent ? 1 : 0.55,
+                }}>
+                <Text style={{ color: 'black' }}>
+                  {submitting ? 'Buche Slot...' : 'Jetzt verbindlich buchen'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, Pressable, Text, TextInput, View } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { FirebaseError } from 'firebase/app';
 
 import { loginWithEmail } from '../src/firebase/auth';
@@ -28,19 +28,35 @@ function getLoginErrorMessage(error: unknown) {
   return 'Unable to log in right now. Please try again.';
 }
 
+function getSafeRedirectTarget(value: string | string[] | undefined) {
+  const redirect = Array.isArray(value) ? value[0] : value;
+
+  if (!redirect) {
+    return null;
+  }
+
+  if (!redirect.startsWith('/') || redirect.startsWith('//')) {
+    return null;
+  }
+
+  return redirect;
+}
+
 export default function LoginScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ redirect?: string | string[] }>();
   const { user, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const redirectTarget = getSafeRedirectTarget(params.redirect);
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace('/(tabs)');
+      router.replace(redirectTarget ?? '/(tabs)');
     }
-  }, [loading, router, user]);
+  }, [loading, redirectTarget, router, user]);
 
   const handleLogin = async () => {
     const trimmedEmail = email.trim();
@@ -65,7 +81,7 @@ export default function LoginScreen() {
 
     try {
       await loginWithEmail(trimmedEmail, password);
-      router.replace('/(tabs)');
+      router.replace(redirectTarget ?? '/(tabs)');
     } catch (error) {
       setMessage(getLoginErrorMessage(error));
     } finally {

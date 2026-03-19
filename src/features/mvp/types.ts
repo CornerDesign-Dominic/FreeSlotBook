@@ -38,6 +38,9 @@ export type NotificationType =
 
 export type NotificationStatus = 'pending' | 'processing' | 'sent' | 'failed' | 'read';
 
+export const TERMS_VERSION = '2026-03-18';
+export const PRIVACY_VERSION = '2026-03-18';
+
 export interface OwnerProfile {
   uid: string;
   email: string;
@@ -118,6 +121,12 @@ export interface AppointmentRecord {
   participantEmailKey: string;
   guestBooking: boolean;
   accountCreationRequested: boolean;
+  termsAccepted: boolean;
+  termsAcceptedAt: Date | null;
+  termsVersion: string | null;
+  privacyAccepted: boolean;
+  privacyAcceptedAt: Date | null;
+  privacyVersion: string | null;
   startsAt: Date | null;
   endsAt: Date | null;
   source: AppointmentSource;

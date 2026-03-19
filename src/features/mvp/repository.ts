@@ -30,6 +30,8 @@ import type {
   DashboardData,
   NotificationRecord,
   OwnerProfile,
+  PRIVACY_VERSION,
+  TERMS_VERSION,
 } from './types';
 
 export class DashboardDataLoadError extends Error {
@@ -232,6 +234,12 @@ function mapAppointment(id: string, data: Record<string, unknown>): AppointmentR
     participantEmailKey: String(data.participantEmailKey ?? ''),
     guestBooking: Boolean(data.guestBooking),
     accountCreationRequested: Boolean(data.accountCreationRequested),
+    termsAccepted: Boolean(data.termsAccepted),
+    termsAcceptedAt: asDate(data.termsAcceptedAt),
+    termsVersion: typeof data.termsVersion === 'string' ? data.termsVersion : null,
+    privacyAccepted: Boolean(data.privacyAccepted),
+    privacyAcceptedAt: asDate(data.privacyAcceptedAt),
+    privacyVersion: typeof data.privacyVersion === 'string' ? data.privacyVersion : null,
     startsAt: asDate(data.startsAt),
     endsAt: asDate(data.endsAt),
     source: data.source === 'manual' ? 'manual' : 'self_service',
@@ -437,10 +445,10 @@ export async function ensureOwnerAccountSetup(params: { uid: string; email: stri
           ownerId: params.uid,
           ownerEmail: trimmedEmail,
           ownerEmailKey: emailKey,
-          visibility: 'restricted',
           ...(calendarSnapshot.exists()
             ? {}
             : {
+                visibility: 'restricted',
                 notifyOnNewSlotsAvailable: false,
                 createdAt: serverTimestamp(),
               }),
@@ -1618,6 +1626,8 @@ export async function bookPublicCalendarSlot(params: {
   participantName: string;
   participantEmail: string;
   requestAccountCreation: boolean;
+  termsAccepted: boolean;
+  privacyAccepted: boolean;
 }) {
   const trimmedName = params.participantName.trim();
   const trimmedEmail = params.participantEmail.trim();
@@ -1628,6 +1638,10 @@ export async function bookPublicCalendarSlot(params: {
 
   if (!trimmedEmail) {
     throw new Error('Eine E-Mail ist erforderlich.');
+  }
+
+  if (!params.termsAccepted || !params.privacyAccepted) {
+    throw new Error('Bitte akzeptiere AGB und Datenschutzerklaerung vor der Buchung.');
   }
 
   const participantEmailKey = normalizeEmail(trimmedEmail);
@@ -1699,6 +1713,12 @@ export async function bookPublicCalendarSlot(params: {
       participantEmailKey,
       guestBooking: true,
       accountCreationRequested: params.requestAccountCreation,
+      termsAccepted: true,
+      termsAcceptedAt: serverTimestamp(),
+      termsVersion: TERMS_VERSION,
+      privacyAccepted: true,
+      privacyAcceptedAt: serverTimestamp(),
+      privacyVersion: PRIVACY_VERSION,
       startsAt: Timestamp.fromDate(slot.startsAt),
       endsAt: Timestamp.fromDate(slot.endsAt),
       source: 'self_service',

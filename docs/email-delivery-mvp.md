@@ -113,3 +113,30 @@ Was noch offen bleibt:
 
 - eine vollautomatische harte Verknuepfung alter Gasttermine mit einer User-ID
 - eine In-App-Abschlussseite nach dem Klick auf den Passwortsetz-Link
+
+## Rueckverknuepfung von Gastbuchungen zu Firebase-Auth-Usern
+
+Im aktuellen MVP wird die Rueckverknuepfung jetzt serverseitig ueber Cloud Functions erledigt.
+
+Ausloeser:
+
+1. Wenn ein neuer Firebase-Auth-User mit einer E-Mail angelegt wird
+2. Wenn eine neue Gastbuchung entsteht und zu dieser E-Mail bereits ein Firebase-Auth-User existiert
+
+Was angepasst wird:
+
+- `appointments/.../bookedByUserId`
+- `appointments/.../createdByUserId` falls dort noch kein Wert gesetzt ist
+
+Welche Buchungen betroffen sind:
+
+- nur Buchungen mit `guestBooking = true`
+- nur Buchungen mit passender gleicher `participantEmailKey`
+- nur Buchungen, die noch keine `bookedByUserId` besitzen
+
+Warum das fuer das MVP passt:
+
+- keine Massenmigration noetig
+- idempotent, weil bereits verknuepfte Termine uebersprungen werden
+- die bestehende Gastbuchung bleibt fachlich erhalten
+- spaetere User-bezogene Logik kann trotzdem auf einer echten `uid` aufsetzen

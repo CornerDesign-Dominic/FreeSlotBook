@@ -123,6 +123,12 @@ service cloud.firestore {
             && request.resource.data.bookedByUserId == null
             && request.resource.data.createdByUserId == null
             && request.resource.data.guestBooking == true
+            && request.resource.data.termsAccepted == true
+            && request.resource.data.termsAcceptedAt is timestamp
+            && request.resource.data.termsVersion == '2026-03-18'
+            && request.resource.data.privacyAccepted == true
+            && request.resource.data.privacyAcceptedAt is timestamp
+            && request.resource.data.privacyVersion == '2026-03-18'
             && request.resource.data.bookedByEmail == request.resource.data.participantEmail
             && request.resource.data.bookedByEmailKey == request.resource.data.participantEmailKey);
         allow update, delete: if ownsCalendar(calendarId);

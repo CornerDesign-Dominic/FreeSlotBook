@@ -1,17 +1,21 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deliverEmailNotification = void 0;
+exports.linkGuestAppointmentsOnAppointmentCreated = exports.linkGuestAppointmentsOnUserCreated = exports.deliverEmailNotification = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
 const params_1 = require("firebase-functions/params");
 const firestore_2 = require("firebase-functions/v2/firestore");
 const v2_1 = require("firebase-functions/v2");
+const auth_2 = require("firebase-functions/v1/auth");
 (0, app_1.initializeApp)();
 const db = (0, firestore_1.getFirestore)();
 const auth = (0, auth_1.getAuth)();
 const resendApiKey = (0, params_1.defineSecret)('RESEND_API_KEY');
 const mailFromEmail = (0, params_1.defineSecret)('MAIL_FROM_EMAIL');
+function normalizeEmail(email) {
+    return email.trim().toLowerCase();
+}
 function buildHtml(params) {
     return [
         '<div style="font-family: Arial, sans-serif; color: #111;">',
@@ -59,6 +63,40 @@ async function ensureAuthUserForInvite(email) {
             emailVerified: false,
         });
     }
+}
+async function linkGuestAppointmentsToUser(params) {
+    const normalizedEmail = normalizeEmail(params.email);
+    const appointmentSnapshots = await db
+        .collectionGroup('appointments')
+        .where('participantEmailKey', '==', normalizedEmail)
+        .get();
+    if (appointmentSnapshots.empty) {
+        return 0;
+    }
+    const batch = db.batch();
+    let linkedCount = 0;
+    for (const snapshot of appointmentSnapshots.docs) {
+        const appointment = snapshot.data();
+        if (appointment.guestBooking !== true) {
+            continue;
+        }
+        if (typeof appointment.bookedByUserId === 'string' && appointment.bookedByUserId.length > 0) {
+            continue;
+        }
+        batch.set(snapshot.ref, {
+            bookedByUserId: params.uid,
+            createdByUserId: typeof appointment.createdByUserId === 'string' && appointment.createdByUserId.length > 0
+                ? appointment.createdByUserId
+                : params.uid,
+            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        linkedCount += 1;
+    }
+    if (!linkedCount) {
+        return 0;
+    }
+    await batch.commit();
+    return linkedCount;
 }
 async function buildEmailPayload(notification) {
     if (notification.type !== 'account_creation_invite' ||
@@ -151,5 +189,56 @@ exports.deliverEmailNotification = (0, firestore_2.onDocumentCreated)({
             updatedAt: firestore_1.FieldValue.serverTimestamp(),
             deliveryError: message,
         }, { merge: true });
+    }
+});
+exports.linkGuestAppointmentsOnUserCreated = (0, auth_2.user)().onCreate(async (userRecord) => {
+    const email = userRecord.email;
+    if (!email) {
+        return;
+    }
+    const linkedCount = await linkGuestAppointmentsToUser({
+        uid: userRecord.uid,
+        email,
+    });
+    v2_1.logger.info('Linked guest appointments after auth user creation.', {
+        uid: userRecord.uid,
+        email,
+        linkedCount,
+    });
+});
+exports.linkGuestAppointmentsOnAppointmentCreated = (0, firestore_2.onDocumentCreated)({
+    document: 'calendars/{calendarId}/appointments/{appointmentId}',
+    region: 'europe-west1',
+}, async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) {
+        return;
+    }
+    const appointment = snapshot.data();
+    if (appointment.guestBooking !== true ||
+        !appointment.participantEmail ||
+        (typeof appointment.bookedByUserId === 'string' && appointment.bookedByUserId.length > 0)) {
+        return;
+    }
+    try {
+        const user = await auth.getUserByEmail(appointment.participantEmail);
+        const linkedCount = await linkGuestAppointmentsToUser({
+            uid: user.uid,
+            email: appointment.participantEmail,
+        });
+        v2_1.logger.info('Linked guest appointments after appointment creation.', {
+            appointmentId: snapshot.id,
+            email: appointment.participantEmail,
+            linkedCount,
+        });
+    }
+    catch (error) {
+        const code = typeof error === 'object' && error !== null && 'code' in error
+            ? String(error.code)
+            : '';
+        if (code === 'auth/user-not-found') {
+            return;
+        }
+        throw error;
     }
 });

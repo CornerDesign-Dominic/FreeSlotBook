@@ -4,6 +4,7 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { defineSecret } from 'firebase-functions/params';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions/v2';
+import { user } from 'firebase-functions/v1/auth';
 
 initializeApp();
 
@@ -20,6 +21,18 @@ type NotificationDocument = {
   body?: string;
   type?: string;
 };
+
+type AppointmentDocument = {
+  participantEmail?: string;
+  participantEmailKey?: string;
+  guestBooking?: boolean;
+  bookedByUserId?: string | null;
+  createdByUserId?: string | null;
+};
+
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
 
 function buildHtml(params: { title: string; body: string; actionUrl?: string | null; actionLabel?: string | null }) {
   return [
@@ -80,6 +93,57 @@ async function ensureAuthUserForInvite(email: string) {
       emailVerified: false,
     });
   }
+}
+
+async function linkGuestAppointmentsToUser(params: {
+  uid: string;
+  email: string;
+}) {
+  const normalizedEmail = normalizeEmail(params.email);
+  const appointmentSnapshots = await db
+    .collectionGroup('appointments')
+    .where('participantEmailKey', '==', normalizedEmail)
+    .get();
+
+  if (appointmentSnapshots.empty) {
+    return 0;
+  }
+
+  const batch = db.batch();
+  let linkedCount = 0;
+
+  for (const snapshot of appointmentSnapshots.docs) {
+    const appointment = snapshot.data() as AppointmentDocument;
+
+    if (appointment.guestBooking !== true) {
+      continue;
+    }
+
+    if (typeof appointment.bookedByUserId === 'string' && appointment.bookedByUserId.length > 0) {
+      continue;
+    }
+
+    batch.set(
+      snapshot.ref,
+      {
+        bookedByUserId: params.uid,
+        createdByUserId:
+          typeof appointment.createdByUserId === 'string' && appointment.createdByUserId.length > 0
+            ? appointment.createdByUserId
+            : params.uid,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    linkedCount += 1;
+  }
+
+  if (!linkedCount) {
+    return 0;
+  }
+
+  await batch.commit();
+  return linkedCount;
 }
 
 async function buildEmailPayload(notification: NotificationDocument) {
@@ -200,6 +264,74 @@ export const deliverEmailNotification = onDocumentCreated(
         },
         { merge: true }
       );
+    }
+  }
+);
+
+export const linkGuestAppointmentsOnUserCreated = user().onCreate(async (userRecord) => {
+  const email = userRecord.email;
+
+  if (!email) {
+    return;
+  }
+
+  const linkedCount = await linkGuestAppointmentsToUser({
+    uid: userRecord.uid,
+    email,
+  });
+
+  logger.info('Linked guest appointments after auth user creation.', {
+    uid: userRecord.uid,
+    email,
+    linkedCount,
+  });
+});
+
+export const linkGuestAppointmentsOnAppointmentCreated = onDocumentCreated(
+  {
+    document: 'calendars/{calendarId}/appointments/{appointmentId}',
+    region: 'europe-west1',
+  },
+  async (event) => {
+    const snapshot = event.data;
+
+    if (!snapshot) {
+      return;
+    }
+
+    const appointment = snapshot.data() as AppointmentDocument;
+
+    if (
+      appointment.guestBooking !== true ||
+      !appointment.participantEmail ||
+      (typeof appointment.bookedByUserId === 'string' && appointment.bookedByUserId.length > 0)
+    ) {
+      return;
+    }
+
+    try {
+      const user = await auth.getUserByEmail(appointment.participantEmail);
+      const linkedCount = await linkGuestAppointmentsToUser({
+        uid: user.uid,
+        email: appointment.participantEmail,
+      });
+
+      logger.info('Linked guest appointments after appointment creation.', {
+        appointmentId: snapshot.id,
+        email: appointment.participantEmail,
+        linkedCount,
+      });
+    } catch (error) {
+      const code =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? String((error as { code?: unknown }).code)
+          : '';
+
+      if (code === 'auth/user-not-found') {
+        return;
+      }
+
+      throw error;
     }
   }
 );
