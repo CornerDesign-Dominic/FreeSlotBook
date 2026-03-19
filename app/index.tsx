@@ -9,7 +9,7 @@ export default function IndexScreen() {
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-        <Text>Loading...</Text>
+        <Text>Wird geladen...</Text>
       </View>
     );
   }

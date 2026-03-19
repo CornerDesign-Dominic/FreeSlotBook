@@ -33,27 +33,8 @@ import type {
   OwnerProfile,
 } from './types';
 
-export class DashboardDataLoadError extends Error {
-  debug: NonNullable<DashboardData['debug']>;
-
-  constructor(message: string, debug: NonNullable<DashboardData['debug']>) {
-    super(message);
-    this.name = 'DashboardDataLoadError';
-    this.debug = debug;
-  }
-}
-
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
-}
-
-function getFirestoreErrorCode(error: unknown) {
-  if (typeof error === 'object' && error !== null && 'code' in error) {
-    const code = (error as { code?: unknown }).code;
-    return typeof code === 'string' ? code : null;
-  }
-
-  return null;
 }
 
 function getFirestoreErrorMessage(error: unknown) {
@@ -634,23 +615,8 @@ async function listApprovedCalendarAccess(email: string) {
     ).values()
   );
 }
-
-async function getJoinedCalendarsWithDebug(
-  email: string,
-  debugState?: NonNullable<DashboardData['debug']>
-) {
-  if (debugState) {
-    debugState.debugQueryName =
-      "collectionGroup('access') where granteeEmailKey == normalizedEmail and status == approved";
-    debugState.debugAccessQueryStarted = true;
-  }
-
+async function getJoinedCalendars(email: string) {
   const accessRecords = await listApprovedCalendarAccess(email);
-
-  if (debugState) {
-    debugState.debugAccessQuerySucceeded = true;
-    debugState.debugAccessDocsCount = accessRecords.length;
-  }
 
   const uniqueCalendarIds = Array.from(
     new Set(accessRecords.map((record) => record.calendarId).filter(Boolean))
@@ -675,19 +641,13 @@ async function getJoinedCalendarsWithDebug(
     (calendar): calendar is CalendarRecord => calendar !== null
   );
 
-  if (debugState) {
-    debugState.debugJoinedCalendarsLoadSucceeded = true;
-  }
-
   return {
-    accessRecords,
-    uniqueCalendarIds,
     joinedCalendars,
   };
 }
 
 export async function listJoinedCalendars(email: string) {
-  const result = await getJoinedCalendarsWithDebug(email);
+  const result = await getJoinedCalendars(email);
   return result.joinedCalendars;
 }
 
@@ -722,27 +682,9 @@ export async function listRecentNotificationsForRecipient(email: string) {
 
 export async function getDashboardData(params: { uid: string; email: string }) {
   await ensureOwnerAccountSetup(params);
-  const baseDebug: NonNullable<DashboardData['debug']> = {
-    currentEmail: params.email,
-    normalizedEmail: normalizeEmail(params.email),
-    ownerSetupOk: true,
-    debugQueryName: null,
-    debugRawErrorCode: null,
-    debugRawErrorMessage: null,
-    debugAccessQueryStarted: false,
-    debugAccessQuerySucceeded: false,
-    debugAccessDocsCount: 0,
-    debugJoinedCalendarsLoadSucceeded: false,
-    accessRecordsCount: 0,
-    accessRecords: [],
-    calendarIds: [],
-    joinedCalendarsCount: 0,
-    joinedCalendarIds: [],
-    errorMessage: null,
-  };
 
   try {
-    const joinedCalendarDebug = await getJoinedCalendarsWithDebug(params.email, baseDebug);
+    const joinedCalendarResult = await getJoinedCalendars(params.email);
 
     const [
       ownerProfile,
@@ -759,29 +701,12 @@ export async function getDashboardData(params: { uid: string; email: string }) {
     return {
       ownerProfile,
       ownerCalendar,
-      joinedCalendars: joinedCalendarDebug.joinedCalendars,
+      joinedCalendars: joinedCalendarResult.joinedCalendars,
       upcomingAppointments,
       recentNotifications,
-      debug: {
-        ...baseDebug,
-        accessRecordsCount: joinedCalendarDebug.accessRecords.length,
-        accessRecords: joinedCalendarDebug.accessRecords.map((record) => ({
-          calendarId: record.calendarId,
-          status: record.status,
-          granteeEmailKey: record.granteeEmailKey,
-        })),
-        calendarIds: joinedCalendarDebug.uniqueCalendarIds,
-        joinedCalendarsCount: joinedCalendarDebug.joinedCalendars.length,
-        joinedCalendarIds: joinedCalendarDebug.joinedCalendars.map((calendar) => calendar.id),
-      },
     } satisfies DashboardData;
   } catch (error) {
-    throw new DashboardDataLoadError(getDashboardLoadErrorMessage(error), {
-      ...baseDebug,
-      debugRawErrorCode: getFirestoreErrorCode(error),
-      debugRawErrorMessage: getFirestoreErrorMessage(error),
-      errorMessage: getDashboardLoadErrorMessage(error),
-    });
+    throw new Error(getDashboardLoadErrorMessage(error));
   }
 }
 

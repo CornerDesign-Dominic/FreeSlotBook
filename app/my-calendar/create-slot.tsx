@@ -187,7 +187,7 @@ export default function CreateSlotScreen() {
   if (authLoading || loading || slotsLoading || accessLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black' }}>Loading...</Text>
+        <Text style={{ color: 'black' }}>Wird geladen...</Text>
       </View>
     );
   }

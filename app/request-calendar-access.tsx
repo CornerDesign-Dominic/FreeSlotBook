@@ -48,7 +48,7 @@ export default function RequestCalendarAccessScreen() {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black' }}>Loading...</Text>
+        <Text style={{ color: 'black' }}>Wird geladen...</Text>
       </View>
     );
   }

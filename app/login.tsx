@@ -131,27 +131,13 @@ export default function LoginScreen() {
     setMessage('');
 
     try {
-      console.info('Resend verification email requested.', {
-        email: trimmedEmail,
-      });
       const credential = await loginWithEmail(trimmedEmail, password);
       const verificationUser = credential.user;
 
-      console.info('Resend verification email using Firebase Auth user.', {
-        uid: verificationUser.uid,
-        email: verificationUser.email,
-        emailVerified: verificationUser.emailVerified,
-      });
-
       await sendVerificationEmail(verificationUser);
       await logout();
-      console.info('Verification email resend completed successfully.', {
-        uid: verificationUser.uid,
-        email: verificationUser.email,
-      });
       setMessage('Die Bestaetigungs-E-Mail wurde erneut gesendet.');
     } catch (error) {
-      console.error('Verification email resend failed.', error);
       setMessage(getVerificationEmailErrorMessage(error));
     } finally {
       setSubmitting(false);

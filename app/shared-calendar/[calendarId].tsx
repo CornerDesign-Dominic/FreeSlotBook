@@ -47,7 +47,7 @@ export default function SharedCalendarScreen() {
   if (authLoading || calendarLoading || slotsLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black' }}>Loading...</Text>
+        <Text style={{ color: 'black' }}>Wird geladen...</Text>
       </View>
     );
   }

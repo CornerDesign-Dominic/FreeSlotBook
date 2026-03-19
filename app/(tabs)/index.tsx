@@ -25,7 +25,7 @@ export default function HomeScreen() {
           backgroundColor: 'white',
           padding: 16,
         }}>
-        <Text style={{ color: 'black' }}>Loading...</Text>
+        <Text style={{ color: 'black' }}>Wird geladen...</Text>
       </View>
     );
   }
@@ -142,15 +142,15 @@ export default function HomeScreen() {
       <Text style={{ color: 'black', fontSize: 28, marginBottom: 8 }}>
         FreeSlotBooking
       </Text>
-      <Text style={{ color: 'black', fontSize: 16 }}>Choose an option</Text>
+      <Text style={{ color: 'black', fontSize: 16 }}>Waehle eine Option</Text>
       <Link href="/login" style={{ marginTop: 12 }}>
-        <Text style={{ color: 'black' }}>Login</Text>
+        <Text style={{ color: 'black' }}>Anmelden</Text>
       </Link>
       <Link href="/register" style={{ marginTop: 16 }}>
-        <Text style={{ color: 'black' }}>Create account</Text>
+        <Text style={{ color: 'black' }}>Konto erstellen</Text>
       </Link>
       <Link href="/forgot-password" style={{ marginTop: 12 }}>
-        <Text style={{ color: 'black' }}>Forgot password</Text>
+        <Text style={{ color: 'black' }}>Passwort vergessen</Text>
       </Link>
     </View>
   );
