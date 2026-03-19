@@ -11,15 +11,6 @@ export default function HomeScreen() {
     user ? { uid: user.uid, email: user.email } : null
   );
 
-  console.log('Dashboard:state', {
-    userEmail: user?.email ?? null,
-    joinedCalendars: data.joinedCalendars,
-    joinedCalendarsCount: data.joinedCalendars.length,
-    error,
-    loading,
-    dashboardLoading,
-  });
-
   const handleLogout = async () => {
     await logout();
   };
@@ -105,69 +96,6 @@ export default function HomeScreen() {
 
         <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 24 }}>
           <Text style={{ color: 'black', fontSize: 18, marginBottom: 4 }}>KALENDER VON</Text>
-          <View
-            style={{
-              borderWidth: 1,
-              borderColor: 'black',
-              padding: 12,
-              marginBottom: 12,
-            }}>
-            <Text style={{ color: 'black', marginBottom: 4 }}>
-              Debug currentEmail: {data.debug?.currentEmail ?? '-'}
-            </Text>
-            <Text style={{ color: 'black', marginBottom: 4 }}>
-              Debug normalizedEmail: {data.debug?.normalizedEmail ?? '-'}
-            </Text>
-            <Text style={{ color: 'black', marginBottom: 4 }}>
-              Debug ownerSetupOk: {data.debug?.ownerSetupOk ? 'true' : 'false'}
-            </Text>
-            <Text style={{ color: 'black', marginBottom: 4 }}>
-              Debug debugQueryName: {data.debug?.debugQueryName ?? '-'}
-            </Text>
-            <Text style={{ color: 'black', marginBottom: 4 }}>
-              Debug debugRawErrorCode: {data.debug?.debugRawErrorCode ?? '-'}
-            </Text>
-            <Text style={{ color: 'black', marginBottom: 4 }}>
-              Debug debugRawErrorMessage: {data.debug?.debugRawErrorMessage ?? '-'}
-            </Text>
-            <Text style={{ color: 'black', marginBottom: 4 }}>
-              Debug debugAccessQueryStarted: {data.debug?.debugAccessQueryStarted ? 'true' : 'false'}
-            </Text>
-            <Text style={{ color: 'black', marginBottom: 4 }}>
-              Debug debugAccessQuerySucceeded: {data.debug?.debugAccessQuerySucceeded ? 'true' : 'false'}
-            </Text>
-            <Text style={{ color: 'black', marginBottom: 4 }}>
-              Debug debugAccessDocsCount: {data.debug?.debugAccessDocsCount ?? 0}
-            </Text>
-            <Text style={{ color: 'black', marginBottom: 4 }}>
-              Debug debugJoinedCalendarsLoadSucceeded: {data.debug?.debugJoinedCalendarsLoadSucceeded ? 'true' : 'false'}
-            </Text>
-            <Text style={{ color: 'black', marginBottom: 4 }}>
-              Debug accessRecordsCount: {data.debug?.accessRecordsCount ?? 0}
-            </Text>
-            <Text style={{ color: 'black', marginBottom: 4 }}>
-              Debug calendarIds: {data.debug?.calendarIds.join(', ') || '-'}
-            </Text>
-            <Text style={{ color: 'black', marginBottom: 4 }}>
-              Debug joinedCalendarsCount: {data.debug?.joinedCalendarsCount ?? 0}
-            </Text>
-            <Text style={{ color: 'black', marginBottom: 4 }}>
-              Debug joinedCalendarIds: {data.debug?.joinedCalendarIds.join(', ') || '-'}
-            </Text>
-            <Text style={{ color: 'black' }}>
-              Debug error: {data.debug?.errorMessage ?? error ?? '-'}
-            </Text>
-
-            {data.debug?.accessRecords.length ? (
-              <View style={{ marginTop: 8 }}>
-                {data.debug.accessRecords.map((record, index) => (
-                  <Text key={`${record.calendarId}-${record.granteeEmailKey}-${index}`} style={{ color: 'black' }}>
-                    {`Access ${index + 1}: ${record.calendarId} | ${record.status} | ${record.granteeEmailKey}`}
-                  </Text>
-                ))}
-              </View>
-            ) : null}
-          </View>
           {data.joinedCalendars.length ? (
             data.joinedCalendars.map((calendar) => (
               <Link key={calendar.id} href={`/shared-calendar/${calendar.id}`} asChild>

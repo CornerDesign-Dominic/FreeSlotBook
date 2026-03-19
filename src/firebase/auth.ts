@@ -1,8 +1,10 @@
 import {
   createUserWithEmailAndPassword,
+  sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
+  type User,
 } from 'firebase/auth';
 
 import { auth } from './config';
@@ -10,6 +12,10 @@ import { auth } from './config';
 // Register a new user with email/password.
 export async function registerWithEmail(email: string, password: string) {
   return createUserWithEmailAndPassword(auth, email, password);
+}
+
+export async function sendVerificationEmail(user: User) {
+  return sendEmailVerification(user);
 }
 
 // Log in an existing user with email/password.

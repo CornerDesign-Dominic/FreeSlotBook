@@ -115,6 +115,10 @@ function calendarDoc(calendarId: string) {
   return doc(db, 'calendars', calendarId);
 }
 
+function publicCalendarSlugDoc(slug: string) {
+  return doc(db, 'publicCalendarSlugs', slug);
+}
+
 function calendarAccessCollection(calendarId: string) {
   return collection(db, 'calendars', calendarId, 'access');
 }
@@ -168,10 +172,56 @@ function mapCalendar(id: string, data: Record<string, unknown>): CalendarRecord 
     ownerEmail: String(data.ownerEmail ?? ''),
     ownerEmailKey: String(data.ownerEmailKey ?? ''),
     visibility: data.visibility === 'public' ? 'public' : 'restricted',
+    publicSlug:
+      typeof data.publicSlug === 'string' && data.publicSlug.trim().length
+        ? data.publicSlug.trim()
+        : null,
     notifyOnNewSlotsAvailable: Boolean(data.notifyOnNewSlotsAvailable),
     createdAt: asDate(data.createdAt),
     updatedAt: asDate(data.updatedAt),
   };
+}
+
+const reservedPublicSlugs = new Set([
+  'login',
+  'register',
+  'agb',
+  'datenschutz',
+  'public-calendar',
+  'my-calendar',
+  'request-calendar-access',
+  'forgot-password',
+  'shared-calendar',
+  'slots',
+  'modal',
+  'api',
+  'admin',
+]);
+
+function normalizePublicSlug(slug: string) {
+  return slug.trim().toLowerCase();
+}
+
+function validatePublicSlug(slug: string) {
+  const normalizedSlug = normalizePublicSlug(slug);
+
+  if (!normalizedSlug) {
+    return '';
+  }
+
+  if (normalizedSlug.length < 3 || normalizedSlug.length > 30) {
+    throw new Error('Der Slug muss zwischen 3 und 30 Zeichen lang sein.');
+  }
+
+  if (!/^[a-z0-9-]+$/.test(normalizedSlug)) {
+    throw new Error('Der Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten.');
+  }
+
+  if (reservedPublicSlugs.has(normalizedSlug)) {
+    throw new Error('Dieser Slug ist reserviert und kann nicht verwendet werden.');
+  }
+
+  return normalizedSlug;
 }
 
 function mapAccess(id: string, data: Record<string, unknown>): CalendarAccessRecord {
@@ -406,17 +456,8 @@ export async function ensureOwnerAccountSetup(params: { uid: string; email: stri
   const existingSetupPromise = ownerSetupInFlight.get(setupKey);
 
   if (existingSetupPromise) {
-    console.log('ensureOwnerAccountSetup:reuse', {
-      uid: params.uid,
-      emailKey,
-    });
     return existingSetupPromise;
   }
-
-  console.log('ensureOwnerAccountSetup:start', {
-    uid: params.uid,
-    emailKey,
-  });
 
   const setupPromise = (async () => {
     const [ownerSnapshot, calendarSnapshot] = await Promise.all([
@@ -456,14 +497,6 @@ export async function ensureOwnerAccountSetup(params: { uid: string; email: stri
         { merge: true }
       ),
     ]);
-
-    console.log('ensureOwnerAccountSetup:success', {
-      uid: params.uid,
-      emailKey,
-      ownerExistsBefore: ownerSnapshot.exists(),
-      calendarExistsBefore: calendarSnapshot.exists(),
-    });
-
     return { calendarId };
   })();
 
@@ -471,13 +504,6 @@ export async function ensureOwnerAccountSetup(params: { uid: string; email: stri
 
   try {
     return await setupPromise;
-  } catch (error) {
-    console.log('ensureOwnerAccountSetup:error', {
-      uid: params.uid,
-      emailKey,
-      error,
-    });
-    throw error;
   } finally {
     ownerSetupInFlight.delete(setupKey);
   }
@@ -501,6 +527,44 @@ export async function getOwnerCalendar(calendarId: string) {
   }
 
   return mapCalendar(snapshot.id, snapshot.data() as Record<string, unknown>);
+}
+
+export async function getPublicCalendarIdBySlug(slug: string) {
+  const normalizedSlug = validatePublicSlug(slug);
+
+  if (!normalizedSlug) {
+    return null;
+  }
+
+  const slugSnapshot = await getDoc(publicCalendarSlugDoc(normalizedSlug));
+
+  if (!slugSnapshot.exists()) {
+    return null;
+  }
+
+  const calendarId =
+    typeof slugSnapshot.data().calendarId === 'string' ? slugSnapshot.data().calendarId : null;
+
+  if (!calendarId) {
+    return null;
+  }
+
+  const calendarSnapshot = await getDoc(calendarDoc(calendarId));
+
+  if (!calendarSnapshot.exists()) {
+    return null;
+  }
+
+  const calendar = mapCalendar(
+    calendarSnapshot.id,
+    calendarSnapshot.data() as Record<string, unknown>
+  );
+
+  if (calendar.visibility !== 'public' || calendar.publicSlug !== normalizedSlug) {
+    return null;
+  }
+
+  return calendar.id;
 }
 
 export function subscribeToOwnerCalendar(
@@ -539,16 +603,6 @@ async function listApprovedCalendarAccess(email: string) {
   );
   const directSnapshots = await getDocs(accessQuery);
 
-  console.log('listApprovedCalendarAccess:direct', {
-    email,
-    normalizedEmailKey,
-    count: directSnapshots.docs.length,
-    docs: directSnapshots.docs.map((snapshot) => ({
-      id: snapshot.id,
-      data: snapshot.data(),
-    })),
-  });
-
   if (directSnapshots.docs.length) {
     return directSnapshots.docs.map((snapshot) =>
       mapAccess(snapshot.id, snapshot.data() as Record<string, unknown>)
@@ -573,13 +627,6 @@ async function listApprovedCalendarAccess(email: string) {
 
       return normalizedCandidates.has(normalizedEmailKey);
     });
-
-  console.log('listApprovedCalendarAccess:fallback', {
-    email,
-    normalizedEmailKey,
-    scannedCount: fallbackSnapshots.docs.length,
-    matchingRecords,
-  });
 
   return Array.from(
     new Map(
@@ -609,12 +656,6 @@ async function getJoinedCalendarsWithDebug(
     new Set(accessRecords.map((record) => record.calendarId).filter(Boolean))
   );
 
-  console.log('listJoinedCalendars:accessRecords', {
-    email,
-    accessRecords,
-    uniqueCalendarIds,
-  });
-
   const calendarSnapshots = await Promise.all(
     uniqueCalendarIds.map(async (calendarId) => {
       try {
@@ -623,27 +664,12 @@ async function getJoinedCalendarsWithDebug(
           ? mapCalendar(snapshot.id, snapshot.data() as Record<string, unknown>)
           : null;
 
-        console.log('listJoinedCalendars:calendarRead', {
-          calendarId,
-          exists: snapshot.exists(),
-          calendar: mappedCalendar,
-        });
-
         return mappedCalendar;
       } catch (error) {
-        console.log('listJoinedCalendars:calendarReadError', {
-          calendarId,
-          error,
-        });
         throw error;
       }
     })
   );
-
-  console.log('listJoinedCalendars:result', {
-    email,
-    calendars: calendarSnapshots,
-  });
 
   const joinedCalendars = calendarSnapshots.filter(
     (calendar): calendar is CalendarRecord => calendar !== null
@@ -1002,11 +1028,65 @@ export async function updateCalendarNotificationSettings(params: {
 
 export async function updateCalendarVisibility(params: {
   calendarId: string;
+  ownerId: string;
   visibility: CalendarRecord['visibility'];
+  publicSlug: string;
 }) {
-  await updateDoc(calendarDoc(params.calendarId), {
-    visibility: params.visibility,
-    updatedAt: serverTimestamp(),
+  const normalizedSlug = validatePublicSlug(params.publicSlug);
+
+  if (params.visibility === 'public' && !normalizedSlug) {
+    throw new Error('Bitte hinterlege zuerst einen gueltigen oeffentlichen Slug.');
+  }
+
+  await runTransaction(db, async (transaction) => {
+    const calendarRef = calendarDoc(params.calendarId);
+    const calendarSnapshot = await transaction.get(calendarRef);
+
+    if (!calendarSnapshot.exists()) {
+      throw new Error('Der Kalender existiert nicht mehr.');
+    }
+
+    const calendar = mapCalendar(
+      calendarSnapshot.id,
+      calendarSnapshot.data() as Record<string, unknown>
+    );
+    const currentSlug = calendar.publicSlug ? normalizePublicSlug(calendar.publicSlug) : '';
+    const nextSlug = normalizedSlug;
+    const shouldKeepSlug = Boolean(nextSlug);
+
+    if (shouldKeepSlug) {
+      const nextSlugRef = publicCalendarSlugDoc(nextSlug);
+      const nextSlugSnapshot = await transaction.get(nextSlugRef);
+      const claimedCalendarId =
+        nextSlugSnapshot.exists() && typeof nextSlugSnapshot.data().calendarId === 'string'
+          ? nextSlugSnapshot.data().calendarId
+          : null;
+
+      if (claimedCalendarId && claimedCalendarId !== params.calendarId) {
+        throw new Error('Dieser Slug ist bereits vergeben.');
+      }
+
+      transaction.set(
+        nextSlugRef,
+        {
+          calendarId: params.calendarId,
+          ownerId: params.ownerId,
+          updatedAt: serverTimestamp(),
+          ...(nextSlugSnapshot.exists() ? {} : { createdAt: serverTimestamp() }),
+        },
+        { merge: true }
+      );
+    }
+
+    if (currentSlug && currentSlug !== nextSlug) {
+      transaction.delete(publicCalendarSlugDoc(currentSlug));
+    }
+
+    transaction.update(calendarRef, {
+      visibility: params.visibility,
+      publicSlug: shouldKeepSlug ? nextSlug : null,
+      updatedAt: serverTimestamp(),
+    });
   });
 }
 

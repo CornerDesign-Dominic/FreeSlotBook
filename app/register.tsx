@@ -3,7 +3,7 @@ import { Button, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FirebaseError } from 'firebase/app';
 
-import { registerWithEmail } from '../src/firebase/auth';
+import { logout, registerWithEmail, sendVerificationEmail } from '../src/firebase/auth';
 import { ensureOwnerAccountSetup } from '../src/features/mvp/repository';
 import { useAuth } from '../src/firebase/useAuth';
 
@@ -35,12 +35,13 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [awaitingVerification, setAwaitingVerification] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && user && user.emailVerified && !awaitingVerification) {
       router.replace('/(tabs)');
     }
-  }, [loading, router, user]);
+  }, [awaitingVerification, loading, router, user]);
 
   const handleRegister = async () => {
     const trimmedEmail = email.trim();
@@ -70,13 +71,16 @@ export default function RegisterScreen() {
 
     try {
       const credential = await registerWithEmail(trimmedEmail, password);
+      await sendVerificationEmail(credential.user);
       await ensureOwnerAccountSetup({
         uid: credential.user.uid,
         email: credential.user.email ?? trimmedEmail,
       });
-
-      setMessage('Account created');
-      router.replace('/(tabs)');
+      await logout();
+      setAwaitingVerification(true);
+      setMessage(
+        'Wir haben dir eine E-Mail geschickt. Bitte bestaetige deine Adresse, bevor du dich einloggen kannst.'
+      );
     } catch (error) {
       setMessage(getRegisterErrorMessage(error));
     } finally {

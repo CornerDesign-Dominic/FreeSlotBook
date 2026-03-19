@@ -51,22 +51,10 @@ export function useDashboardData(user: { uid: string; email: string | null } | n
       try {
         const nextData = await getDashboardData({ uid: user.uid, email: user.email });
 
-        console.log('useDashboardData:loaded', {
-          userEmail: user.email,
-          ownerCalendarId: nextData.ownerCalendar?.id ?? null,
-          joinedCalendarsCount: nextData.joinedCalendars.length,
-          joinedCalendars: nextData.joinedCalendars,
-          recentNotificationsCount: nextData.recentNotifications.length,
-        });
-
         if (!cancelled) {
           setData(nextData);
         }
       } catch (nextError) {
-        console.log('useDashboardData:error', {
-          userEmail: user.email,
-          error: nextError,
-        });
         if (!cancelled) {
           const errorMessage =
             nextError instanceof Error

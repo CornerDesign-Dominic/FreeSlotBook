@@ -190,10 +190,15 @@ exports.deliverEmailNotification = (0, firestore_2.onDocumentCreated)({
     }
     v2_1.logger.info('Email notification moved to processing.', baseLogContext);
     try {
+        const apiKey = resendApiKey.value();
+        const fromEmail = mailFromEmail.value();
+        if (!apiKey || !fromEmail) {
+            throw new Error('Missing RESEND_API_KEY or MAIL_FROM_EMAIL secret.');
+        }
         const emailPayload = await buildEmailPayload(notification);
         await sendEmailViaResend({
-            apiKey: resendApiKey.value(),
-            from: mailFromEmail.value(),
+            apiKey,
+            from: fromEmail,
             to: notification.recipientEmail,
             subject: emailPayload.subject,
             text: emailPayload.text,

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocalSearchParams } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Alert,
   Pressable,
@@ -11,6 +11,7 @@ import {
 
 import {
   formatDayTitle,
+  getDayKey,
   getMinutesSinceStartOfDay,
   getSlotsForDay,
   parseDayKey,
@@ -105,6 +106,7 @@ function isSameDay(left: Date, right: Date) {
 }
 
 export default function CalendarDayScreen() {
+  const router = useRouter();
   const params = useLocalSearchParams<{ date?: string | string[]; slotId?: string | string[] }>();
   const rawDate = Array.isArray(params.date) ? params.date[0] : params.date ?? '';
   const initialSlotId = Array.isArray(params.slotId) ? params.slotId[0] : params.slotId ?? null;
@@ -170,6 +172,10 @@ export default function CalendarDayScreen() {
 
     return () => clearTimeout(timeout);
   }, [screenWidth, selectedDate]);
+
+  useEffect(() => {
+    setActionMessage(null);
+  }, [rawDate]);
 
   if (!selectedDate) {
     return (
@@ -241,12 +247,38 @@ export default function CalendarDayScreen() {
     Boolean(selectedSlot?.appointmentId)
   );
 
+  const navigateToRelativeDay = (offset: number) => {
+    const nextDate = new Date(selectedDate);
+    nextDate.setDate(selectedDate.getDate() + offset);
+    router.replace(`/my-calendar/${getDayKey(nextDate)}`);
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: 'white' }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
-        <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>
-          {formatDayTitle(selectedDate)}
-        </Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 16,
+          }}>
+          <Pressable onPress={() => navigateToRelativeDay(-1)}>
+            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+              {'<- vorheriger Tag'}
+            </Text>
+          </Pressable>
+
+          <Text style={{ color: 'black', fontSize: 24, flex: 1, textAlign: 'center' }}>
+            {formatDayTitle(selectedDate)}
+          </Text>
+
+          <Pressable onPress={() => navigateToRelativeDay(1)}>
+            <Text style={{ color: 'black', textDecorationLine: 'underline', textAlign: 'right' }}>
+              {'-> naechster Tag'}
+            </Text>
+          </Pressable>
+        </View>
 
         <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
           <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>Tageszeitstrahl</Text>

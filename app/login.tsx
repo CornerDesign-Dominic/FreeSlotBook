@@ -3,7 +3,7 @@ import { Button, Pressable, Text, TextInput, View } from 'react-native';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { FirebaseError } from 'firebase/app';
 
-import { loginWithEmail } from '../src/firebase/auth';
+import { loginWithEmail, logout, sendVerificationEmail } from '../src/firebase/auth';
 import { useAuth } from '../src/firebase/useAuth';
 
 function isValidEmail(email: string) {
@@ -28,6 +28,24 @@ function getLoginErrorMessage(error: unknown) {
   return 'Unable to log in right now. Please try again.';
 }
 
+function getVerificationEmailErrorMessage(error: unknown) {
+  if (error instanceof FirebaseError) {
+    switch (error.code) {
+      case 'auth/too-many-requests':
+        return 'Die Bestaetigungs-E-Mail konnte gerade nicht erneut gesendet werden. Bitte versuche es spaeter noch einmal.';
+      case 'auth/network-request-failed':
+        return 'Die Bestaetigungs-E-Mail konnte wegen eines Netzwerkproblems nicht gesendet werden.';
+      case 'auth/user-token-expired':
+      case 'auth/requires-recent-login':
+        return 'Bitte melde dich erneut an, um die Bestaetigungs-E-Mail zu senden.';
+      default:
+        return 'Die Bestaetigungs-E-Mail konnte gerade nicht gesendet werden.';
+    }
+  }
+
+  return 'Die Bestaetigungs-E-Mail konnte gerade nicht gesendet werden.';
+}
+
 function getSafeRedirectTarget(value: string | string[] | undefined) {
   const redirect = Array.isArray(value) ? value[0] : value;
 
@@ -50,10 +68,11 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [canResendVerification, setCanResendVerification] = useState(false);
   const redirectTarget = getSafeRedirectTarget(params.redirect);
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && user && user.emailVerified) {
       router.replace(redirectTarget ?? '/(tabs)');
     }
   }, [loading, redirectTarget, router, user]);
@@ -78,12 +97,62 @@ export default function LoginScreen() {
 
     setSubmitting(true);
     setMessage('');
+    setCanResendVerification(false);
 
     try {
-      await loginWithEmail(trimmedEmail, password);
+      const credential = await loginWithEmail(trimmedEmail, password);
+
+      if (!credential.user.emailVerified) {
+        await logout();
+        setCanResendVerification(true);
+        setMessage(
+          'Bitte bestaetige zuerst deine E-Mail-Adresse ueber den Link in der Willkommensmail.'
+        );
+        return;
+      }
+
       router.replace(redirectTarget ?? '/(tabs)');
     } catch (error) {
       setMessage(getLoginErrorMessage(error));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail || !password) {
+      setMessage('Bitte gib E-Mail und Passwort ein, damit wir die Bestaetigungs-E-Mail erneut senden koennen.');
+      return;
+    }
+
+    setSubmitting(true);
+    setMessage('');
+
+    try {
+      console.info('Resend verification email requested.', {
+        email: trimmedEmail,
+      });
+      const credential = await loginWithEmail(trimmedEmail, password);
+      const verificationUser = credential.user;
+
+      console.info('Resend verification email using Firebase Auth user.', {
+        uid: verificationUser.uid,
+        email: verificationUser.email,
+        emailVerified: verificationUser.emailVerified,
+      });
+
+      await sendVerificationEmail(verificationUser);
+      await logout();
+      console.info('Verification email resend completed successfully.', {
+        uid: verificationUser.uid,
+        email: verificationUser.email,
+      });
+      setMessage('Die Bestaetigungs-E-Mail wurde erneut gesendet.');
+    } catch (error) {
+      console.error('Verification email resend failed.', error);
+      setMessage(getVerificationEmailErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
@@ -127,6 +196,14 @@ export default function LoginScreen() {
       </Text>
 
       {message ? <Text>{message}</Text> : null}
+
+      {canResendVerification ? (
+        <Button
+          title={submitting ? 'Sende erneut...' : 'Bestaetigungs-E-Mail erneut senden'}
+          onPress={handleResendVerification}
+          disabled={submitting}
+        />
+      ) : null}
     </View>
   );
 }
