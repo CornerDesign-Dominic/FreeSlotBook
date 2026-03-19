@@ -65,6 +65,8 @@ export default function CalendarDayScreen() {
   const [deactivatingSlotId, setDeactivatingSlotId] = useState<string | null>(null);
   const [updatingAvailabilitySlotId, setUpdatingAvailabilitySlotId] = useState<string | null>(null);
   const [cancellingAppointmentId, setCancellingAppointmentId] = useState<string | null>(null);
+  const [cancellationModalVisible, setCancellationModalVisible] = useState(false);
+  const [cancellationMessage, setCancellationMessage] = useState('');
   const [assignmentModalVisible, setAssignmentModalVisible] = useState(false);
   const [assigningSlotId, setAssigningSlotId] = useState<string | null>(null);
   const [assigneeName, setAssigneeName] = useState('');
@@ -133,6 +135,12 @@ export default function CalendarDayScreen() {
       setAssigneePhone('');
     }
   }, [assignmentModalVisible]);
+
+  useEffect(() => {
+    if (!cancellationModalVisible) {
+      setCancellationMessage('');
+    }
+  }, [cancellationModalVisible]);
 
   const formatTime = (value: Date | null) => {
     if (!value) {
@@ -306,56 +314,8 @@ export default function CalendarDayScreen() {
       return;
     }
 
-    Alert.alert(t('day.cancelAppointmentTitle'), t('day.cancelAppointmentBody'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('day.cancelToAvailable'),
-        onPress: async () => {
-          setCancellingAppointmentId(selectedSlot.appointmentId!);
-          setActionMessage(null);
-
-          try {
-            await cancelAppointmentByOwner({
-              calendarId: calendar.id,
-              appointmentId: selectedSlot.appointmentId!,
-              ownerId: user.uid,
-              nextSlotStatus: 'available',
-            });
-            setActionMessage(t('day.cancelAppointmentAvailableSuccess'));
-          } catch (nextError) {
-            setActionMessage(
-              nextError instanceof Error ? nextError.message : t('day.cancelAppointmentError')
-            );
-          } finally {
-            setCancellingAppointmentId(null);
-          }
-        },
-      },
-      {
-        text: t('day.cancelToInactive'),
-        style: 'destructive',
-        onPress: async () => {
-          setCancellingAppointmentId(selectedSlot.appointmentId!);
-          setActionMessage(null);
-
-          try {
-            await cancelAppointmentByOwner({
-              calendarId: calendar.id,
-              appointmentId: selectedSlot.appointmentId!,
-              ownerId: user.uid,
-              nextSlotStatus: 'inactive',
-            });
-            setActionMessage(t('day.cancelAppointmentInactiveSuccess'));
-          } catch (nextError) {
-            setActionMessage(
-              nextError instanceof Error ? nextError.message : t('day.cancelAppointmentError')
-            );
-          } finally {
-            setCancellingAppointmentId(null);
-          }
-        },
-      },
-    ]);
+    setActionMessage(null);
+    setCancellationModalVisible(true);
   };
 
   const handleOpenAssignmentModal = () => {
@@ -390,6 +350,44 @@ export default function CalendarDayScreen() {
       setActionMessage(nextError instanceof Error ? nextError.message : t('day.assignError'));
     } finally {
       setAssigningSlotId(null);
+    }
+  };
+
+  const runAppointmentCancellation = async (
+    nextSlotStatus: 'available' | 'inactive',
+    reopenAssignmentAfterwards = false
+  ) => {
+    if (!calendar || !user || !selectedSlot?.appointmentId) {
+      return;
+    }
+
+    setCancellingAppointmentId(selectedSlot.appointmentId);
+    setActionMessage(null);
+
+    try {
+      await cancelAppointmentByOwner({
+        calendarId: calendar.id,
+        appointmentId: selectedSlot.appointmentId,
+        ownerId: user.uid,
+        nextSlotStatus,
+        cancellationMessage,
+      });
+      setCancellationModalVisible(false);
+      setActionMessage(
+        nextSlotStatus === 'available'
+          ? t('day.cancelAppointmentAvailableSuccess')
+          : t('day.cancelAppointmentInactiveSuccess')
+      );
+
+      if (reopenAssignmentAfterwards) {
+        setAssignmentModalVisible(true);
+      }
+    } catch (nextError) {
+      setActionMessage(
+        nextError instanceof Error ? nextError.message : t('day.cancelAppointmentError')
+      );
+    } finally {
+      setCancellingAppointmentId(null);
     }
   };
 
@@ -719,6 +717,72 @@ export default function CalendarDayScreen() {
           </Text>
         </View>
       </View>
+
+      <Modal
+        visible={cancellationModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setCancellationModalVisible(false)}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.2)',
+            justifyContent: 'flex-end',
+          }}>
+          <View style={{ backgroundColor: 'white', padding: 16 }}>
+            <Text style={{ color: 'black', fontSize: 18, marginBottom: 8 }}>
+              {t('day.cancelAppointmentTitle')}
+            </Text>
+            <Text style={{ color: 'black', marginBottom: 12 }}>
+              {t('day.cancelAppointmentBody')}
+            </Text>
+            <Text style={{ color: 'black', marginBottom: 8 }}>
+              {t('day.cancelMessageLabel')}
+            </Text>
+            <TextInput
+              value={cancellationMessage}
+              onChangeText={setCancellationMessage}
+              multiline
+              numberOfLines={4}
+              style={{
+                borderWidth: 1,
+                borderColor: 'black',
+                padding: 12,
+                marginBottom: 16,
+                minHeight: 96,
+                textAlignVertical: 'top',
+              }}
+            />
+
+            <Pressable
+              onPress={() => void runAppointmentCancellation('available')}
+              disabled={cancellingAppointmentId === selectedSlot?.appointmentId}
+              style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 8 }}>
+              <Text style={{ color: 'black' }}>{t('day.cancelToAvailable')}</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => void runAppointmentCancellation('inactive')}
+              disabled={cancellingAppointmentId === selectedSlot?.appointmentId}
+              style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 8 }}>
+              <Text style={{ color: 'black' }}>{t('day.cancelToInactive')}</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => void runAppointmentCancellation('available', true)}
+              disabled={cancellingAppointmentId === selectedSlot?.appointmentId}
+              style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 12 }}>
+              <Text style={{ color: 'black' }}>{t('day.cancelToReassign')}</Text>
+            </Pressable>
+
+            <Pressable onPress={() => setCancellationModalVisible(false)}>
+              <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                {t('common.cancel')}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={assignmentModalVisible}

@@ -265,9 +265,11 @@ export const de = {
   'day.cancelAppointment': 'Termin stornieren',
   'day.cancelAppointmentTitle': 'Termin stornieren',
   'day.cancelAppointmentBody':
-    'Waehle aus, ob der Slot danach wieder buchbar sein oder deaktiviert bleiben soll.',
+    'Du kannst den Termin stornieren, optional eine Nachricht mitgeben und danach den Slot passend weiterbehandeln.',
+  'day.cancelMessageLabel': 'Nachricht an den Terminnehmer (optional)',
   'day.cancelToAvailable': 'Stornieren und freigeben',
   'day.cancelToInactive': 'Stornieren und deaktivieren',
+  'day.cancelToReassign': 'Stornieren und direkt neu vergeben',
   'day.cancelAppointmentAvailableSuccess':
     'Der Termin wurde storniert und der Slot wieder freigegeben.',
   'day.cancelAppointmentInactiveSuccess':

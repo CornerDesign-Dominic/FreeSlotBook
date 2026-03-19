@@ -263,9 +263,11 @@ export const en = {
   'day.cancelAppointment': 'Cancel appointment',
   'day.cancelAppointmentTitle': 'Cancel appointment',
   'day.cancelAppointmentBody':
-    'Choose whether the slot should become available again or stay inactive afterwards.',
+    'You can cancel the appointment, optionally add a message, and then choose what should happen to the slot.',
+  'day.cancelMessageLabel': 'Message to the participant (optional)',
   'day.cancelToAvailable': 'Cancel and release',
   'day.cancelToInactive': 'Cancel and deactivate',
+  'day.cancelToReassign': 'Cancel and assign again',
   'day.cancelAppointmentAvailableSuccess':
     'The appointment was cancelled and the slot was released again.',
   'day.cancelAppointmentInactiveSuccess':

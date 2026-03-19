@@ -2156,9 +2156,11 @@ export async function cancelAppointmentByOwner(params: {
   appointmentId: string;
   ownerId: string;
   nextSlotStatus: 'available' | 'inactive';
+  cancellationMessage?: string | null;
 }) {
   const appointmentRef = doc(calendarAppointmentsCollection(params.calendarId), params.appointmentId);
-  const notificationRef = doc(calendarNotificationsCollection(params.calendarId));
+  const inAppNotificationRef = doc(calendarNotificationsCollection(params.calendarId));
+  const emailNotificationRef = doc(calendarNotificationsCollection(params.calendarId));
   const calendarSnapshot = await getDoc(calendarDoc(params.calendarId));
 
   if (!calendarSnapshot.exists()) {
@@ -2169,6 +2171,7 @@ export async function cancelAppointmentByOwner(params: {
     calendarSnapshot.id,
     calendarSnapshot.data() as Record<string, unknown>
   );
+  const trimmedCancellationMessage = params.cancellationMessage?.trim() ?? '';
 
   await runTransaction(db, async (transaction) => {
     const appointmentSnapshot = await transaction.get(appointmentRef);
@@ -2190,6 +2193,9 @@ export async function cancelAppointmentByOwner(params: {
       ownerEmail: calendar.ownerEmail,
       startsAt: appointment.startsAt,
     });
+    const notificationBody = trimmedCancellationMessage
+      ? `${content.body}\n\n${trimmedCancellationMessage}`
+      : content.body;
 
     if (appointment.status === 'cancelled') {
       throw new Error('Der Termin wurde bereits storniert.');
@@ -2221,12 +2227,12 @@ export async function cancelAppointmentByOwner(params: {
         actorRole: 'owner',
         targetEmail: appointment.participantEmail,
         statusAfter: params.nextSlotStatus,
-        note: null,
+        note: trimmedCancellationMessage || null,
         createdAt: serverTimestamp(),
       });
     }
 
-    transaction.set(notificationRef, {
+    transaction.set(inAppNotificationRef, {
       calendarId: params.calendarId,
       appointmentId: params.appointmentId,
       slotId: appointment.slotId ?? null,
@@ -2235,7 +2241,24 @@ export async function cancelAppointmentByOwner(params: {
       channel: 'in_app',
       type: 'slot_cancelled',
       title: content.title,
-      body: content.body,
+      body: notificationBody,
+      dedupeKey: null,
+      status: 'pending',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      readAt: null,
+    });
+
+    transaction.set(emailNotificationRef, {
+      calendarId: params.calendarId,
+      appointmentId: params.appointmentId,
+      slotId: appointment.slotId ?? null,
+      recipientEmail: appointment.participantEmail,
+      recipientEmailKey: appointment.participantEmailKey,
+      channel: 'email',
+      type: 'slot_cancelled',
+      title: content.title,
+      body: notificationBody,
       dedupeKey: null,
       status: 'pending',
       createdAt: serverTimestamp(),
