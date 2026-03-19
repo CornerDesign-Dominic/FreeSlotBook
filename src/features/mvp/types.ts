@@ -119,6 +119,7 @@ export interface AppointmentRecord {
   ownerId: string;
   bookedByUserId: string | null;
   participantName: string | null;
+  participantPhone: string | null;
   bookedByEmail: string;
   bookedByEmailKey: string;
   participantEmail: string;

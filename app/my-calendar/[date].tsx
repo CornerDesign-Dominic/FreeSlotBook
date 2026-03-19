@@ -2,9 +2,11 @@ import { useMemo, useRef, useState, useEffect } from 'react';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Alert,
+  Modal,
   Pressable,
   ScrollView,
   Text,
+  TextInput,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -17,6 +19,7 @@ import {
   parseDayKey,
 } from '../../src/features/mvp/calendar-utils';
 import {
+  assignCalendarSlotByOwner,
   cancelAppointmentByOwner,
   setCalendarSlotInactive,
   updateCalendarSlotAvailability,
@@ -61,6 +64,11 @@ export default function CalendarDayScreen() {
   const [deactivatingSlotId, setDeactivatingSlotId] = useState<string | null>(null);
   const [updatingAvailabilitySlotId, setUpdatingAvailabilitySlotId] = useState<string | null>(null);
   const [cancellingAppointmentId, setCancellingAppointmentId] = useState<string | null>(null);
+  const [assignmentModalVisible, setAssignmentModalVisible] = useState(false);
+  const [assigningSlotId, setAssigningSlotId] = useState<string | null>(null);
+  const [assigneeName, setAssigneeName] = useState('');
+  const [assigneeEmail, setAssigneeEmail] = useState('');
+  const [assigneePhone, setAssigneePhone] = useState('');
 
   const daySlots = useMemo(
     () => (selectedDate ? getSlotsForDay(slots, selectedDate) : []),
@@ -116,6 +124,14 @@ export default function CalendarDayScreen() {
   useEffect(() => {
     setActionMessage(null);
   }, [rawDate]);
+
+  useEffect(() => {
+    if (!assignmentModalVisible) {
+      setAssigneeName('');
+      setAssigneeEmail('');
+      setAssigneePhone('');
+    }
+  }, [assignmentModalVisible]);
 
   const formatTime = (value: Date | null) => {
     if (!value) {
@@ -324,6 +340,41 @@ export default function CalendarDayScreen() {
     ]);
   };
 
+  const handleOpenAssignmentModal = () => {
+    if (!selectedSlot || selectedSlot.status !== 'available' || selectedSlot.appointmentId) {
+      return;
+    }
+
+    setActionMessage(null);
+    setAssignmentModalVisible(true);
+  };
+
+  const handleAssignSlot = async () => {
+    if (!calendar || !user || !selectedSlot) {
+      return;
+    }
+
+    setAssigningSlotId(selectedSlot.id);
+    setActionMessage(null);
+
+    try {
+      await assignCalendarSlotByOwner({
+        calendarId: calendar.id,
+        slotId: selectedSlot.id,
+        ownerId: user.uid,
+        participantName: assigneeName,
+        participantEmail: assigneeEmail,
+        participantPhone: assigneePhone,
+      });
+      setAssignmentModalVisible(false);
+      setActionMessage(t('day.assignSuccess'));
+    } catch (nextError) {
+      setActionMessage(nextError instanceof Error ? nextError.message : t('day.assignError'));
+    } finally {
+      setAssigningSlotId(null);
+    }
+  };
+
   if (authLoading || loading || slotsLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
@@ -334,11 +385,10 @@ export default function CalendarDayScreen() {
 
   const historyPanelMaxHeight = Math.max(Math.min(screenHeight * 0.33, 260), 180);
   const selectedSlotCanDeactivate = selectedSlot?.status === 'available' && !selectedSlot.appointmentId;
-  const selectedSlotCanToggleHold =
-    (selectedSlot?.status === 'available' || selectedSlot?.status === 'inactive') &&
-    !selectedSlot.appointmentId;
+  const selectedSlotCanReactivate = selectedSlot?.status === 'inactive' && !selectedSlot.appointmentId;
   const selectedSlotCanEdit =
     Boolean(selectedSlot) && selectedSlot?.status !== 'booked' && !selectedSlot?.appointmentId;
+  const selectedSlotCanAssign = selectedSlot?.status === 'available' && !selectedSlot?.appointmentId;
   const selectedSlotCanCancelAppointment =
     selectedSlot?.status === 'booked' && Boolean(selectedSlot?.appointmentId);
   const timeRailWidth = hourWidth * 24;
@@ -590,7 +640,20 @@ export default function CalendarDayScreen() {
               </Pressable>
             </Link>
           ) : null}
-          {selectedSlotCanToggleHold ? (
+          {selectedSlotCanAssign ? (
+            <Pressable
+              onPress={handleOpenAssignmentModal}
+              style={{
+                paddingVertical: 10,
+                paddingHorizontal: 12,
+                borderWidth: 1,
+                borderColor: 'black',
+                marginBottom: 8,
+              }}>
+              <Text style={{ color: 'black' }}>{t('day.assignSlot')}</Text>
+            </Pressable>
+          ) : null}
+          {selectedSlotCanReactivate ? (
             <Pressable
               onPress={handleToggleHold}
               disabled={updatingAvailabilitySlotId === selectedSlot?.id}
@@ -604,9 +667,7 @@ export default function CalendarDayScreen() {
               <Text style={{ color: 'black' }}>
                 {updatingAvailabilitySlotId === selectedSlot?.id
                   ? t('day.processing')
-                  : selectedSlot?.status === 'inactive'
-                    ? t('day.releaseSlot')
-                    : t('day.setInactive')}
+                  : t('day.releaseSlot')}
               </Text>
             </Pressable>
           ) : null}
@@ -640,6 +701,61 @@ export default function CalendarDayScreen() {
           </Text>
         </View>
       </View>
+
+      <Modal
+        visible={assignmentModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setAssignmentModalVisible(false)}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.2)',
+            justifyContent: 'flex-end',
+          }}>
+          <View style={{ backgroundColor: 'white', padding: 16 }}>
+            <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>
+              {t('day.assignTitle')}
+            </Text>
+            <Text style={{ color: 'black', marginBottom: 8 }}>{t('day.assignNameLabel')}</Text>
+            <TextInput
+              value={assigneeName}
+              onChangeText={setAssigneeName}
+              style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 12 }}
+            />
+            <Text style={{ color: 'black', marginBottom: 8 }}>{t('day.assignEmailLabel')}</Text>
+            <TextInput
+              value={assigneeEmail}
+              onChangeText={setAssigneeEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 12 }}
+            />
+            <Text style={{ color: 'black', marginBottom: 8 }}>{t('day.assignPhoneLabel')}</Text>
+            <TextInput
+              value={assigneePhone}
+              onChangeText={setAssigneePhone}
+              keyboardType="phone-pad"
+              style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 16 }}
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Pressable onPress={() => setAssignmentModalVisible(false)}>
+                <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                  {t('common.cancel')}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={handleAssignSlot}
+                disabled={assigningSlotId === selectedSlot?.id}
+                style={{ borderWidth: 1, borderColor: 'black', paddingVertical: 10, paddingHorizontal: 12 }}>
+                <Text style={{ color: 'black' }}>
+                  {assigningSlotId === selectedSlot?.id ? t('day.processing') : t('day.assignConfirm')}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

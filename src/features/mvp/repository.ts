@@ -21,6 +21,7 @@ import {
 
 import { db } from '@/src/firebase/config';
 
+import { findOverlappingSlots } from './calendar-utils';
 import { PRIVACY_VERSION, TERMS_VERSION } from './types';
 import type {
   AppointmentRecord,
@@ -292,6 +293,7 @@ function mapAppointment(id: string, data: Record<string, unknown>): AppointmentR
           ? data.createdByUserId
           : null,
     participantName: typeof data.participantName === 'string' ? data.participantName : null,
+    participantPhone: typeof data.participantPhone === 'string' ? data.participantPhone : null,
     bookedByEmail: String(data.bookedByEmail ?? data.participantEmail ?? ''),
     bookedByEmailKey: String(data.bookedByEmailKey ?? data.participantEmailKey ?? ''),
     participantEmail: String(data.participantEmail ?? ''),
@@ -1519,12 +1521,12 @@ export async function updateCalendarSlotTimes(params: {
 
   const slotRef = calendarSlotDoc(params.calendarId, params.slotId);
   const eventRef = doc(slotEventsCollection(params.calendarId, params.slotId));
+  const existingSlotsSnapshot = await getDocs(
+    query(calendarSlotsCollection(params.calendarId), orderBy('startsAt', 'asc'))
+  );
 
   return runTransaction<'updated' | 'unchanged'>(db, async (transaction) => {
-    const [slotSnapshot, existingSlotsSnapshot] = await Promise.all([
-      transaction.get(slotRef),
-      transaction.get(query(calendarSlotsCollection(params.calendarId), orderBy('startsAt', 'asc'))),
-    ]);
+    const slotSnapshot = await transaction.get(slotRef);
 
     if (!slotSnapshot.exists()) {
       throw new Error('Der ausgewählte Slot existiert nicht mehr.');
@@ -1577,6 +1579,146 @@ export async function updateCalendarSlotTimes(params: {
     });
 
     return 'updated';
+  });
+}
+
+export async function assignCalendarSlotByOwner(params: {
+  calendarId: string;
+  slotId: string;
+  ownerId: string;
+  participantName: string;
+  participantEmail: string;
+  participantPhone?: string | null;
+}) {
+  const trimmedName = params.participantName.trim();
+  const trimmedEmail = params.participantEmail.trim();
+  const normalizedPhoneNumber = validateOptionalPhoneNumber(params.participantPhone);
+
+  if (!trimmedName) {
+    throw new Error('Bitte gib einen Namen ein.');
+  }
+
+  if (!trimmedEmail) {
+    throw new Error('Bitte gib eine E-Mail-Adresse ein.');
+  }
+
+  const participantEmailKey = normalizeEmail(trimmedEmail);
+  const slotRef = calendarSlotDoc(params.calendarId, params.slotId);
+  const calendarRef = calendarDoc(params.calendarId);
+  const appointmentRef = doc(calendarAppointmentsCollection(params.calendarId));
+  const eventRef = doc(slotEventsCollection(params.calendarId, params.slotId));
+  const inAppNotificationRef = doc(calendarNotificationsCollection(params.calendarId));
+  const emailNotificationRef = doc(calendarNotificationsCollection(params.calendarId));
+
+  return runTransaction(db, async (transaction) => {
+    const [calendarSnapshot, slotSnapshot] = await Promise.all([
+      transaction.get(calendarRef),
+      transaction.get(slotRef),
+    ]);
+
+    if (!calendarSnapshot.exists()) {
+      throw new Error('Der Kalender ist nicht mehr verfügbar.');
+    }
+
+    if (!slotSnapshot.exists()) {
+      throw new Error('Der ausgewählte Slot existiert nicht mehr.');
+    }
+
+    const calendar = mapCalendar(
+      calendarSnapshot.id,
+      calendarSnapshot.data() as Record<string, unknown>
+    );
+    const slot = mapSlot(slotSnapshot.id, slotSnapshot.data() as Record<string, unknown>);
+
+    if (!slot.startsAt || !slot.endsAt) {
+      throw new Error('Für diesen Slot fehlen gültige Zeitangaben.');
+    }
+
+    if (slot.status !== 'available' || slot.appointmentId) {
+      throw new Error('Dieser Slot ist nicht mehr verfügbar.');
+    }
+
+    const content = buildNotificationContent({
+      type: 'slot_assigned',
+      ownerEmail: calendar.ownerEmail,
+      startsAt: slot.startsAt,
+    });
+
+    transaction.set(appointmentRef, {
+      calendarId: params.calendarId,
+      slotId: params.slotId,
+      ownerId: params.ownerId,
+      bookedByUserId: null,
+      participantName: trimmedName,
+      participantPhone: normalizedPhoneNumber,
+      bookedByEmail: trimmedEmail,
+      bookedByEmailKey: participantEmailKey,
+      participantEmail: trimmedEmail,
+      participantEmailKey: participantEmailKey,
+      guestBooking: true,
+      accountCreationRequested: false,
+      startsAt: Timestamp.fromDate(slot.startsAt),
+      endsAt: Timestamp.fromDate(slot.endsAt),
+      source: 'manual',
+      status: 'booked',
+      createdByUserId: params.ownerId,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    transaction.update(slotRef, {
+      status: 'booked',
+      appointmentId: appointmentRef.id,
+      updatedAt: serverTimestamp(),
+    });
+
+    transaction.set(eventRef, {
+      calendarId: params.calendarId,
+      slotId: params.slotId,
+      type: 'assigned_by_owner',
+      actorUid: params.ownerId,
+      actorRole: 'owner',
+      targetEmail: trimmedEmail,
+      statusAfter: 'booked',
+      note: trimmedName,
+      createdAt: serverTimestamp(),
+    });
+
+    transaction.set(inAppNotificationRef, {
+      calendarId: params.calendarId,
+      appointmentId: appointmentRef.id,
+      slotId: params.slotId,
+      recipientEmail: trimmedEmail,
+      recipientEmailKey: participantEmailKey,
+      channel: 'in_app',
+      type: 'slot_assigned',
+      title: content.title,
+      body: content.body,
+      dedupeKey: null,
+      status: 'pending',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      readAt: null,
+    });
+
+    transaction.set(emailNotificationRef, {
+      calendarId: params.calendarId,
+      appointmentId: appointmentRef.id,
+      slotId: params.slotId,
+      recipientEmail: trimmedEmail,
+      recipientEmailKey: participantEmailKey,
+      channel: 'email',
+      type: 'slot_assigned',
+      title: content.title,
+      body: content.body,
+      dedupeKey: null,
+      status: 'pending',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      readAt: null,
+    });
+
+    return appointmentRef.id;
   });
 }
 
