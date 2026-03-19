@@ -33,8 +33,6 @@ export default function HomeScreen() {
     );
   }
 
-  const recentNotifications = data.recentNotifications.slice(0, 3);
-
   if (user) {
     return (
       <View
@@ -76,24 +74,13 @@ export default function HomeScreen() {
               </Text>
             </Pressable>
           </Link>
-        </View>
-
-        <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 12 }}>
-          <Text style={{ color: 'black', fontSize: 18, marginBottom: 4 }}>{t('dashboard.myAppointments')}</Text>
-          {recentNotifications.length ? (
-            recentNotifications.map((notification) => (
-              <View key={notification.id} style={{ marginTop: 12 }}>
-                <Text style={{ color: 'black', marginBottom: 4 }}>
-                  {notification.title || t('dashboard.notificationFallback')}
-                </Text>
-                <Text style={{ color: 'black' }}>
-                  {notification.body || t('dashboard.notificationNoDetails')}
-                </Text>
-              </View>
-            ))
-          ) : (
-            <Text style={{ color: 'black' }}>{t('dashboard.noNotifications')}</Text>
-          )}
+          <Link href="/settings" asChild>
+            <Pressable style={{ alignSelf: 'flex-start', marginTop: 12 }}>
+              <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                {t('dashboard.openSettings')}
+              </Text>
+            </Pressable>
+          </Link>
         </View>
 
         <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 24 }}>

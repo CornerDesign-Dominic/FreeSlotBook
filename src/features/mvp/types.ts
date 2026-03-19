@@ -69,6 +69,8 @@ export interface CalendarAccessRecord {
   ownerId: string;
   granteeEmail: string;
   granteeEmailKey: string;
+  phoneNumber: string | null;
+  displayName: string | null;
   status: AccessStatus;
   createdAt: Date | null;
   updatedAt: Date | null;

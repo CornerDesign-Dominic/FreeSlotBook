@@ -15,6 +15,7 @@ import {
   formatDateInput,
   formatMonthTitle,
   getDayKey,
+  getWeekdayLabels,
   parseDayKey,
   parseGermanDateInput,
   parseTimeInput,
@@ -26,11 +27,7 @@ import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useAuth } from '../../src/firebase/useAuth';
 import { LanguageSwitcher } from '../../src/i18n/language-switcher';
 import { useTranslation } from '../../src/i18n/provider';
-
-const weekdayLabels = {
-  de: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
-  en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-} as const;
+import { useAppSettings } from '../../src/settings/provider';
 
 function sanitizeDateInput(value: string) {
   const digitsOnly = value.replace(/\D/g, '').slice(0, 8);
@@ -53,6 +50,7 @@ type DateFieldKey = 'start' | 'end';
 
 export default function CreateSlotScreen() {
   const { t, language } = useTranslation();
+  const { weekStartsOn } = useAppSettings();
   const locale = language === 'de' ? 'de-DE' : 'en-US';
   const params = useLocalSearchParams<{ date?: string | string[] }>();
   const preselectedDateParam = Array.isArray(params.date) ? params.date[0] : params.date ?? '';
@@ -188,7 +186,8 @@ export default function CreateSlotScreen() {
   };
 
   const approvedAccessRecords = accessRecords.filter((record) => record.status === 'approved');
-  const monthGrid = buildMonthGrid(pickerMonth);
+  const monthGrid = buildMonthGrid(pickerMonth, weekStartsOn);
+  const weekdayLabels = getWeekdayLabels(language, weekStartsOn);
 
   if (authLoading || loading || slotsLoading || accessLoading) {
     return (
@@ -389,7 +388,7 @@ export default function CreateSlotScreen() {
             </View>
 
             <View style={{ flexDirection: 'row', marginBottom: 8 }}>
-              {weekdayLabels[language].map((label) => (
+              {weekdayLabels.map((label) => (
                 <View key={label} style={{ flex: 1 }}>
                   <Text style={{ color: 'black', textAlign: 'center' }}>{label}</Text>
                 </View>

@@ -1,34 +1,25 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'expo-router';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import {
   buildMonthGrid,
   formatMonthTitle,
+  getDayKey,
+  getWeekdayLabels,
   getSlotCountsByDay,
 } from '../../src/features/mvp/calendar-utils';
-import {
-  updateCalendarNotificationSettings,
-  updateCalendarVisibility,
-} from '../../src/features/mvp/repository';
 import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useAuth } from '../../src/firebase/useAuth';
 import { LanguageSwitcher } from '../../src/i18n/language-switcher';
 import { useTranslation } from '../../src/i18n/provider';
-
-const weekDayLabels = {
-  de: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
-  en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-} as const;
-
-function getNotificationStatusLabel(active: boolean, t: ReturnType<typeof useTranslation>['t']) {
-  return active ? t('calendar.notificationActive') : t('calendar.notificationInactive');
-}
+import { useAppSettings } from '../../src/settings/provider';
 
 export default function MyCalendarScreen() {
   const { user, loading: authLoading } = useAuth();
   const { t, language } = useTranslation();
+  const { weekStartsOn } = useAppSettings();
   const locale = language === 'de' ? 'de-DE' : 'en-US';
   const { calendar, loading, error } = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
@@ -38,18 +29,15 @@ export default function MyCalendarScreen() {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
-  const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
-  const [togglingNotifications, setTogglingNotifications] = useState(false);
-  const [togglingVisibility, setTogglingVisibility] = useState(false);
-  const [savingSlug, setSavingSlug] = useState(false);
-  const [publicSlug, setPublicSlug] = useState('');
-
-  useEffect(() => {
-    setPublicSlug(calendar?.publicSlug ?? '');
-  }, [calendar?.publicSlug]);
-
-  const monthGrid = useMemo(() => buildMonthGrid(visibleMonth), [visibleMonth]);
+  const monthGrid = useMemo(
+    () => buildMonthGrid(visibleMonth, weekStartsOn),
+    [visibleMonth, weekStartsOn]
+  );
   const slotCountsByDay = useMemo(() => getSlotCountsByDay(slots), [slots]);
+  const weekdayLabels = useMemo(
+    () => getWeekdayLabels(language, weekStartsOn),
+    [language, weekStartsOn]
+  );
 
   if (authLoading || loading || slotsLoading) {
     return (
@@ -67,79 +55,6 @@ export default function MyCalendarScreen() {
     setVisibleMonth((currentMonth) => new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
   };
 
-  const handleToggleNewSlotsNotification = async () => {
-    if (!calendar) {
-      return;
-    }
-
-    setTogglingNotifications(true);
-    setSettingsMessage(null);
-
-    try {
-      await updateCalendarNotificationSettings({
-        calendarId: calendar.id,
-        notifyOnNewSlotsAvailable: !calendar.notifyOnNewSlotsAvailable,
-      });
-      setSettingsMessage(t('calendar.settingsSaved'));
-    } catch (nextError) {
-      setSettingsMessage(
-        nextError instanceof Error ? nextError.message : t('calendar.settingsSaveError')
-      );
-    } finally {
-      setTogglingNotifications(false);
-    }
-  };
-
-  const handleToggleVisibility = async () => {
-    if (!calendar) {
-      return;
-    }
-
-    setTogglingVisibility(true);
-    setSettingsMessage(null);
-
-    try {
-      await updateCalendarVisibility({
-        calendarId: calendar.id,
-        ownerId: calendar.ownerId,
-        visibility: calendar.visibility === 'public' ? 'restricted' : 'public',
-        publicSlug,
-      });
-      setSettingsMessage(t('calendar.visibilitySaved'));
-    } catch (nextError) {
-      setSettingsMessage(
-        nextError instanceof Error ? nextError.message : t('calendar.visibilitySaveError')
-      );
-    } finally {
-      setTogglingVisibility(false);
-    }
-  };
-
-  const handleSavePublicSlug = async () => {
-    if (!calendar) {
-      return;
-    }
-
-    setSavingSlug(true);
-    setSettingsMessage(null);
-
-    try {
-      await updateCalendarVisibility({
-        calendarId: calendar.id,
-        ownerId: calendar.ownerId,
-        visibility: calendar.visibility,
-        publicSlug,
-      });
-      setSettingsMessage(t('calendar.publicLinkSaved'));
-    } catch (nextError) {
-      setSettingsMessage(
-        nextError instanceof Error ? nextError.message : t('calendar.publicLinkSaveError')
-      );
-    } finally {
-      setSavingSlug(false);
-    }
-  };
-
   return (
     <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
       <LanguageSwitcher />
@@ -149,43 +64,11 @@ export default function MyCalendarScreen() {
         {calendar ? (
           <>
             <Text style={{ color: 'black', marginBottom: 8 }}>
-              {t('calendar.calendarId', { id: calendar.id })}
-            </Text>
-            <Text style={{ color: 'black', marginBottom: 8 }}>
               {t('calendar.owner', { email: calendar.ownerEmail })}
             </Text>
             <Text style={{ color: 'black', marginBottom: 8 }}>
               {t('dashboard.visibilityValue', { visibility: calendar.visibility })}
             </Text>
-            <Text style={{ color: 'black', marginBottom: 8 }}>{t('calendar.publicLinkTitle')}</Text>
-            <TextInput
-              value={publicSlug}
-              onChangeText={setPublicSlug}
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholder={t('calendar.publicSlugPlaceholder')}
-              style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 8 }}
-            />
-            <Text style={{ color: 'black', marginBottom: 8 }}>{t('calendar.publicSlugHelp')}</Text>
-            <Pressable onPress={handleSavePublicSlug} disabled={savingSlug}>
-              <Text style={{ color: 'black', textDecorationLine: 'underline', marginBottom: 12 }}>
-                {savingSlug ? t('calendar.savingLink') : t('calendar.saveLink')}
-              </Text>
-            </Pressable>
-            <Text style={{ color: 'black', marginBottom: 8 }}>
-              {t('calendar.notificationSetting', {
-                status: getNotificationStatusLabel(calendar.notifyOnNewSlotsAvailable, t),
-              })}
-            </Text>
-            <Pressable onPress={handleToggleVisibility} disabled={togglingVisibility}>
-              <Text style={{ color: 'black', textDecorationLine: 'underline', marginBottom: 12 }}>
-                {togglingVisibility
-                  ? t('calendar.updatingVisibility')
-                  : calendar.visibility === 'public'
-                    ? t('calendar.makeRestricted')
-                    : t('calendar.makePublic')}
-              </Text>
-            </Pressable>
             {calendar.visibility === 'public' && calendar.publicSlug ? (
               <>
                 <Text style={{ color: 'black', marginBottom: 8 }}>
@@ -199,27 +82,20 @@ export default function MyCalendarScreen() {
                   </Pressable>
                 </Link>
               </>
-            ) : calendar.visibility === 'public' ? (
-              <Text style={{ color: 'black', marginBottom: 12 }}>
-                {t('calendar.publicSlugMissing')}
-              </Text>
             ) : null}
-            <Pressable onPress={handleToggleNewSlotsNotification} disabled={togglingNotifications}>
-              <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-                {togglingNotifications
-                  ? t('calendar.updatingSetting')
-                  : calendar.notifyOnNewSlotsAvailable
-                    ? t('calendar.disableNotifications')
-                    : t('calendar.enableNotifications')}
-              </Text>
-            </Pressable>
+            <Link href="/settings" asChild>
+              <Pressable style={{ alignSelf: 'flex-start' }}>
+                <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                  {t('dashboard.openSettings')}
+                </Text>
+              </Pressable>
+            </Link>
           </>
         ) : (
           <Text style={{ color: 'black' }}>{t('calendar.notAvailable')}</Text>
         )}
 
         {error ? <Text style={{ color: 'black', marginTop: 12 }}>{error}</Text> : null}
-        {settingsMessage ? <Text style={{ color: 'black', marginTop: 12 }}>{settingsMessage}</Text> : null}
       </View>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
@@ -235,6 +111,14 @@ export default function MyCalendarScreen() {
           <Pressable style={{ marginBottom: 16 }}>
             <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
               {t('calendar.manageAccess')}
+            </Text>
+          </Pressable>
+        </Link>
+
+        <Link href={`/my-calendar/week?date=${getDayKey(visibleMonth)}`} asChild>
+          <Pressable style={{ marginBottom: 16 }}>
+            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+              {t('calendar.openWeekView')}
             </Text>
           </Pressable>
         </Link>
@@ -257,7 +141,7 @@ export default function MyCalendarScreen() {
         </View>
 
         <View style={{ flexDirection: 'row', marginBottom: 8 }}>
-          {weekDayLabels[language].map((label) => (
+          {weekdayLabels.map((label) => (
             <View key={label} style={{ flex: 1 }}>
               <Text style={{ color: 'black', textAlign: 'center' }}>{label}</Text>
             </View>

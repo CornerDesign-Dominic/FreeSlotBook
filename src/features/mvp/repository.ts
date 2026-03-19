@@ -13,6 +13,7 @@ import {
   runTransaction,
   serverTimestamp,
   setDoc,
+  deleteDoc,
   updateDoc,
   where,
   writeBatch,
@@ -35,6 +36,30 @@ import type {
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function normalizePhoneNumber(phoneNumber: string) {
+  return phoneNumber.trim();
+}
+
+function validateOptionalPhoneNumber(phoneNumber?: string | null) {
+  const normalizedPhoneNumber = normalizePhoneNumber(phoneNumber ?? '');
+
+  if (!normalizedPhoneNumber) {
+    return null;
+  }
+
+  if (!/^[+\d\s()/.-]{6,20}$/.test(normalizedPhoneNumber)) {
+    throw new Error('Bitte gib eine gueltige Telefonnummer ein oder lasse das Feld leer.');
+  }
+
+  const digitsCount = normalizedPhoneNumber.replace(/\D/g, '').length;
+
+  if (digitsCount < 6) {
+    throw new Error('Bitte gib eine gueltige Telefonnummer ein oder lasse das Feld leer.');
+  }
+
+  return normalizedPhoneNumber;
 }
 
 function getFirestoreErrorMessage(error: unknown) {
@@ -168,6 +193,7 @@ const reservedPublicSlugs = new Set([
   'register',
   'agb',
   'datenschutz',
+  'settings',
   'public-calendar',
   'my-calendar',
   'request-calendar-access',
@@ -219,6 +245,14 @@ function mapAccess(id: string, data: Record<string, unknown>): CalendarAccessRec
     ownerId: String(data.ownerId ?? ''),
     granteeEmail,
     granteeEmailKey: resolveAccessEmailKey(id, data),
+    phoneNumber:
+      typeof data.phoneNumber === 'string' && data.phoneNumber.trim()
+        ? data.phoneNumber.trim()
+        : null,
+    displayName:
+      typeof data.displayName === 'string' && data.displayName.trim()
+        ? data.displayName.trim()
+        : null,
     status: data.status === 'revoked' ? 'revoked' : 'approved',
     createdAt: asDate(data.createdAt),
     updatedAt: asDate(data.updatedAt),
@@ -686,24 +720,17 @@ export async function getDashboardData(params: { uid: string; email: string }) {
   try {
     const joinedCalendarResult = await getJoinedCalendars(params.email);
 
-    const [
-      ownerProfile,
-      ownerCalendar,
-      upcomingAppointments,
-      recentNotifications,
-    ] = await Promise.all([
+    const [ownerProfile, ownerCalendar] = await Promise.all([
       getOwnerProfile(params.uid),
       getOwnerCalendar(params.uid),
-      listUpcomingAppointmentsForParticipant(params.email),
-      listRecentNotificationsForRecipient(params.email),
     ]);
 
     return {
       ownerProfile,
       ownerCalendar,
       joinedCalendars: joinedCalendarResult.joinedCalendars,
-      upcomingAppointments,
-      recentNotifications,
+      upcomingAppointments: [],
+      recentNotifications: [],
     } satisfies DashboardData;
   } catch (error) {
     throw new Error(getDashboardLoadErrorMessage(error));
@@ -714,6 +741,8 @@ export async function upsertCalendarAccess(params: {
   calendarId: string;
   ownerId: string;
   granteeEmail: string;
+  phoneNumber?: string | null;
+  displayName?: string | null;
   status?: CalendarAccessRecord['status'];
 }) {
   const trimmedEmail = params.granteeEmail.trim();
@@ -723,6 +752,11 @@ export async function upsertCalendarAccess(params: {
   }
 
   const emailKey = normalizeEmail(trimmedEmail);
+  const phoneNumber = validateOptionalPhoneNumber(params.phoneNumber);
+  const displayName =
+    typeof params.displayName === 'string' && params.displayName.trim()
+      ? params.displayName.trim()
+      : null;
   const accessRef = doc(calendarAccessCollection(params.calendarId), emailKey);
 
   await setDoc(
@@ -732,12 +766,32 @@ export async function upsertCalendarAccess(params: {
       ownerId: params.ownerId,
       granteeEmail: trimmedEmail,
       granteeEmailKey: emailKey,
+      phoneNumber,
+      displayName,
       status: params.status ?? 'approved',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     },
     { merge: true }
   );
+}
+
+export async function removeCalendarAccess(params: {
+  calendarId: string;
+  granteeEmail: string;
+}) {
+  const trimmedEmail = params.granteeEmail.trim();
+
+  if (!trimmedEmail) {
+    throw new Error('Bitte gib eine E-Mail-Adresse ein.');
+  }
+
+  const accessRef = doc(
+    calendarAccessCollection(params.calendarId),
+    normalizeEmail(trimmedEmail)
+  );
+
+  await deleteDoc(accessRef);
 }
 
 export async function upsertCalendarAccessRequest(params: {

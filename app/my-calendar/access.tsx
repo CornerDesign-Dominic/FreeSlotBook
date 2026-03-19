@@ -5,6 +5,7 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import {
   approveCalendarAccessRequest,
   rejectCalendarAccessRequest,
+  removeCalendarAccess,
   upsertCalendarAccess,
 } from '../../src/features/mvp/repository';
 import { useCalendarAccessList } from '../../src/features/mvp/useCalendarAccessList';
@@ -25,6 +26,7 @@ export default function CalendarAccessScreen() {
   const { records: requestRecords, loading: requestsLoading, error: requestsError } =
     useCalendarAccessRequests(calendar?.id ?? null);
   const [emailInput, setEmailInput] = useState('');
+  const [phoneInput, setPhoneInput] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [processingEmail, setProcessingEmail] = useState<string | null>(null);
@@ -64,9 +66,11 @@ export default function CalendarAccessScreen() {
         calendarId: calendar.id,
         ownerId: user.uid,
         granteeEmail: trimmedEmail,
+        phoneNumber: phoneInput,
         status: 'approved',
       });
       setEmailInput('');
+      setPhoneInput('');
       setMessage(t('access.saved'));
     } catch (nextError) {
       setMessage(nextError instanceof Error ? nextError.message : t('access.error'));
@@ -118,6 +122,27 @@ export default function CalendarAccessScreen() {
     }
   };
 
+  const handleRemoveAccess = async (granteeEmail: string) => {
+    if (!calendar) {
+      return;
+    }
+
+    setProcessingEmail(granteeEmail);
+    setMessage(null);
+
+    try {
+      await removeCalendarAccess({
+        calendarId: calendar.id,
+        granteeEmail,
+      });
+      setMessage(t('access.removedMessage', { email: granteeEmail }));
+    } catch (nextError) {
+      setMessage(nextError instanceof Error ? nextError.message : t('access.removeError'));
+    } finally {
+      setProcessingEmail(null);
+    }
+  };
+
   if (authLoading || loading || accessLoading || requestsLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
@@ -141,6 +166,14 @@ export default function CalendarAccessScreen() {
           keyboardType="email-address"
           style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 12 }}
         />
+        <Text style={{ color: 'black', marginBottom: 8 }}>{t('access.phoneOptional')}</Text>
+        <TextInput
+          placeholder={t('access.phonePlaceholder')}
+          value={phoneInput}
+          onChangeText={setPhoneInput}
+          keyboardType="phone-pad"
+          style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 12 }}
+        />
         <Pressable
           onPress={handleGrantAccess}
           disabled={submitting || !calendar}
@@ -161,9 +194,22 @@ export default function CalendarAccessScreen() {
           accessRecords.map((record) => (
             <View key={record.id} style={{ borderTopWidth: 1, borderColor: 'black', paddingTop: 12, marginTop: 12 }}>
               <Text style={{ color: 'black', marginBottom: 4 }}>{record.granteeEmail}</Text>
+              {record.phoneNumber ? (
+                <Text style={{ color: 'black', marginBottom: 4 }}>
+                  {t('common.phone')}: {record.phoneNumber}
+                </Text>
+              ) : null}
               <Text style={{ color: 'black' }}>
-                {t('common.status')}: {record.status}
+                {t('common.status')}: {record.status === 'approved' ? t('access.statusApproved') : t('access.statusRevoked')}
               </Text>
+              <Pressable
+                onPress={() => handleRemoveAccess(record.granteeEmail)}
+                disabled={processingEmail === record.granteeEmail}
+                style={{ marginTop: 8, alignSelf: 'flex-start' }}>
+                <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                  {processingEmail === record.granteeEmail ? t('access.removing') : t('access.remove')}
+                </Text>
+              </Pressable>
             </View>
           ))
         ) : (

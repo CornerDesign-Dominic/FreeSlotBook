@@ -1,4 +1,5 @@
 import type { CalendarSlotRecord } from './types';
+import type { WeekStartsOn } from '@/src/settings/types';
 
 export type CalendarDayCell = {
   key: string;
@@ -49,9 +50,12 @@ export function formatHourLabel(hour: number) {
   return `${`${hour}`.padStart(2, '0')}:00`;
 }
 
-function startOfCalendarGrid(date: Date) {
+function startOfCalendarGrid(date: Date, weekStartsOn: WeekStartsOn = 'monday') {
   const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-  const weekday = (firstDayOfMonth.getDay() + 6) % 7;
+  const weekday =
+    weekStartsOn === 'sunday'
+      ? firstDayOfMonth.getDay()
+      : (firstDayOfMonth.getDay() + 6) % 7;
   const start = new Date(firstDayOfMonth);
   start.setDate(firstDayOfMonth.getDate() - weekday);
   start.setHours(0, 0, 0, 0);
@@ -59,8 +63,20 @@ function startOfCalendarGrid(date: Date) {
   return start;
 }
 
-export function buildMonthGrid(date: Date) {
-  const start = startOfCalendarGrid(date);
+export function startOfWeek(date: Date, weekStartsOn: WeekStartsOn = 'monday') {
+  const baseDate = new Date(date);
+  baseDate.setHours(0, 0, 0, 0);
+
+  const weekday =
+    weekStartsOn === 'sunday' ? baseDate.getDay() : (baseDate.getDay() + 6) % 7;
+  const start = new Date(baseDate);
+  start.setDate(baseDate.getDate() - weekday);
+
+  return start;
+}
+
+export function buildMonthGrid(date: Date, weekStartsOn: WeekStartsOn = 'monday') {
+  const start = startOfCalendarGrid(date, weekStartsOn);
   const todayKey = getDayKey(new Date());
   const weeks: CalendarDayCell[][] = [];
 
@@ -83,6 +99,57 @@ export function buildMonthGrid(date: Date) {
   }
 
   return weeks;
+}
+
+export function buildWeekDays(date: Date, weekStartsOn: WeekStartsOn = 'monday') {
+  const start = startOfWeek(date, weekStartsOn);
+  const todayKey = getDayKey(new Date());
+
+  return Array.from({ length: 7 }, (_, dayIndex) => {
+    const current = new Date(start);
+    current.setDate(start.getDate() + dayIndex);
+
+    return {
+      key: getDayKey(current),
+      date: current,
+      isCurrentMonth: true,
+      isToday: getDayKey(current) === todayKey,
+    } satisfies CalendarDayCell;
+  });
+}
+
+export function formatWeekRange(date: Date, locale = 'de-DE', weekStartsOn: WeekStartsOn = 'monday') {
+  const start = startOfWeek(date, weekStartsOn);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+
+  const startLabel = start.toLocaleDateString(locale, {
+    day: '2-digit',
+    month: '2-digit',
+  });
+  const endLabel = end.toLocaleDateString(locale, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+
+  return `${startLabel} - ${endLabel}`;
+}
+
+export function getWeekdayLabels(
+  language: 'de' | 'en',
+  weekStartsOn: WeekStartsOn = 'monday'
+) {
+  const mondayFirstLabels =
+    language === 'de'
+      ? ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+      : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  if (weekStartsOn === 'monday') {
+    return mondayFirstLabels;
+  }
+
+  return [mondayFirstLabels[6], ...mondayFirstLabels.slice(0, 6)];
 }
 
 export function getSlotCountsByDay(slots: CalendarSlotRecord[]) {
