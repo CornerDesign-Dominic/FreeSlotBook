@@ -93,6 +93,8 @@ export default function CalendarWeekScreen() {
 
   const formatSlotStatus = (status: SlotStatus) => {
     switch (status) {
+      case 'hold':
+        return t('day.statusHold');
       case 'booked':
         return t('day.statusBooked');
       case 'cancelled':
@@ -246,7 +248,12 @@ export default function CalendarWeekScreen() {
                           paddingVertical: 6,
                           borderWidth: 1,
                           borderColor: 'black',
-                          backgroundColor: slot.status === 'cancelled' ? '#f1f1f1' : 'white',
+                          backgroundColor:
+                            slot.status === 'cancelled'
+                              ? '#f1f1f1'
+                              : slot.status === 'hold'
+                                ? '#fff6d6'
+                                : 'white',
                           justifyContent: 'center',
                         }}>
                         <Text style={{ color: 'black', fontSize: 11 }} numberOfLines={1}>

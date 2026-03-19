@@ -6,12 +6,13 @@ export type AccessStatus = 'approved' | 'revoked';
 
 export type AccessRequestStatus = 'pending' | 'approved' | 'rejected';
 
-export type SlotStatus = 'available' | 'booked' | 'cancelled';
+export type SlotStatus = 'available' | 'hold' | 'booked' | 'cancelled';
 
 export type SlotEventType =
   | 'created'
   | 'booked'
   | 'assigned_by_owner'
+  | 'held_by_owner'
   | 'cancelled_by_owner'
   | 'released'
   | 'updated';
