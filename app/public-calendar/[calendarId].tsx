@@ -16,6 +16,36 @@ function formatDateTime(value: Date | null) {
   return value.toLocaleString('de-DE');
 }
 
+function formatDate(value: Date | null) {
+  if (!value) {
+    return 'Datum nicht verfuegbar';
+  }
+
+  return value.toLocaleDateString('de-DE');
+}
+
+function formatTimeRange(startsAt: Date | null, endsAt: Date | null) {
+  if (!startsAt || !endsAt) {
+    return 'Uhrzeit nicht verfuegbar';
+  }
+
+  return `${startsAt.toLocaleTimeString('de-DE', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })} - ${endsAt.toLocaleTimeString('de-DE', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })}`;
+}
+
+type BookingSuccessSummary = {
+  startsAt: Date | null;
+  endsAt: Date | null;
+  ownerEmail: string;
+  participantEmail: string;
+  requestAccountCreation: boolean;
+};
+
 export default function PublicCalendarScreen() {
   const params = useLocalSearchParams<{ calendarId?: string | string[] }>();
   const calendarId = Array.isArray(params.calendarId) ? params.calendarId[0] : params.calendarId ?? null;
@@ -30,6 +60,7 @@ export default function PublicCalendarScreen() {
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [successSummary, setSuccessSummary] = useState<BookingSuccessSummary | null>(null);
 
   const availableSlots = useMemo(
     () =>
@@ -96,6 +127,7 @@ export default function PublicCalendarScreen() {
     }
 
     setMessage(null);
+    setSuccessSummary(null);
     setTermsAccepted(false);
     setPrivacyAccepted(false);
     setShowConsentModal(true);
@@ -122,6 +154,13 @@ export default function PublicCalendarScreen() {
         privacyAccepted,
       });
 
+      setSuccessSummary({
+        startsAt: selectedSlot.startsAt,
+        endsAt: selectedSlot.endsAt,
+        ownerEmail: calendar.ownerEmail,
+        participantEmail: participantEmail.trim(),
+        requestAccountCreation,
+      });
       setMessage(
         requestAccountCreation
           ? 'Buchung gespeichert. Eine spaetere Kontoanlage mit dieser E-Mail wurde vorbereitet.'
@@ -265,6 +304,71 @@ export default function PublicCalendarScreen() {
           </Text>
         </Link>
       </View>
+
+      <Modal
+        visible={Boolean(successSummary)}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setSuccessSummary(null)}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.35)',
+            justifyContent: 'center',
+            padding: 16,
+          }}>
+          <View style={{ backgroundColor: 'white', borderWidth: 1, borderColor: 'black', padding: 16 }}>
+            <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>Buchung erfolgreich</Text>
+
+            {successSummary ? (
+              <>
+                <Text style={{ color: 'black', marginBottom: 8 }}>
+                  Datum: {formatDate(successSummary.startsAt)}
+                </Text>
+                <Text style={{ color: 'black', marginBottom: 8 }}>
+                  Uhrzeit: {formatTimeRange(successSummary.startsAt, successSummary.endsAt)}
+                </Text>
+                <Text style={{ color: 'black', marginBottom: 8 }}>
+                  Kalender: {successSummary.ownerEmail}
+                </Text>
+                <Text style={{ color: 'black', marginBottom: 16 }}>
+                  Bestaetigung an: {successSummary.participantEmail}
+                </Text>
+
+                {successSummary.requestAccountCreation ? (
+                  <Text style={{ color: 'black', marginBottom: 16 }}>
+                    Zusaetzlich wurde eine E-Mail fuer die Kontoerstellung an diese Adresse vorbereitet bzw.
+                    verschickt.
+                  </Text>
+                ) : null}
+
+                <View style={{ borderTopWidth: 1, borderColor: 'black', paddingTop: 16, marginBottom: 16 }}>
+                  <Text style={{ color: 'black', marginBottom: 8 }}>
+                    Erstelle ueber diesen Link einen kostenlosen Account, damit du deine gebuchten Termine
+                    spaeter immer sehen kannst.
+                  </Text>
+                  <Link href="/register">
+                    <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                      Kostenlosen Account erstellen
+                    </Text>
+                  </Link>
+                </View>
+              </>
+            ) : null}
+
+            <Pressable
+              onPress={() => setSuccessSummary(null)}
+              style={{
+                borderWidth: 1,
+                borderColor: 'black',
+                paddingVertical: 12,
+                alignItems: 'center',
+              }}>
+              <Text style={{ color: 'black' }}>Schliessen</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={showConsentModal}

@@ -133,14 +133,40 @@ exports.deliverEmailNotification = (0, firestore_2.onDocumentCreated)({
 }, async (event) => {
     const snapshot = event.data;
     if (!snapshot) {
+        v2_1.logger.warn('deliverEmailNotification triggered without snapshot data.', {
+            params: event.params,
+        });
         return;
     }
     const notification = snapshot.data();
-    if (notification.channel !== 'email' ||
-        notification.status !== 'pending' ||
-        !notification.recipientEmail ||
-        !notification.title ||
-        !notification.body) {
+    const baseLogContext = {
+        calendarId: event.params.calendarId,
+        notificationId: snapshot.id,
+        recipientEmail: notification.recipientEmail ?? null,
+        type: notification.type ?? null,
+        channel: notification.channel ?? null,
+        status: notification.status ?? null,
+    };
+    v2_1.logger.info('deliverEmailNotification triggered.', baseLogContext);
+    if (notification.channel !== 'email') {
+        v2_1.logger.info('Skipping notification because channel is not email.', baseLogContext);
+        return;
+    }
+    if (notification.status !== 'pending') {
+        v2_1.logger.info('Skipping notification because status is not pending.', baseLogContext);
+        return;
+    }
+    if (!notification.recipientEmail || !notification.title || !notification.body) {
+        const deliveryError = 'Email notification is missing recipientEmail, title, or body.';
+        v2_1.logger.error('Cannot deliver malformed email notification.', {
+            ...baseLogContext,
+            deliveryError,
+        });
+        await snapshot.ref.set({
+            status: 'failed',
+            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            deliveryError,
+        }, { merge: true });
         return;
     }
     const lockAcquired = await db.runTransaction(async (transaction) => {
@@ -158,10 +184,11 @@ exports.deliverEmailNotification = (0, firestore_2.onDocumentCreated)({
     });
     if (!lockAcquired) {
         v2_1.logger.info('Skipping email notification because it is no longer pending.', {
-            notificationId: snapshot.id,
+            ...baseLogContext,
         });
         return;
     }
+    v2_1.logger.info('Email notification moved to processing.', baseLogContext);
     try {
         const emailPayload = await buildEmailPayload(notification);
         await sendEmailViaResend({
@@ -177,11 +204,12 @@ exports.deliverEmailNotification = (0, firestore_2.onDocumentCreated)({
             updatedAt: firestore_1.FieldValue.serverTimestamp(),
             deliveryError: null,
         }, { merge: true });
+        v2_1.logger.info('Email notification sent successfully.', baseLogContext);
     }
     catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown mail delivery error.';
         v2_1.logger.error('Email delivery failed.', {
-            notificationId: snapshot.id,
+            ...baseLogContext,
             error: message,
         });
         await snapshot.ref.set({
