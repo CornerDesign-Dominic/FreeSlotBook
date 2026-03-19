@@ -7,32 +7,34 @@ import { bookPublicCalendarSlot } from './repository';
 import { PRIVACY_VERSION, TERMS_VERSION } from './types';
 import { useCalendar } from './useCalendar';
 import { useOwnerSlots } from './useOwnerSlots';
+import { LanguageSwitcher } from '../../i18n/language-switcher';
+import { useTranslation } from '../../i18n/provider';
 
-function formatDateTime(value: Date | null) {
+function formatDateTime(value: Date | null, locale: string, fallback: string) {
   if (!value) {
-    return 'Zeitpunkt nicht verfügbar';
+    return fallback;
   }
 
-  return value.toLocaleString('de-DE');
+  return value.toLocaleString(locale);
 }
 
-function formatDate(value: Date | null) {
+function formatDate(value: Date | null, locale: string, fallback: string) {
   if (!value) {
-    return 'Datum nicht verfügbar';
+    return fallback;
   }
 
-  return value.toLocaleDateString('de-DE');
+  return value.toLocaleDateString(locale);
 }
 
-function formatTimeRange(startsAt: Date | null, endsAt: Date | null) {
+function formatTimeRange(startsAt: Date | null, endsAt: Date | null, locale: string, fallback: string) {
   if (!startsAt || !endsAt) {
-    return 'Uhrzeit nicht verfügbar';
+    return fallback;
   }
 
-  return `${startsAt.toLocaleTimeString('de-DE', {
+  return `${startsAt.toLocaleTimeString(locale, {
     hour: '2-digit',
     minute: '2-digit',
-  })} - ${endsAt.toLocaleTimeString('de-DE', {
+  })} - ${endsAt.toLocaleTimeString(locale, {
     hour: '2-digit',
     minute: '2-digit',
   })}`;
@@ -50,6 +52,8 @@ export function PublicCalendarScreenContent(props: {
   calendarId: string | null;
   currentPublicPath: string;
 }) {
+  const { t, language } = useTranslation();
+  const locale = language === 'de' ? 'de-DE' : 'en-US';
   const { calendar, loading: calendarLoading, error: calendarError } = useCalendar(props.calendarId);
   const { slots, loading: slotsLoading, error: slotsError } = useOwnerSlots(props.calendarId);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
@@ -84,7 +88,7 @@ export function PublicCalendarScreenContent(props: {
   if (calendarLoading || slotsLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black' }}>Wird geladen...</Text>
+        <Text style={{ color: 'black' }}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -100,9 +104,7 @@ export function PublicCalendarScreenContent(props: {
   if (!calendar || calendar.visibility !== 'public') {
     return (
       <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black', marginBottom: 12 }}>
-          Dieser Kalender ist aktuell nicht öffentlich verfügbar.
-        </Text>
+        <Text style={{ color: 'black', marginBottom: 12 }}>{t('public.notPublic')}</Text>
         {calendarError ? <Text style={{ color: 'black' }}>{calendarError}</Text> : null}
       </View>
     );
@@ -116,17 +118,17 @@ export function PublicCalendarScreenContent(props: {
 
   const handleStartBooking = () => {
     if (!selectedSlot) {
-      setMessage('Bitte wähle zuerst einen freien Slot aus.');
+      setMessage(t('public.validationSelectSlot'));
       return;
     }
 
     if (!participantName.trim()) {
-      setMessage('Bitte gib deinen Namen ein.');
+      setMessage(t('public.validationName'));
       return;
     }
 
     if (!participantEmail.trim()) {
-      setMessage('Bitte gib deine E-Mail ein.');
+      setMessage(t('public.validationEmail'));
       return;
     }
 
@@ -140,7 +142,7 @@ export function PublicCalendarScreenContent(props: {
   const handleConfirmBooking = async () => {
     if (!selectedSlot) {
       setShowConsentModal(false);
-      setMessage('Bitte wähle zuerst einen freien Slot aus.');
+      setMessage(t('public.validationSelectSlot'));
       return;
     }
 
@@ -166,9 +168,7 @@ export function PublicCalendarScreenContent(props: {
         requestAccountCreation,
       });
       setMessage(
-        requestAccountCreation
-          ? 'Die Buchung wurde gespeichert. Für diese E-Mail-Adresse wurde eine spätere Kontoanlage vorgemerkt.'
-          : 'Die Buchung wurde gespeichert. Du erhältst eine Bestätigung per E-Mail.'
+        requestAccountCreation ? t('public.bookedInvite') : t('public.bookedMail')
       );
       setSelectedSlotId(null);
       setParticipantName('');
@@ -178,9 +178,7 @@ export function PublicCalendarScreenContent(props: {
       setPrivacyAccepted(false);
       setShowConsentModal(false);
     } catch (nextError) {
-      setMessage(
-        nextError instanceof Error ? nextError.message : 'Die Buchung konnte nicht gespeichert werden.'
-      );
+      setMessage(nextError instanceof Error ? nextError.message : t('public.bookError'));
     } finally {
       setSubmitting(false);
     }
@@ -188,17 +186,18 @@ export function PublicCalendarScreenContent(props: {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
-      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>Öffentlicher Kalender</Text>
+      <LanguageSwitcher />
+      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>{t('public.title')}</Text>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', marginBottom: 8 }}>
-          Freie Slots kannst du direkt ohne Konto buchen.
+        <Text style={{ color: 'black', marginBottom: 8 }}>{t('public.intro')}</Text>
+        <Text style={{ color: 'black' }}>
+          {t('dashboard.visibilityValue', { visibility: calendar.visibility })}
         </Text>
-        <Text style={{ color: 'black' }}>Sichtbarkeit: {calendar.visibility}</Text>
       </View>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>Freie Slots</Text>
+        <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>{t('public.freeSlots')}</Text>
         {availableSlots.length ? (
           availableSlots.map((slot) => (
             <Pressable
@@ -215,41 +214,47 @@ export function PublicCalendarScreenContent(props: {
                 backgroundColor: selectedSlotId === slot.id ? '#f1f1f1' : 'white',
               }}>
               <Text style={{ color: 'black', marginBottom: 4 }}>
-                {formatDateTime(slot.startsAt)} bis {formatDateTime(slot.endsAt)}
+                {formatDateTime(slot.startsAt, locale, t('day.dateTimeUnavailable'))} - {formatDateTime(slot.endsAt, locale, t('day.dateTimeUnavailable'))}
               </Text>
-              {slot.startsAt ? <Text style={{ color: 'black' }}>Tag: {getDayKey(slot.startsAt)}</Text> : null}
+              {slot.startsAt ? (
+                <Text style={{ color: 'black' }}>
+                  {t('public.bookSlot')} {t('public.selectedSlot', { range: getDayKey(slot.startsAt) }).replace('Ausgewaehlter Slot: ', '').replace('Selected slot: ', '')}
+                </Text>
+              ) : null}
             </Pressable>
           ))
         ) : (
-          <Text style={{ color: 'black' }}>In diesem Kalender sind aktuell keine freien Slots vorhanden.</Text>
+          <Text style={{ color: 'black' }}>{t('public.noFreeSlots')}</Text>
         )}
 
         {slotsError ? <Text style={{ color: 'black', marginTop: 12 }}>{slotsError}</Text> : null}
       </View>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>Slot buchen</Text>
+        <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>{t('public.bookSlot')}</Text>
         {selectedSlot ? (
           <Text style={{ color: 'black', marginBottom: 12 }}>
-            Ausgewählter Slot: {formatDateTime(selectedSlot.startsAt)} bis {formatDateTime(selectedSlot.endsAt)}
+            {t('public.selectedSlot', {
+              range: `${formatDateTime(selectedSlot.startsAt, locale, t('day.dateTimeUnavailable'))} - ${formatDateTime(selectedSlot.endsAt, locale, t('day.dateTimeUnavailable'))}`,
+            })}
           </Text>
         ) : (
-          <Text style={{ color: 'black', marginBottom: 12 }}>Bitte wähle oben einen freien Slot aus.</Text>
+          <Text style={{ color: 'black', marginBottom: 12 }}>{t('public.selectSlot')}</Text>
         )}
 
-        <Text style={{ color: 'black', marginBottom: 8 }}>Name</Text>
+        <Text style={{ color: 'black', marginBottom: 8 }}>{t('public.nameLabel')}</Text>
         <TextInput
           value={participantName}
           onChangeText={setParticipantName}
-          placeholder="Vor- und Nachname"
+          placeholder={t('public.namePlaceholder')}
           style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 12 }}
         />
 
-        <Text style={{ color: 'black', marginBottom: 8 }}>E-Mail</Text>
+        <Text style={{ color: 'black', marginBottom: 8 }}>{t('public.emailLabel')}</Text>
         <TextInput
           value={participantEmail}
           onChangeText={setParticipantEmail}
-          placeholder="name@beispiel.de"
+          placeholder={t('public.emailPlaceholder')}
           autoCapitalize="none"
           keyboardType="email-address"
           style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 12 }}
@@ -270,7 +275,7 @@ export function PublicCalendarScreenContent(props: {
             }}>
             {requestAccountCreation ? <Text style={{ color: 'black' }}>x</Text> : null}
           </View>
-          <Text style={{ color: 'black' }}>Mit dieser E-Mail auch ein Konto anlegen</Text>
+          <Text style={{ color: 'black' }}>{t('public.requestAccount')}</Text>
         </Pressable>
 
         <Pressable
@@ -283,7 +288,9 @@ export function PublicCalendarScreenContent(props: {
             alignItems: 'center',
             opacity: canBook ? 1 : 0.55,
           }}>
-          <Text style={{ color: 'black' }}>{submitting ? 'Buche Slot...' : 'Verbindlich buchen'}</Text>
+          <Text style={{ color: 'black' }}>
+            {submitting ? t('public.submitting') : t('public.submit')}
+          </Text>
         </Pressable>
 
         {message ? <Text style={{ color: 'black', marginTop: 12 }}>{message}</Text> : null}
@@ -296,7 +303,7 @@ export function PublicCalendarScreenContent(props: {
             params: { redirect: props.currentPublicPath },
           }}>
           <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-            Mit bestehendem Konto anmelden
+            {t('public.loginWithAccount')}
           </Text>
         </Link>
       </View>
@@ -314,41 +321,49 @@ export function PublicCalendarScreenContent(props: {
             padding: 16,
           }}>
           <View style={{ backgroundColor: 'white', borderWidth: 1, borderColor: 'black', padding: 16 }}>
-            <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>Buchung erfolgreich</Text>
+            <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>{t('public.successTitle')}</Text>
 
             {successSummary ? (
               <>
-                <Text style={{ color: 'black', marginBottom: 8 }}>Datum: {formatDate(successSummary.startsAt)}</Text>
                 <Text style={{ color: 'black', marginBottom: 8 }}>
-                  Uhrzeit: {formatTimeRange(successSummary.startsAt, successSummary.endsAt)}
+                  {t('public.successDate', {
+                    date: formatDate(successSummary.startsAt, locale, t('common.date')),
+                  })}
                 </Text>
-                <Text style={{ color: 'black', marginBottom: 8 }}>Kalender: {successSummary.ownerEmail}</Text>
+                <Text style={{ color: 'black', marginBottom: 8 }}>
+                  {t('public.successTime', {
+                    time: formatTimeRange(
+                      successSummary.startsAt,
+                      successSummary.endsAt,
+                      locale,
+                      t('common.time')
+                    ),
+                  })}
+                </Text>
+                <Text style={{ color: 'black', marginBottom: 8 }}>
+                  {t('public.successCalendar', { calendar: successSummary.ownerEmail })}
+                </Text>
                 <Text style={{ color: 'black', marginBottom: 16 }}>
-                  Bestätigung an: {successSummary.participantEmail}
+                  {t('public.successEmail', { email: successSummary.participantEmail })}
                 </Text>
 
                 {successSummary.requestAccountCreation ? (
                   <Text style={{ color: 'black', marginBottom: 16 }}>
-                    Zusätzlich wurde eine E-Mail zur Kontoerstellung an diese Adresse vorbereitet bzw.
-                    verschickt.
+                    {t('public.successInviteInfo')}
                   </Text>
                 ) : null}
 
                 <View style={{ borderTopWidth: 1, borderColor: 'black', paddingTop: 16, marginBottom: 16 }}>
                   {successSummary.requestAccountCreation ? (
-                    <Text style={{ color: 'black' }}>
-                      Bitte bestätige die E-Mail, um deine Adresse zu bestätigen und die vorbereitete
-                      Kontoanlage abzuschließen.
-                    </Text>
+                    <Text style={{ color: 'black' }}>{t('public.successInviteHint')}</Text>
                   ) : (
                     <>
                       <Text style={{ color: 'black', marginBottom: 8 }}>
-                        Erstelle über diesen Link ein kostenloses Konto, damit du deine gebuchten Termine
-                        später jederzeit sehen kannst.
+                        {t('public.successAccountHint')}
                       </Text>
                       <Link href="/register">
                         <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-                          Kostenlosen Account erstellen
+                          {t('public.successAccountLink')}
                         </Text>
                       </Link>
                     </>
@@ -365,7 +380,7 @@ export function PublicCalendarScreenContent(props: {
                 paddingVertical: 12,
                 alignItems: 'center',
               }}>
-              <Text style={{ color: 'black' }}>Schließen</Text>
+              <Text style={{ color: 'black' }}>{t('public.successClose')}</Text>
             </Pressable>
           </View>
         </View>
@@ -388,11 +403,8 @@ export function PublicCalendarScreenContent(props: {
             padding: 16,
           }}>
           <View style={{ backgroundColor: 'white', borderWidth: 1, borderColor: 'black', padding: 16 }}>
-            <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>Buchung bestätigen</Text>
-            <Text style={{ color: 'black', marginBottom: 16 }}>
-              Mit der Buchung akzeptiere ich die AGB und bestätige, die Datenschutzerklärung gelesen zu
-              haben.
-            </Text>
+            <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>{t('public.confirmTitle')}</Text>
+            <Text style={{ color: 'black', marginBottom: 16 }}>{t('public.confirmBody')}</Text>
 
             <Pressable
               onPress={() => setTermsAccepted((currentValue) => !currentValue)}
@@ -409,7 +421,7 @@ export function PublicCalendarScreenContent(props: {
                 }}>
                 {termsAccepted ? <Text style={{ color: 'black' }}>x</Text> : null}
               </View>
-              <Text style={{ color: 'black', flex: 1 }}>AGB akzeptieren</Text>
+              <Text style={{ color: 'black', flex: 1 }}>{t('public.acceptTerms')}</Text>
             </Pressable>
 
             <Pressable
@@ -427,18 +439,18 @@ export function PublicCalendarScreenContent(props: {
                 }}>
                 {privacyAccepted ? <Text style={{ color: 'black' }}>x</Text> : null}
               </View>
-              <Text style={{ color: 'black', flex: 1 }}>Datenschutzerklärung gelesen</Text>
+              <Text style={{ color: 'black', flex: 1 }}>{t('public.acceptPrivacy')}</Text>
             </Pressable>
 
             <View style={{ marginBottom: 16 }}>
               <Link href="/agb" style={{ marginBottom: 8 }}>
                 <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-                  AGB lesen (Version {TERMS_VERSION})
+                  {t('public.readTerms', { version: TERMS_VERSION })}
                 </Text>
               </Link>
               <Link href="/datenschutz">
                 <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-                  Datenschutzerklärung lesen (Version {PRIVACY_VERSION})
+                  {t('public.readPrivacy', { version: PRIVACY_VERSION })}
                 </Text>
               </Link>
             </View>
@@ -455,7 +467,7 @@ export function PublicCalendarScreenContent(props: {
                   alignItems: 'center',
                   opacity: submitting ? 0.55 : 1,
                 }}>
-                <Text style={{ color: 'black' }}>Abbrechen</Text>
+                <Text style={{ color: 'black' }}>{t('common.cancel')}</Text>
               </Pressable>
               <Pressable
                 onPress={handleConfirmBooking}
@@ -469,7 +481,7 @@ export function PublicCalendarScreenContent(props: {
                   opacity: canConfirmConsent ? 1 : 0.55,
                 }}>
                 <Text style={{ color: 'black' }}>
-                  {submitting ? 'Buche Slot...' : 'Jetzt verbindlich buchen'}
+                  {submitting ? t('public.submitting') : t('public.confirmSubmit')}
                 </Text>
               </Pressable>
             </View>

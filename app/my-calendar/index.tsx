@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'expo-router';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
@@ -14,11 +14,22 @@ import {
 import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useAuth } from '../../src/firebase/useAuth';
+import { LanguageSwitcher } from '../../src/i18n/language-switcher';
+import { useTranslation } from '../../src/i18n/provider';
 
-const weekDayLabels = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+const weekDayLabels = {
+  de: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
+  en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+} as const;
+
+function getNotificationStatusLabel(active: boolean, t: ReturnType<typeof useTranslation>['t']) {
+  return active ? t('calendar.notificationActive') : t('calendar.notificationInactive');
+}
 
 export default function MyCalendarScreen() {
   const { user, loading: authLoading } = useAuth();
+  const { t, language } = useTranslation();
+  const locale = language === 'de' ? 'de-DE' : 'en-US';
   const { calendar, loading, error } = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
   );
@@ -37,16 +48,16 @@ export default function MyCalendarScreen() {
     setPublicSlug(calendar?.publicSlug ?? '');
   }, [calendar?.publicSlug]);
 
+  const monthGrid = useMemo(() => buildMonthGrid(visibleMonth), [visibleMonth]);
+  const slotCountsByDay = useMemo(() => getSlotCountsByDay(slots), [slots]);
+
   if (authLoading || loading || slotsLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black' }}>Wird geladen...</Text>
+        <Text style={{ color: 'black' }}>{t('common.loading')}</Text>
       </View>
     );
   }
-
-  const monthGrid = buildMonthGrid(visibleMonth);
-  const slotCountsByDay = getSlotCountsByDay(slots);
 
   const goToPreviousMonth = () => {
     setVisibleMonth((currentMonth) => new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
@@ -69,10 +80,10 @@ export default function MyCalendarScreen() {
         calendarId: calendar.id,
         notifyOnNewSlotsAvailable: !calendar.notifyOnNewSlotsAvailable,
       });
-      setSettingsMessage('Die Kalendereinstellung wurde aktualisiert.');
+      setSettingsMessage(t('calendar.settingsSaved'));
     } catch (nextError) {
       setSettingsMessage(
-        nextError instanceof Error ? nextError.message : 'Einstellung konnte nicht aktualisiert werden.'
+        nextError instanceof Error ? nextError.message : t('calendar.settingsSaveError')
       );
     } finally {
       setTogglingNotifications(false);
@@ -94,12 +105,10 @@ export default function MyCalendarScreen() {
         visibility: calendar.visibility === 'public' ? 'restricted' : 'public',
         publicSlug,
       });
-      setSettingsMessage('Die Sichtbarkeit wurde aktualisiert.');
+      setSettingsMessage(t('calendar.visibilitySaved'));
     } catch (nextError) {
       setSettingsMessage(
-        nextError instanceof Error
-          ? nextError.message
-          : 'Kalendersichtbarkeit konnte nicht aktualisiert werden.'
+        nextError instanceof Error ? nextError.message : t('calendar.visibilitySaveError')
       );
     } finally {
       setTogglingVisibility(false);
@@ -121,10 +130,10 @@ export default function MyCalendarScreen() {
         visibility: calendar.visibility,
         publicSlug,
       });
-      setSettingsMessage('Der öffentliche Link wurde aktualisiert.');
+      setSettingsMessage(t('calendar.publicLinkSaved'));
     } catch (nextError) {
       setSettingsMessage(
-        nextError instanceof Error ? nextError.message : 'Der öffentliche Link konnte nicht gespeichert werden.'
+        nextError instanceof Error ? nextError.message : t('calendar.publicLinkSaveError')
       );
     } finally {
       setSavingSlug(false);
@@ -133,73 +142,80 @@ export default function MyCalendarScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
-      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>Mein Kalender</Text>
+      <LanguageSwitcher />
+      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>{t('calendar.title')}</Text>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
         {calendar ? (
           <>
-            <Text style={{ color: 'black', marginBottom: 8 }}>Kalender-ID: {calendar.id}</Text>
-            <Text style={{ color: 'black', marginBottom: 8 }}>Inhaber: {calendar.ownerEmail}</Text>
-            <Text style={{ color: 'black', marginBottom: 8 }}>Sichtbarkeit: {calendar.visibility}</Text>
-            <Text style={{ color: 'black', marginBottom: 8 }}>Öffentlicher Link</Text>
+            <Text style={{ color: 'black', marginBottom: 8 }}>
+              {t('calendar.calendarId', { id: calendar.id })}
+            </Text>
+            <Text style={{ color: 'black', marginBottom: 8 }}>
+              {t('calendar.owner', { email: calendar.ownerEmail })}
+            </Text>
+            <Text style={{ color: 'black', marginBottom: 8 }}>
+              {t('dashboard.visibilityValue', { visibility: calendar.visibility })}
+            </Text>
+            <Text style={{ color: 'black', marginBottom: 8 }}>{t('calendar.publicLinkTitle')}</Text>
             <TextInput
               value={publicSlug}
               onChangeText={setPublicSlug}
               autoCapitalize="none"
               autoCorrect={false}
-              placeholder="z. B. dominic-franz"
+              placeholder={t('calendar.publicSlugPlaceholder')}
               style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 8 }}
             />
-            <Text style={{ color: 'black', marginBottom: 8 }}>
-              Erlaubt sind a-z, 0-9 und Bindestriche. Länge: 3 bis 30 Zeichen. Dieser Teil wird in deiner öffentlichen URL verwendet.
-            </Text>
+            <Text style={{ color: 'black', marginBottom: 8 }}>{t('calendar.publicSlugHelp')}</Text>
             <Pressable onPress={handleSavePublicSlug} disabled={savingSlug}>
               <Text style={{ color: 'black', textDecorationLine: 'underline', marginBottom: 12 }}>
-                {savingSlug ? 'Speichere...' : 'Link speichern'}
+                {savingSlug ? t('calendar.savingLink') : t('calendar.saveLink')}
               </Text>
             </Pressable>
             <Text style={{ color: 'black', marginBottom: 8 }}>
-              Neue freie Slots benachrichtigen: {calendar.notifyOnNewSlotsAvailable ? 'aktiv' : 'inaktiv'}
+              {t('calendar.notificationSetting', {
+                status: getNotificationStatusLabel(calendar.notifyOnNewSlotsAvailable, t),
+              })}
             </Text>
             <Pressable onPress={handleToggleVisibility} disabled={togglingVisibility}>
               <Text style={{ color: 'black', textDecorationLine: 'underline', marginBottom: 12 }}>
                 {togglingVisibility
-                  ? 'Aktualisiere Sichtbarkeit...'
+                  ? t('calendar.updatingVisibility')
                   : calendar.visibility === 'public'
-                    ? 'Kalender wieder einschränken'
-                    : 'Kalender öffentlich machen'}
+                    ? t('calendar.makeRestricted')
+                    : t('calendar.makePublic')}
               </Text>
             </Pressable>
             {calendar.visibility === 'public' && calendar.publicSlug ? (
               <>
                 <Text style={{ color: 'black', marginBottom: 8 }}>
-                  Öffentlicher Link: /{calendar.publicSlug}
+                  {t('calendar.publicLinkValue', { slug: calendar.publicSlug })}
                 </Text>
                 <Link href={`/${calendar.publicSlug}`} asChild>
                   <Pressable style={{ alignSelf: 'flex-start', marginBottom: 12 }}>
                     <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-                      Öffentliche Buchungsseite öffnen
+                      {t('calendar.openPublicPage')}
                     </Text>
                   </Pressable>
                 </Link>
               </>
             ) : calendar.visibility === 'public' ? (
               <Text style={{ color: 'black', marginBottom: 12 }}>
-                Bitte hinterlege einen gültigen Link, damit dein Kalender öffentlich erreichbar ist.
+                {t('calendar.publicSlugMissing')}
               </Text>
             ) : null}
             <Pressable onPress={handleToggleNewSlotsNotification} disabled={togglingNotifications}>
               <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
                 {togglingNotifications
-                  ? 'Aktualisiere...'
+                  ? t('calendar.updatingSetting')
                   : calendar.notifyOnNewSlotsAvailable
-                    ? 'Benachrichtigung deaktivieren'
-                    : 'Benachrichtigung aktivieren'}
+                    ? t('calendar.disableNotifications')
+                    : t('calendar.enableNotifications')}
               </Text>
             </Pressable>
           </>
         ) : (
-          <Text style={{ color: 'black' }}>Dein persönlicher Kalender ist noch nicht verfügbar.</Text>
+          <Text style={{ color: 'black' }}>{t('calendar.notAvailable')}</Text>
         )}
 
         {error ? <Text style={{ color: 'black', marginTop: 12 }}>{error}</Text> : null}
@@ -210,7 +226,7 @@ export default function MyCalendarScreen() {
         <Link href="/my-calendar/create-slot" asChild>
           <Pressable style={{ marginBottom: 16 }}>
             <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-              Slots erstellen
+              {t('calendar.createSlots')}
             </Text>
           </Pressable>
         </Link>
@@ -218,7 +234,7 @@ export default function MyCalendarScreen() {
         <Link href="/my-calendar/access" asChild>
           <Pressable style={{ marginBottom: 16 }}>
             <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-              Freigaben verwalten
+              {t('calendar.manageAccess')}
             </Text>
           </Pressable>
         </Link>
@@ -226,16 +242,22 @@ export default function MyCalendarScreen() {
         <View
           style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <Pressable onPress={goToPreviousMonth}>
-            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>Vorheriger Monat</Text>
+            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+              {t('calendar.previousMonth')}
+            </Text>
           </Pressable>
-          <Text style={{ color: 'black', fontSize: 18 }}>{formatMonthTitle(visibleMonth)}</Text>
+          <Text style={{ color: 'black', fontSize: 18 }}>
+            {formatMonthTitle(visibleMonth, locale)}
+          </Text>
           <Pressable onPress={goToNextMonth}>
-            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>Nächster Monat</Text>
+            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+              {t('calendar.nextMonth')}
+            </Text>
           </Pressable>
         </View>
 
         <View style={{ flexDirection: 'row', marginBottom: 8 }}>
-          {weekDayLabels.map((label) => (
+          {weekDayLabels[language].map((label) => (
             <View key={label} style={{ flex: 1 }}>
               <Text style={{ color: 'black', textAlign: 'center' }}>{label}</Text>
             </View>
@@ -262,7 +284,9 @@ export default function MyCalendarScreen() {
                     <Text style={{ color: 'black', marginBottom: 6 }}>{day.date.getDate()}</Text>
                     {slotCount ? (
                       <Text style={{ color: 'black', fontSize: 12 }}>
-                        {slotCount} Slot{slotCount === 1 ? '' : 's'}
+                        {slotCount === 1
+                          ? t('calendar.slotCount.one', { count: slotCount })
+                          : t('calendar.slotCount.other', { count: slotCount })}
                       </Text>
                     ) : null}
                   </Pressable>
@@ -272,16 +296,14 @@ export default function MyCalendarScreen() {
           </View>
         ))}
 
-        <Text style={{ color: 'black', marginTop: 12 }}>
-          Tage mit vorhandenen Slots sind direkt markiert.
-        </Text>
+        <Text style={{ color: 'black', marginTop: 12 }}>{t('calendar.daysWithSlots')}</Text>
 
         {slotsError ? <Text style={{ color: 'black', marginTop: 12 }}>{slotsError}</Text> : null}
       </View>
 
       <View style={{ alignItems: 'flex-end' }}>
         <Link href="/(tabs)" style={{ marginTop: 16 }}>
-          <Text style={{ color: 'black' }}>Zurück zum Dashboard</Text>
+          <Text style={{ color: 'black' }}>{t('nav.backToDashboard')}</Text>
         </Link>
       </View>
     </ScrollView>

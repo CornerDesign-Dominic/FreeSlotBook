@@ -29,15 +29,15 @@ export function parseDayKey(value: string) {
   return parsedDate;
 }
 
-export function formatMonthTitle(date: Date) {
-  return date.toLocaleDateString('de-DE', {
+export function formatMonthTitle(date: Date, locale = 'de-DE') {
+  return date.toLocaleDateString(locale, {
     month: 'long',
     year: 'numeric',
   });
 }
 
-export function formatDayTitle(date: Date) {
-  return date.toLocaleDateString('de-DE', {
+export function formatDayTitle(date: Date, locale = 'de-DE') {
+  return date.toLocaleDateString(locale, {
     weekday: 'long',
     day: '2-digit',
     month: 'long',

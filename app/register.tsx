@@ -6,31 +6,17 @@ import { FirebaseError } from 'firebase/app';
 import { logout, registerWithEmail, sendVerificationEmail } from '../src/firebase/auth';
 import { ensureOwnerAccountSetup } from '../src/features/mvp/repository';
 import { useAuth } from '../src/firebase/useAuth';
+import { LanguageSwitcher } from '../src/i18n/language-switcher';
+import { useTranslation } from '../src/i18n/provider';
 
 function isValidEmail(email: string) {
   return /\S+@\S+\.\S+/.test(email);
 }
 
-function getRegisterErrorMessage(error: unknown) {
-  if (error instanceof FirebaseError) {
-    switch (error.code) {
-      case 'auth/email-already-in-use':
-        return 'Für diese E-Mail-Adresse gibt es bereits ein Konto.';
-      case 'auth/invalid-email':
-        return 'Bitte gib eine gültige E-Mail-Adresse ein.';
-      case 'auth/weak-password':
-        return 'Das Passwort muss mindestens 6 Zeichen lang sein.';
-      default:
-        return 'Dein Konto konnte gerade nicht erstellt werden. Bitte versuche es noch einmal.';
-    }
-  }
-
-  return 'Dein Konto konnte gerade nicht erstellt werden. Bitte versuche es noch einmal.';
-}
-
 export default function RegisterScreen() {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -43,26 +29,43 @@ export default function RegisterScreen() {
     }
   }, [awaitingVerification, loading, router, user]);
 
+  const getRegisterErrorMessage = (error: unknown) => {
+    if (error instanceof FirebaseError) {
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          return t('register.errorEmailInUse');
+        case 'auth/invalid-email':
+          return t('register.validationEmailInvalid');
+        case 'auth/weak-password':
+          return t('register.validationPasswordWeak');
+        default:
+          return t('register.errorGeneric');
+      }
+    }
+
+    return t('register.errorGeneric');
+  };
+
   const handleRegister = async () => {
     const trimmedEmail = email.trim();
 
     if (!trimmedEmail) {
-      setMessage('Bitte gib deine E-Mail-Adresse ein.');
+      setMessage(t('register.validationEmailRequired'));
       return;
     }
 
     if (!isValidEmail(trimmedEmail)) {
-      setMessage('Bitte gib eine gültige E-Mail-Adresse ein.');
+      setMessage(t('register.validationEmailInvalid'));
       return;
     }
 
     if (!password) {
-      setMessage('Bitte gib ein Passwort ein.');
+      setMessage(t('register.validationPasswordRequired'));
       return;
     }
 
     if (password.length < 6) {
-      setMessage('Das Passwort muss mindestens 6 Zeichen lang sein.');
+      setMessage(t('register.validationPasswordWeak'));
       return;
     }
 
@@ -78,9 +81,7 @@ export default function RegisterScreen() {
       });
       await logout();
       setAwaitingVerification(true);
-      setMessage(
-        'Wir haben dir eine E-Mail geschickt. Bitte bestätige deine Adresse, bevor du dich anmelden kannst.'
-      );
+      setMessage(t('register.messageVerification'));
     } catch (error) {
       setMessage(getRegisterErrorMessage(error));
     } finally {
@@ -90,10 +91,11 @@ export default function RegisterScreen() {
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 24 }}>Konto erstellen</Text>
+      <LanguageSwitcher />
+      <Text style={{ fontSize: 24 }}>{t('register.title')}</Text>
 
       <TextInput
-        placeholder="E-Mail"
+        placeholder={t('register.emailPlaceholder')}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -102,7 +104,7 @@ export default function RegisterScreen() {
       />
 
       <TextInput
-        placeholder="Passwort"
+        placeholder={t('register.passwordPlaceholder')}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -110,7 +112,7 @@ export default function RegisterScreen() {
       />
 
       <Button
-        title={submitting ? 'Erstelle Konto...' : 'Konto erstellen'}
+        title={submitting ? t('register.submitting') : t('register.submit')}
         onPress={handleRegister}
         disabled={submitting}
       />

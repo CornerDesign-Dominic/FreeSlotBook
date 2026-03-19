@@ -4,9 +4,12 @@ import { Pressable, Text, View } from 'react-native';
 import { logout } from '../../src/firebase/auth';
 import { useDashboardData } from '../../src/features/mvp/useDashboardData';
 import { useAuth } from '../../src/firebase/useAuth';
+import { LanguageSwitcher } from '../../src/i18n/language-switcher';
+import { useTranslation } from '../../src/i18n/provider';
 
 export default function HomeScreen() {
   const { user, loading } = useAuth();
+  const { t } = useTranslation();
   const { data, loading: dashboardLoading, error } = useDashboardData(
     user ? { uid: user.uid, email: user.email } : null
   );
@@ -25,7 +28,7 @@ export default function HomeScreen() {
           backgroundColor: 'white',
           padding: 16,
         }}>
-        <Text style={{ color: 'black' }}>Wird geladen...</Text>
+        <Text style={{ color: 'black' }}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -40,81 +43,78 @@ export default function HomeScreen() {
           backgroundColor: 'white',
           padding: 16,
         }}>
-        <Text style={{ color: 'black', fontSize: 28, marginBottom: 24 }}>Dashboard</Text>
+        <LanguageSwitcher />
+        <Text style={{ color: 'black', fontSize: 28, marginBottom: 24 }}>{t('dashboard.title')}</Text>
 
         <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 12 }}>
-          <Text style={{ color: 'black', fontSize: 18, marginBottom: 4 }}>MEIN KALENDER</Text>
+          <Text style={{ color: 'black', fontSize: 18, marginBottom: 4 }}>{t('dashboard.myCalendar')}</Text>
           {data.ownerCalendar ? (
             <>
               <Text style={{ color: 'black', marginBottom: 4 }}>
-              Dein Kalender ist eingerichtet und mit deinem Konto verknüpft.
+                {t('dashboard.calendarReady')}
               </Text>
               <Text style={{ color: 'black', marginBottom: 12 }}>
-                Sichtbarkeit: {data.ownerCalendar.visibility}
+                {t('dashboard.visibilityValue', { visibility: data.ownerCalendar.visibility })}
               </Text>
             </>
           ) : (
             <Text style={{ color: 'black', marginBottom: 12 }}>
-              Dein persönlicher Kalender wird gerade eingerichtet.
+              {t('dashboard.calendarPreparing')}
             </Text>
           )}
           <Link href="/my-calendar" asChild>
             <Pressable style={{ alignSelf: 'flex-start' }}>
               <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-                Kalender öffnen
+                {t('dashboard.openCalendar')}
               </Text>
             </Pressable>
           </Link>
           <Link href="/my-calendar/access" asChild>
             <Pressable style={{ alignSelf: 'flex-start', marginTop: 12 }}>
               <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-                Freigaben verwalten
+                {t('dashboard.manageAccess')}
               </Text>
             </Pressable>
           </Link>
         </View>
 
         <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 12 }}>
-          <Text style={{ color: 'black', fontSize: 18, marginBottom: 4 }}>MEINE TERMINE</Text>
+          <Text style={{ color: 'black', fontSize: 18, marginBottom: 4 }}>{t('dashboard.myAppointments')}</Text>
           {recentNotifications.length ? (
             recentNotifications.map((notification) => (
               <View key={notification.id} style={{ marginTop: 12 }}>
                 <Text style={{ color: 'black', marginBottom: 4 }}>
-                  {notification.title || 'Benachrichtigung'}
+                  {notification.title || t('dashboard.notificationFallback')}
                 </Text>
                 <Text style={{ color: 'black' }}>
-                  {notification.body || 'Keine weiteren Details verfügbar.'}
+                  {notification.body || t('dashboard.notificationNoDetails')}
                 </Text>
               </View>
             ))
           ) : (
-            <Text style={{ color: 'black' }}>
-              Du hast aktuell keine neuen Termin-Infos.
-            </Text>
+            <Text style={{ color: 'black' }}>{t('dashboard.noNotifications')}</Text>
           )}
         </View>
 
         <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 24 }}>
-          <Text style={{ color: 'black', fontSize: 18, marginBottom: 4 }}>KALENDER VON</Text>
+          <Text style={{ color: 'black', fontSize: 18, marginBottom: 4 }}>{t('dashboard.sharedCalendars')}</Text>
           {data.joinedCalendars.length ? (
             data.joinedCalendars.map((calendar) => (
               <Link key={calendar.id} href={`/shared-calendar/${calendar.id}`} asChild>
                 <Pressable style={{ marginTop: 12 }}>
                   <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-                    {calendar.ownerEmail || 'Kalender ohne hinterlegte Inhaber-E-Mail'}
+                    {calendar.ownerEmail || t('dashboard.noOwnerEmail')}
                   </Text>
                 </Pressable>
               </Link>
             ))
           ) : (
-            <Text style={{ color: 'black' }}>
-              Du hast aktuell keinen freigegebenen Kalender.
-            </Text>
+            <Text style={{ color: 'black' }}>{t('dashboard.noJoinedCalendars')}</Text>
           )}
           <Link href="/request-calendar-access" asChild>
             <Pressable style={{ alignSelf: 'flex-start', marginTop: 12 }}>
               <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-                Zugriff anfragen
+                {t('dashboard.requestAccess')}
               </Text>
             </Pressable>
           </Link>
@@ -124,7 +124,7 @@ export default function HomeScreen() {
         {error ? <Text style={{ color: 'black', marginBottom: 16 }}>{error}</Text> : null}
 
         <Text style={{ color: 'black' }} onPress={handleLogout}>
-          Abmelden
+          {t('dashboard.logout')}
         </Text>
       </View>
     );
@@ -139,18 +139,19 @@ export default function HomeScreen() {
         backgroundColor: 'white',
         padding: 16,
       }}>
+      <LanguageSwitcher />
       <Text style={{ color: 'black', fontSize: 28, marginBottom: 8 }}>
         FreeSlotBooking
       </Text>
-      <Text style={{ color: 'black', fontSize: 16 }}>Wähle eine Option</Text>
+      <Text style={{ color: 'black', fontSize: 16 }}>{t('dashboard.chooseOption')}</Text>
       <Link href="/login" style={{ marginTop: 12 }}>
-        <Text style={{ color: 'black' }}>Anmelden</Text>
+        <Text style={{ color: 'black' }}>{t('dashboard.login')}</Text>
       </Link>
       <Link href="/register" style={{ marginTop: 16 }}>
-        <Text style={{ color: 'black' }}>Konto erstellen</Text>
+        <Text style={{ color: 'black' }}>{t('dashboard.createAccount')}</Text>
       </Link>
       <Link href="/forgot-password" style={{ marginTop: 12 }}>
-        <Text style={{ color: 'black' }}>Passwort vergessen</Text>
+        <Text style={{ color: 'black' }}>{t('dashboard.forgotPassword')}</Text>
       </Link>
     </View>
   );

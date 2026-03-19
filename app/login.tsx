@@ -5,45 +5,11 @@ import { FirebaseError } from 'firebase/app';
 
 import { loginWithEmail, logout, sendVerificationEmail } from '../src/firebase/auth';
 import { useAuth } from '../src/firebase/useAuth';
+import { LanguageSwitcher } from '../src/i18n/language-switcher';
+import { useTranslation } from '../src/i18n/provider';
 
 function isValidEmail(email: string) {
   return /\S+@\S+\.\S+/.test(email);
-}
-
-function getLoginErrorMessage(error: unknown) {
-  if (error instanceof FirebaseError) {
-    switch (error.code) {
-      case 'auth/invalid-email':
-        return 'Bitte gib eine gültige E-Mail-Adresse ein.';
-      case 'auth/invalid-credential':
-      case 'auth/wrong-password':
-        return 'E-Mail oder Passwort ist nicht korrekt.';
-      case 'auth/user-not-found':
-        return 'Für diese E-Mail-Adresse wurde kein Konto gefunden.';
-      default:
-        return 'Anmeldung ist gerade nicht möglich. Bitte versuche es noch einmal.';
-    }
-  }
-
-  return 'Anmeldung ist gerade nicht möglich. Bitte versuche es noch einmal.';
-}
-
-function getVerificationEmailErrorMessage(error: unknown) {
-  if (error instanceof FirebaseError) {
-    switch (error.code) {
-      case 'auth/too-many-requests':
-        return 'Die Bestätigungs-E-Mail konnte gerade nicht erneut gesendet werden. Bitte versuche es später noch einmal.';
-      case 'auth/network-request-failed':
-        return 'Die Bestätigungs-E-Mail konnte wegen eines Netzwerkproblems nicht gesendet werden.';
-      case 'auth/user-token-expired':
-      case 'auth/requires-recent-login':
-        return 'Bitte melde dich erneut an, um die Bestätigungs-E-Mail zu senden.';
-      default:
-        return 'Die Bestätigungs-E-Mail konnte gerade nicht gesendet werden.';
-    }
-  }
-
-  return 'Die Bestätigungs-E-Mail konnte gerade nicht gesendet werden.';
 }
 
 function getSafeRedirectTarget(value: string | string[] | undefined) {
@@ -64,6 +30,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ redirect?: string | string[] }>();
   const { user, loading } = useAuth();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -77,21 +44,57 @@ export default function LoginScreen() {
     }
   }, [loading, redirectTarget, router, user]);
 
+  const getLoginErrorMessage = (error: unknown) => {
+    if (error instanceof FirebaseError) {
+      switch (error.code) {
+        case 'auth/invalid-email':
+          return t('login.validationEmailInvalid');
+        case 'auth/invalid-credential':
+        case 'auth/wrong-password':
+          return t('login.errorInvalidCredentials');
+        case 'auth/user-not-found':
+          return t('login.errorUserNotFound');
+        default:
+          return t('login.errorGeneric');
+      }
+    }
+
+    return t('login.errorGeneric');
+  };
+
+  const getVerificationEmailErrorMessage = (error: unknown) => {
+    if (error instanceof FirebaseError) {
+      switch (error.code) {
+        case 'auth/too-many-requests':
+          return t('login.errorTooManyRequests');
+        case 'auth/network-request-failed':
+          return t('login.errorNetwork');
+        case 'auth/user-token-expired':
+        case 'auth/requires-recent-login':
+          return t('login.errorRelogin');
+        default:
+          return t('login.errorResendGeneric');
+      }
+    }
+
+    return t('login.errorResendGeneric');
+  };
+
   const handleLogin = async () => {
     const trimmedEmail = email.trim();
 
     if (!trimmedEmail) {
-      setMessage('Bitte gib deine E-Mail-Adresse ein.');
+      setMessage(t('login.validationEmailRequired'));
       return;
     }
 
     if (!isValidEmail(trimmedEmail)) {
-      setMessage('Bitte gib eine gültige E-Mail-Adresse ein.');
+      setMessage(t('login.validationEmailInvalid'));
       return;
     }
 
     if (!password) {
-      setMessage('Bitte gib dein Passwort ein.');
+      setMessage(t('login.validationPasswordRequired'));
       return;
     }
 
@@ -105,9 +108,7 @@ export default function LoginScreen() {
       if (!credential.user.emailVerified) {
         await logout();
         setCanResendVerification(true);
-        setMessage(
-          'Bitte bestätige zuerst deine E-Mail-Adresse über den Link in der Willkommens-E-Mail.'
-        );
+        setMessage(t('login.messageUnverified'));
         return;
       }
 
@@ -123,7 +124,7 @@ export default function LoginScreen() {
     const trimmedEmail = email.trim();
 
     if (!trimmedEmail || !password) {
-      setMessage('Bitte gib deine E-Mail-Adresse und dein Passwort ein, damit wir die Bestätigungs-E-Mail erneut senden können.');
+      setMessage(t('login.messageResendNeedsCredentials'));
       return;
     }
 
@@ -132,11 +133,9 @@ export default function LoginScreen() {
 
     try {
       const credential = await loginWithEmail(trimmedEmail, password);
-      const verificationUser = credential.user;
-
-      await sendVerificationEmail(verificationUser);
+      await sendVerificationEmail(credential.user);
       await logout();
-      setMessage('Die Bestätigungs-E-Mail wurde erneut gesendet.');
+      setMessage(t('login.messageResendSuccess'));
     } catch (error) {
       setMessage(getVerificationEmailErrorMessage(error));
     } finally {
@@ -146,10 +145,11 @@ export default function LoginScreen() {
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 24 }}>Anmelden</Text>
+      <LanguageSwitcher />
+      <Text style={{ fontSize: 24 }}>{t('login.title')}</Text>
 
       <TextInput
-        placeholder="E-Mail"
+        placeholder={t('login.emailPlaceholder')}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -158,7 +158,7 @@ export default function LoginScreen() {
       />
 
       <TextInput
-        placeholder="Passwort"
+        placeholder={t('login.passwordPlaceholder')}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -166,26 +166,24 @@ export default function LoginScreen() {
       />
 
       <Button
-        title={submitting ? 'Melde an...' : 'Anmelden'}
+        title={submitting ? t('login.submitting') : t('login.submit')}
         onPress={handleLogin}
         disabled={submitting}
       />
 
       <Link href="/forgot-password" asChild>
         <Pressable>
-          <Text>Passwort vergessen?</Text>
+          <Text>{t('login.forgotPassword')}</Text>
         </Pressable>
       </Link>
 
-      <Text>
-        Einladung nach einer Gastbuchung erhalten? Nutze bitte zuerst den Link in der E-Mail und lege dort dein Passwort fest.
-      </Text>
+      <Text>{t('login.inviteHint')}</Text>
 
       {message ? <Text>{message}</Text> : null}
 
       {canResendVerification ? (
         <Button
-          title={submitting ? 'Sende erneut...' : 'Bestätigungs-E-Mail erneut senden'}
+          title={submitting ? t('login.resending') : t('login.resend')}
           onPress={handleResendVerification}
           disabled={submitting}
         />
