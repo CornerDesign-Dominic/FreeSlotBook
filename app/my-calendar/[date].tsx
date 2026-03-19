@@ -3,6 +3,7 @@ import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Alert,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -222,29 +223,46 @@ export default function CalendarDayScreen() {
       return;
     }
 
+    const runDeactivation = async () => {
+      setDeactivatingSlotId(selectedSlot.id);
+      setActionMessage(null);
+
+      try {
+        const result = await setCalendarSlotInactive({
+          calendarId: calendar.id,
+          slotId: selectedSlot.id,
+          actorUid: user.uid,
+        });
+
+        setActionMessage(
+          result === 'already_inactive' ? t('day.inactiveAlready') : t('day.inactiveSuccess')
+        );
+      } catch (nextError) {
+        setActionMessage(nextError instanceof Error ? nextError.message : t('day.inactiveError'));
+      } finally {
+        setDeactivatingSlotId(null);
+      }
+    };
+
+    if (Platform.OS === 'web' && typeof globalThis.confirm === 'function') {
+      const confirmed = globalThis.confirm(
+        `${t('day.setInactiveAlertTitle')}\n\n${t('day.setInactiveAlertBody')}`
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      void runDeactivation();
+      return;
+    }
+
     Alert.alert(t('day.setInactiveAlertTitle'), t('day.setInactiveAlertBody'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('day.setInactiveAlertConfirm'),
-        onPress: async () => {
-          setDeactivatingSlotId(selectedSlot.id);
-          setActionMessage(null);
-
-          try {
-            const result = await setCalendarSlotInactive({
-              calendarId: calendar.id,
-              slotId: selectedSlot.id,
-              actorUid: user.uid,
-            });
-
-            setActionMessage(
-              result === 'already_inactive' ? t('day.inactiveAlready') : t('day.inactiveSuccess')
-            );
-          } catch (nextError) {
-            setActionMessage(nextError instanceof Error ? nextError.message : t('day.inactiveError'));
-          } finally {
-            setDeactivatingSlotId(null);
-          }
+        onPress: () => {
+          void runDeactivation();
         },
       },
     ]);
