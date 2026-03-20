@@ -3,7 +3,6 @@ import { Button, Text, TextInput, View } from 'react-native';
 import { FirebaseError } from 'firebase/app';
 
 import { sendResetPassword } from '../src/firebase/auth';
-import { LanguageSwitcher } from '../src/i18n/language-switcher';
 import { useTranslation } from '../src/i18n/provider';
 
 function isValidEmail(email: string) {
@@ -59,7 +58,6 @@ export default function ForgotPasswordScreen() {
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', padding: 16, gap: 12 }}>
-      <LanguageSwitcher />
       <Text style={{ fontSize: 24 }}>{t('forgot.title')}</Text>
 
       <TextInput

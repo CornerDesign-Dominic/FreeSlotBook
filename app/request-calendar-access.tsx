@@ -4,7 +4,6 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { requestCalendarAccessByOwnerEmail } from '../src/features/mvp/repository';
 import { useAuth } from '../src/firebase/useAuth';
-import { LanguageSwitcher } from '../src/i18n/language-switcher';
 import { useTranslation } from '../src/i18n/provider';
 
 export default function RequestCalendarAccessScreen() {
@@ -56,7 +55,6 @@ export default function RequestCalendarAccessScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
-      <LanguageSwitcher />
       <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>{t('requestAccess.title')}</Text>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>

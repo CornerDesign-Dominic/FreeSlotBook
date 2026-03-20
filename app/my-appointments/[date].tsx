@@ -11,7 +11,6 @@ import {
 import type { AppointmentRecord } from '../../src/features/mvp/types';
 import { useParticipantAppointments } from '../../src/features/mvp/useParticipantAppointments';
 import { useAuth } from '../../src/firebase/useAuth';
-import { LanguageSwitcher } from '../../src/i18n/language-switcher';
 import { useTranslation } from '../../src/i18n/provider';
 
 const hourWidth = 96;
@@ -143,7 +142,6 @@ export default function MyAppointmentsDayScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: 'white' }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
-        <LanguageSwitcher />
         <View
           style={{
             flexDirection: 'row',

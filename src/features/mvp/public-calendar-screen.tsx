@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Redirect } from 'expo-router';
+import type { Href } from 'expo-router';
 import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { getDayKey } from './calendar-utils';
@@ -7,7 +8,6 @@ import { bookPublicCalendarSlot } from './repository';
 import { PRIVACY_VERSION, TERMS_VERSION } from './types';
 import { useCalendar } from './useCalendar';
 import { useOwnerSlots } from './useOwnerSlots';
-import { LanguageSwitcher } from '../../i18n/language-switcher';
 import { useTranslation } from '../../i18n/provider';
 
 function formatDateTime(value: Date | null, locale: string, fallback: string) {
@@ -97,7 +97,7 @@ export function PublicCalendarScreenContent(props: {
     const canonicalPath = `/${calendar.publicSlug}`;
 
     if (props.currentPublicPath !== canonicalPath) {
-      return <Redirect href={canonicalPath} />;
+      return <Redirect href={canonicalPath as Href} />;
     }
   }
 
@@ -186,7 +186,6 @@ export function PublicCalendarScreenContent(props: {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
-      <LanguageSwitcher />
       <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>{t('public.title')}</Text>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>

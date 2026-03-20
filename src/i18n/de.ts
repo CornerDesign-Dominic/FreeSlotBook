@@ -75,11 +75,11 @@ export const de = {
 
   'dashboard.title': 'Dashboard',
   'dashboard.chooseOption': 'Waehle eine Option',
-  'dashboard.myCalendar': 'MEIN KALENDER',
-  'dashboard.myAppointments': 'MEINE TERMINE',
+  'dashboard.myCalendar': 'MEIN SLOT-KALENDER',
+  'dashboard.myAppointments': 'MEIN TERMIN-KALENDER',
   'dashboard.myAppointmentsDescription':
     'Hier siehst du separat alle Termine, die dir zugewiesen wurden oder die du selbst gebucht hast.',
-  'dashboard.sharedCalendars': 'KALENDER VON',
+  'dashboard.sharedCalendars': 'VERBUNDENE KALENDER',
   'dashboard.calendarReady': 'Dein Kalender ist eingerichtet und mit deinem Konto verknuepft.',
   'dashboard.calendarPreparing': 'Dein persoenlicher Kalender wird gerade eingerichtet.',
   'dashboard.visibilityValue': 'Sichtbarkeit: {{visibility}}',
@@ -93,6 +93,8 @@ export const de = {
   'dashboard.manageAccess': 'Freigaben verwalten',
   'dashboard.openSettings': 'Einstellungen',
   'dashboard.requestAccess': 'Zugriff anfragen',
+  'dashboard.slotTimelineEmpty': 'Keine Slots im aktuellen 24-Stunden-Fenster.',
+  'dashboard.appointmentTimelineEmpty': 'Keine Termine im aktuellen 24-Stunden-Fenster.',
   'dashboard.logout': 'Abmelden',
   'dashboard.login': 'Anmelden',
   'dashboard.createAccount': 'Konto erstellen',

@@ -19,9 +19,12 @@ export function useNotificationSetup() {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (!user?.email) {
+    const currentUser = user;
+
+    if (!currentUser?.email) {
       return;
     }
+    const ownerUser = { uid: currentUser.uid, email: currentUser.email };
 
     let isActive = true;
     const responseSubscription = Notifications.addNotificationResponseReceivedListener(() => {
@@ -30,7 +33,7 @@ export function useNotificationSetup() {
 
     async function setupNotifications() {
       try {
-        await ensureOwnerAccountSetup({ uid: user.uid, email: user.email ?? '' });
+        await ensureOwnerAccountSetup(ownerUser);
 
         if (Platform.OS === 'android') {
           await Notifications.setNotificationChannelAsync('default', {
@@ -65,7 +68,7 @@ export function useNotificationSetup() {
         }
 
         await upsertOwnerDeviceToken({
-          ownerUid: user.uid,
+          ownerUid: ownerUser.uid,
           expoPushToken: tokenResponse.data,
           platform: Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web',
         });
@@ -80,5 +83,5 @@ export function useNotificationSetup() {
       isActive = false;
       responseSubscription.remove();
     };
-  }, [user?.email, user?.uid]);
+  }, [user]);
 }

@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Button, Pressable, Text, TextInput, View } from 'react-native';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
+import type { Href } from 'expo-router';
 import { FirebaseError } from 'firebase/app';
 
 import { loginWithEmail, logout, sendVerificationEmail } from '../src/firebase/auth';
 import { useAuth } from '../src/firebase/useAuth';
-import { LanguageSwitcher } from '../src/i18n/language-switcher';
 import { useTranslation } from '../src/i18n/provider';
 
 function isValidEmail(email: string) {
   return /\S+@\S+\.\S+/.test(email);
 }
 
-function getSafeRedirectTarget(value: string | string[] | undefined) {
+function getSafeRedirectTarget(value: string | string[] | undefined): Href | null {
   const redirect = Array.isArray(value) ? value[0] : value;
 
   if (!redirect) {
@@ -23,7 +23,7 @@ function getSafeRedirectTarget(value: string | string[] | undefined) {
     return null;
   }
 
-  return redirect;
+  return redirect as Href;
 }
 
 export default function LoginScreen() {
@@ -145,7 +145,6 @@ export default function LoginScreen() {
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', padding: 16, gap: 12 }}>
-      <LanguageSwitcher />
       <Text style={{ fontSize: 24 }}>{t('login.title')}</Text>
 
       <TextInput

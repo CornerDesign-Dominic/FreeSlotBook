@@ -6,7 +6,6 @@ import { FirebaseError } from 'firebase/app';
 import { logout, registerWithEmail, sendVerificationEmail } from '../src/firebase/auth';
 import { ensureOwnerAccountSetup } from '../src/features/mvp/repository';
 import { useAuth } from '../src/firebase/useAuth';
-import { LanguageSwitcher } from '../src/i18n/language-switcher';
 import { useTranslation } from '../src/i18n/provider';
 
 function isValidEmail(email: string) {
@@ -91,7 +90,6 @@ export default function RegisterScreen() {
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', padding: 16, gap: 12 }}>
-      <LanguageSwitcher />
       <Text style={{ fontSize: 24 }}>{t('register.title')}</Text>
 
       <TextInput

@@ -74,11 +74,11 @@ export const en = {
 
   'dashboard.title': 'Dashboard',
   'dashboard.chooseOption': 'Choose an option',
-  'dashboard.myCalendar': 'MY CALENDAR',
-  'dashboard.myAppointments': 'MY APPOINTMENTS',
+  'dashboard.myCalendar': 'MY SLOT CALENDAR',
+  'dashboard.myAppointments': 'MY APPOINTMENT CALENDAR',
   'dashboard.myAppointmentsDescription':
     'This separate area shows all appointments assigned to you or booked by you.',
-  'dashboard.sharedCalendars': 'CALENDARS FROM',
+  'dashboard.sharedCalendars': 'CONNECTED CALENDARS',
   'dashboard.calendarReady': 'Your calendar is ready and linked to your account.',
   'dashboard.calendarPreparing': 'Your personal calendar is currently being prepared.',
   'dashboard.visibilityValue': 'Visibility: {{visibility}}',
@@ -92,6 +92,8 @@ export const en = {
   'dashboard.manageAccess': 'Manage access',
   'dashboard.openSettings': 'Settings',
   'dashboard.requestAccess': 'Request access',
+  'dashboard.slotTimelineEmpty': 'No slots in the current 24-hour window.',
+  'dashboard.appointmentTimelineEmpty': 'No appointments in the current 24-hour window.',
   'dashboard.logout': 'Log out',
   'dashboard.login': 'Sign in',
   'dashboard.createAccount': 'Create account',

@@ -12,7 +12,6 @@ import { useCalendarAccessList } from '../../src/features/mvp/useCalendarAccessL
 import { useCalendarAccessRequests } from '../../src/features/mvp/useCalendarAccessRequests';
 import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
 import { useAuth } from '../../src/firebase/useAuth';
-import { LanguageSwitcher } from '../../src/i18n/language-switcher';
 import { useTranslation } from '../../src/i18n/provider';
 
 export default function CalendarAccessScreen() {
@@ -153,7 +152,6 @@ export default function CalendarAccessScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
-      <LanguageSwitcher />
       <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>{t('access.title')}</Text>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>

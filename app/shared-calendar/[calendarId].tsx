@@ -7,7 +7,6 @@ import { bookSharedCalendarSlot } from '../../src/features/mvp/repository';
 import { useCalendar } from '../../src/features/mvp/useCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useAuth } from '../../src/firebase/useAuth';
-import { LanguageSwitcher } from '../../src/i18n/language-switcher';
 import { useTranslation } from '../../src/i18n/provider';
 
 export default function SharedCalendarScreen() {
@@ -93,7 +92,6 @@ export default function SharedCalendarScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
-      <LanguageSwitcher />
       <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>{t('shared.title')}</Text>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>

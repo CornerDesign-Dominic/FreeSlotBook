@@ -13,7 +13,6 @@ import {
 import type { AppointmentRecord } from '../../src/features/mvp/types';
 import { useParticipantAppointments } from '../../src/features/mvp/useParticipantAppointments';
 import { useAuth } from '../../src/firebase/useAuth';
-import { LanguageSwitcher } from '../../src/i18n/language-switcher';
 import { useTranslation } from '../../src/i18n/provider';
 import { useAppSettings } from '../../src/settings/provider';
 
@@ -125,7 +124,6 @@ export default function MyAppointmentsWeekScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
-      <LanguageSwitcher />
       <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>
         {t('appointments.weekTitle')}
       </Text>

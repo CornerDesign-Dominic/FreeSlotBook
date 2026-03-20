@@ -30,7 +30,6 @@ import { useOwnerSlotDetail } from '../../src/features/mvp/useOwnerSlotDetail';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import type { CalendarSlotEventRecord, SlotStatus } from '../../src/features/mvp/types';
 import { useAuth } from '../../src/firebase/useAuth';
-import { LanguageSwitcher } from '../../src/i18n/language-switcher';
 import { useTranslation } from '../../src/i18n/provider';
 
 const hourWidth = 96;
@@ -422,7 +421,6 @@ export default function CalendarDayScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: 'white' }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
-        <LanguageSwitcher />
         <View
           style={{
             flexDirection: 'row',

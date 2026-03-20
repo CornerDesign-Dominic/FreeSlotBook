@@ -9,12 +9,15 @@ export function useOwnerCalendar(user: { uid: string; email: string | null } | n
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user?.email) {
+    const currentUser = user;
+
+    if (!currentUser?.email) {
       setCalendar(null);
       setError(null);
       setLoading(false);
       return;
     }
+    const ownerUser = { uid: currentUser.uid, email: currentUser.email };
 
     let unsubscribed = false;
     let unsubscribeSnapshot: (() => void) | null = null;
@@ -24,14 +27,14 @@ export function useOwnerCalendar(user: { uid: string; email: string | null } | n
       setError(null);
 
       try {
-        await ensureOwnerAccountSetup({ uid: user.uid, email: user.email });
+        await ensureOwnerAccountSetup(ownerUser);
 
         if (unsubscribed) {
           return;
         }
 
         unsubscribeSnapshot = subscribeToOwnerCalendar(
-          user.uid,
+          ownerUser.uid,
           (nextCalendar) => {
             setCalendar(nextCalendar);
             setLoading(false);
@@ -59,7 +62,7 @@ export function useOwnerCalendar(user: { uid: string; email: string | null } | n
       unsubscribed = true;
       unsubscribeSnapshot?.();
     };
-  }, [user?.email, user?.uid]);
+  }, [user]);
 
   return { calendar, loading, error };
 }
