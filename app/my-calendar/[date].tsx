@@ -29,8 +29,10 @@ import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
 import { useOwnerSlotDetail } from '../../src/features/mvp/useOwnerSlotDetail';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import type { CalendarSlotEventRecord, SlotStatus } from '../../src/features/mvp/types';
+import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
 import { useAuth } from '../../src/firebase/useAuth';
 import { useTranslation } from '../../src/i18n/provider';
+import { theme, uiStyles } from '../../src/theme/ui';
 
 const hourWidth = 96;
 const timelineHeight = 164;
@@ -216,10 +218,10 @@ export default function CalendarDayScreen() {
 
   if (!selectedDate) {
     return (
-      <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black', marginBottom: 16 }}>{t('day.invalidDate')}</Text>
+      <View style={uiStyles.centeredLoading}>
+        <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[16] }]}>{t('day.invalidDate')}</Text>
         <Link href="/my-calendar">
-          <Text style={{ color: 'black', textDecorationLine: 'underline' }}>{t('nav.backToCalendar')}</Text>
+          <Text style={uiStyles.linkText}>{t('nav.backToCalendar')}</Text>
         </Link>
       </View>
     );
@@ -392,8 +394,8 @@ export default function CalendarDayScreen() {
 
   if (authLoading || loading || slotsLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black' }}>{t('common.loading')}</Text>
+      <View style={uiStyles.centeredLoading}>
+        <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -419,34 +421,16 @@ export default function CalendarDayScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'white' }}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 16,
-          }}>
-          <Pressable onPress={() => navigateToRelativeDay(-1)}>
-            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-              {'<- '}{t('day.previous')}
-            </Text>
-          </Pressable>
+    <View style={uiStyles.screen}>
+      <ScrollView contentContainerStyle={{ padding: theme.spacing[16], paddingBottom: 120 }}>
+        <CalendarNavigationHeader
+          title={formatDayTitle(selectedDate, locale)}
+          onPrevious={() => navigateToRelativeDay(-1)}
+          onNext={() => navigateToRelativeDay(1)}
+        />
 
-          <Text style={{ color: 'black', fontSize: 24, flex: 1, textAlign: 'center' }}>
-            {formatDayTitle(selectedDate, locale)}
-          </Text>
-
-          <Pressable onPress={() => navigateToRelativeDay(1)}>
-            <Text style={{ color: 'black', textDecorationLine: 'underline', textAlign: 'right' }}>
-              {t('day.next')}{' ->'}
-            </Text>
-          </Pressable>
-        </View>
-
-        <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-          <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>{t('day.timeline')}</Text>
+        <View style={uiStyles.panel}>
+          <Text style={uiStyles.sectionTitle}>{t('day.timeline')}</Text>
 
           <ScrollView
             ref={timelineScrollRef}
@@ -458,8 +442,8 @@ export default function CalendarDayScreen() {
                 {hours.map((hour) => (
                   <View
                     key={`hour-label-${hour}`}
-                    style={{ width: hourWidth, borderRightWidth: 1, borderColor: 'black' }}>
-                    <Text style={{ color: 'black' }}>{`${`${hour}`.padStart(2, '0')}:00`}</Text>
+                    style={{ width: hourWidth, borderRightWidth: 1, borderColor: theme.colors.border }}>
+                    <Text style={uiStyles.metaText}>{`${`${hour}`.padStart(2, '0')}:00`}</Text>
                   </View>
                 ))}
               </View>
@@ -469,7 +453,9 @@ export default function CalendarDayScreen() {
                   position: 'relative',
                   height: timelineHeight,
                   borderWidth: 1,
-                  borderColor: 'black',
+                  borderColor: theme.colors.border,
+                  borderRadius: theme.radius.medium,
+                  backgroundColor: theme.colors.surface,
                 }}>
                 {hours.map((hour) => (
                   <View
@@ -480,7 +466,7 @@ export default function CalendarDayScreen() {
                       bottom: 0,
                       left: hour * hourWidth,
                       width: 1,
-                      backgroundColor: 'black',
+                      backgroundColor: theme.colors.border,
                     }}
                   />
                 ))}
@@ -514,21 +500,22 @@ export default function CalendarDayScreen() {
                           minHeight: 92,
                           padding: 10,
                           borderWidth: 2,
-                          borderColor: isSelected ? 'black' : '#666666',
+                          borderColor: isSelected ? theme.colors.accent : theme.colors.border,
                           backgroundColor:
                             slot.status === 'inactive'
-                              ? '#fff6d6'
+                              ? theme.colors.accentSoft
                               : slot.status === 'booked'
-                                ? '#f1f1f1'
-                                : 'white',
+                                ? theme.colors.surfaceSoft
+                                : theme.colors.surface,
+                          borderRadius: theme.radius.medium,
                         }}>
-                        <Text style={{ color: 'black', marginBottom: 6 }}>
+                        <Text style={[uiStyles.bodyText, { marginBottom: 6 }]}>
                           {formatTime(slot.startsAt)} - {formatTime(slot.endsAt)}
                         </Text>
-                        <Text style={{ color: 'black', marginBottom: 4 }}>
+                        <Text style={[uiStyles.secondaryText, { marginBottom: 4 }]}>
                           {formatSlotStatus(slot.status)}
                         </Text>
-                        <Text style={{ color: 'black', fontSize: 12 }}>
+                        <Text style={uiStyles.metaText}>
                           {slot.appointmentId ? t('day.linkedAppointment') : t('day.noAppointment')}
                         </Text>
                       </Pressable>
@@ -536,33 +523,33 @@ export default function CalendarDayScreen() {
                   })
                 ) : (
                   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                    <Text style={{ color: 'black' }}>{t('day.noSlots')}</Text>
+                    <Text style={uiStyles.secondaryText}>{t('day.noSlots')}</Text>
                   </View>
                 )}
               </View>
             </View>
           </ScrollView>
 
-          {slotsError ? <Text style={{ color: 'black', marginTop: 12 }}>{slotsError}</Text> : null}
-          {error ? <Text style={{ color: 'black', marginTop: 12 }}>{error}</Text> : null}
+          {slotsError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{slotsError}</Text> : null}
+          {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
         </View>
 
-        <View style={{ borderWidth: 1, borderColor: 'black', padding: 16 }}>
-          <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>
+        <View style={uiStyles.panel}>
+          <Text style={uiStyles.sectionTitle}>
             {t('day.activity')}
           </Text>
 
           {selectedSlot ? (
             <>
-              <Text style={{ color: 'black', marginBottom: 6 }}>
+              <Text style={[uiStyles.bodyText, { marginBottom: 6 }]}>
                 {t('day.timeLabel', {
                   time: `${formatTime(selectedSlot.startsAt)} - ${formatTime(selectedSlot.endsAt)}`,
                 })}
               </Text>
-              <Text style={{ color: 'black', marginBottom: 6 }}>
+              <Text style={[uiStyles.secondaryText, { marginBottom: 6 }]}>
                 {t('day.statusLabel', { status: formatSlotStatus(selectedSlot.status) })}
               </Text>
-              <Text style={{ color: 'black', marginBottom: 12 }}>
+              <Text style={[uiStyles.secondaryText, { marginBottom: 12 }]}>
                 {selectedSlot.appointmentId ? t('day.hasAppointment') : t('day.hasNoAppointment')}
               </Text>
             </>
@@ -571,51 +558,51 @@ export default function CalendarDayScreen() {
           <ScrollView style={{ maxHeight: historyPanelMaxHeight }}>
             {selectedSlot ? (
               slotDetailLoading ? (
-                <Text style={{ color: 'black' }}>{t('day.historyLoading')}</Text>
+                <Text style={uiStyles.secondaryText}>{t('day.historyLoading')}</Text>
               ) : events.length ? (
                 events.map((event) => (
                   <View
                     key={event.id}
                     style={{
                       borderTopWidth: 1,
-                      borderColor: 'black',
-                      paddingTop: 12,
-                      marginTop: 12,
+                      borderColor: theme.colors.border,
+                      paddingTop: theme.spacing[12],
+                      marginTop: theme.spacing[12],
                     }}>
-                    <Text style={{ color: 'black', marginBottom: 4 }}>{formatEventText(event)}</Text>
-                    <Text style={{ color: 'black', marginBottom: 4 }}>
+                    <Text style={[uiStyles.bodyText, { marginBottom: 4 }]}>{formatEventText(event)}</Text>
+                    <Text style={[uiStyles.secondaryText, { marginBottom: 4 }]}>
                       {t('day.eventTime', { time: formatDateTime(event.createdAt) })}
                     </Text>
                     {event.statusAfter ? (
-                      <Text style={{ color: 'black', marginBottom: 4 }}>
+                      <Text style={[uiStyles.secondaryText, { marginBottom: 4 }]}>
                         {t('day.eventStatusAfter', { status: formatSlotStatus(event.statusAfter) })}
                       </Text>
                     ) : null}
                     {event.targetEmail ? (
-                      <Text style={{ color: 'black', marginBottom: 4 }}>
+                      <Text style={[uiStyles.secondaryText, { marginBottom: 4 }]}>
                         {t('day.eventReference', { email: event.targetEmail })}
                       </Text>
                     ) : null}
                     {event.note ? (
-                      <Text style={{ color: 'black' }}>
+                      <Text style={uiStyles.secondaryText}>
                         {t('day.eventNote', { note: event.note })}
                       </Text>
                     ) : null}
                   </View>
                 ))
               ) : (
-                <Text style={{ color: 'black' }}>{t('day.historyEmpty')}</Text>
+                <Text style={uiStyles.secondaryText}>{t('day.historyEmpty')}</Text>
               )
             ) : null}
           </ScrollView>
 
-          {slotDetailError ? <Text style={{ color: 'black', marginTop: 12 }}>{slotDetailError}</Text> : null}
-          {actionMessage ? <Text style={{ color: 'black', marginTop: 12 }}>{actionMessage}</Text> : null}
+          {slotDetailError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{slotDetailError}</Text> : null}
+          {actionMessage ? <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>{actionMessage}</Text> : null}
         </View>
 
-        <View style={{ alignItems: 'flex-end', marginTop: 16 }}>
+        <View style={[uiStyles.footerRow, { marginTop: theme.spacing[16] }]}>
           <Link href="/my-calendar">
-            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+            <Text style={uiStyles.linkText}>
               {t('day.backToMonth')}
             </Text>
           </Link>
@@ -625,60 +612,43 @@ export default function CalendarDayScreen() {
       <View
         style={{
           borderTopWidth: 1,
-          borderColor: 'black',
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          backgroundColor: 'white',
+          borderColor: theme.colors.border,
+          paddingHorizontal: theme.spacing[16],
+          paddingVertical: theme.spacing[12],
+          backgroundColor: theme.colors.surface,
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
         }}>
         <Link href={`/my-calendar/create-slot?date=${rawDate}`} asChild>
-          <Pressable style={{ paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: 'black' }}>
-            <Text style={{ color: 'black' }}>{t('day.addSlot')}</Text>
+          <Pressable style={uiStyles.button}>
+            <Text style={uiStyles.buttonText}>{t('day.addSlot')}</Text>
           </Pressable>
         </Link>
 
         <View style={{ alignItems: 'flex-end' }}>
           {selectedSlotCanEdit ? (
-            <Link href={`/my-calendar/create-slot?date=${rawDate}&slotId=${selectedSlot?.id}`} asChild>
-              <Pressable
-                style={{
-                  paddingVertical: 10,
-                  paddingHorizontal: 12,
-                  borderWidth: 1,
-                  borderColor: 'black',
-                  marginBottom: 8,
-                }}>
-                <Text style={{ color: 'black' }}>{t('day.editSlot')}</Text>
-              </Pressable>
-            </Link>
+            <View style={{ marginBottom: theme.spacing[8] }}>
+              <Link href={`/my-calendar/create-slot?date=${rawDate}&slotId=${selectedSlot?.id}`} asChild>
+                <Pressable style={uiStyles.button}>
+                  <Text style={uiStyles.buttonText}>{t('day.editSlot')}</Text>
+                </Pressable>
+              </Link>
+            </View>
           ) : null}
           {selectedSlotCanAssign ? (
             <Pressable
               onPress={handleOpenAssignmentModal}
-              style={{
-                paddingVertical: 10,
-                paddingHorizontal: 12,
-                borderWidth: 1,
-                borderColor: 'black',
-                marginBottom: 8,
-              }}>
-              <Text style={{ color: 'black' }}>{t('day.assignSlot')}</Text>
+              style={[uiStyles.button, { marginBottom: theme.spacing[8] }]}>
+              <Text style={uiStyles.buttonText}>{t('day.assignSlot')}</Text>
             </Pressable>
           ) : null}
           {selectedSlotCanReactivate ? (
             <Pressable
               onPress={handleToggleHold}
               disabled={updatingAvailabilitySlotId === selectedSlot?.id}
-              style={{
-                paddingVertical: 10,
-                paddingHorizontal: 12,
-                borderWidth: 1,
-                borderColor: 'black',
-                marginBottom: 8,
-              }}>
-              <Text style={{ color: 'black' }}>
+              style={[uiStyles.button, { marginBottom: theme.spacing[8] }]}>
+              <Text style={uiStyles.buttonText}>
                 {updatingAvailabilitySlotId === selectedSlot?.id
                   ? t('day.processing')
                   : t('day.releaseSlot')}
@@ -689,8 +659,8 @@ export default function CalendarDayScreen() {
             <Pressable
               onPress={handleDeactivateSlot}
               disabled={deactivatingSlotId === selectedSlot?.id}
-              style={{ paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: 'black' }}>
-              <Text style={{ color: 'black' }}>
+              style={uiStyles.button}>
+              <Text style={uiStyles.buttonText}>
                 {deactivatingSlotId === selectedSlot?.id ? t('day.processing') : t('day.setInactive')}
               </Text>
             </Pressable>
@@ -698,8 +668,8 @@ export default function CalendarDayScreen() {
             <Pressable
               onPress={handleCancelAppointment}
               disabled={cancellingAppointmentId === selectedSlot?.appointmentId}
-              style={{ paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: 'black' }}>
-              <Text style={{ color: 'black' }}>
+              style={uiStyles.button}>
+              <Text style={uiStyles.buttonText}>
                 {cancellingAppointmentId === selectedSlot?.appointmentId
                   ? t('day.processing')
                   : t('day.cancelAppointment')}
@@ -707,10 +677,10 @@ export default function CalendarDayScreen() {
             </Pressable>
           ) : (
             <View style={{ paddingVertical: 10, paddingHorizontal: 12, opacity: 0.55 }}>
-              <Text style={{ color: 'black' }}>{t('day.noAction')}</Text>
+              <Text style={uiStyles.secondaryText}>{t('day.noAction')}</Text>
             </View>
           )}
-          <Text style={{ color: 'black', marginTop: 8, maxWidth: 220, textAlign: 'right' }}>
+          <Text style={[uiStyles.metaText, { marginTop: 8, maxWidth: 220, textAlign: 'right' }]}>
             {footerStatusHint}
           </Text>
         </View>
@@ -721,20 +691,15 @@ export default function CalendarDayScreen() {
         animationType="slide"
         transparent
         onRequestClose={() => setCancellationModalVisible(false)}>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.2)',
-            justifyContent: 'flex-end',
-          }}>
-          <View style={{ backgroundColor: 'white', padding: 16 }}>
-            <Text style={{ color: 'black', fontSize: 18, marginBottom: 8 }}>
+        <View style={uiStyles.modalBackdrop}>
+          <View style={uiStyles.modalSheet}>
+            <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>
               {t('day.cancelAppointmentTitle')}
             </Text>
-            <Text style={{ color: 'black', marginBottom: 12 }}>
+            <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
               {t('day.cancelAppointmentBody')}
             </Text>
-            <Text style={{ color: 'black', marginBottom: 8 }}>
+            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>
               {t('day.cancelMessageLabel')}
             </Text>
             <TextInput
@@ -742,39 +707,33 @@ export default function CalendarDayScreen() {
               onChangeText={setCancellationMessage}
               multiline
               numberOfLines={4}
-              style={{
-                borderWidth: 1,
-                borderColor: 'black',
-                padding: 12,
-                marginBottom: 16,
-                minHeight: 96,
-                textAlignVertical: 'top',
-              }}
+              placeholderTextColor={theme.colors.textSecondary}
+              style={[uiStyles.input, { marginBottom: theme.spacing[16], minHeight: 96, textAlignVertical: 'top' }]}
             />
 
             <Pressable
               onPress={() => void runAppointmentCancellation('available')}
               disabled={cancellingAppointmentId === selectedSlot?.appointmentId}
-              style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 8 }}>
-              <Text style={{ color: 'black' }}>{t('day.cancelToAvailable')}</Text>
+              style={[uiStyles.button, { marginBottom: theme.spacing[8] }]}>
+              <Text style={uiStyles.buttonText}>{t('day.cancelToAvailable')}</Text>
             </Pressable>
 
             <Pressable
               onPress={() => void runAppointmentCancellation('inactive')}
               disabled={cancellingAppointmentId === selectedSlot?.appointmentId}
-              style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 8 }}>
-              <Text style={{ color: 'black' }}>{t('day.cancelToInactive')}</Text>
+              style={[uiStyles.button, { marginBottom: theme.spacing[8] }]}>
+              <Text style={uiStyles.buttonText}>{t('day.cancelToInactive')}</Text>
             </Pressable>
 
             <Pressable
               onPress={() => void runAppointmentCancellation('available', true)}
               disabled={cancellingAppointmentId === selectedSlot?.appointmentId}
-              style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 12 }}>
-              <Text style={{ color: 'black' }}>{t('day.cancelToReassign')}</Text>
+              style={[uiStyles.button, { marginBottom: theme.spacing[12] }]}>
+              <Text style={uiStyles.buttonText}>{t('day.cancelToReassign')}</Text>
             </Pressable>
 
             <Pressable onPress={() => setCancellationModalVisible(false)}>
-              <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+              <Text style={uiStyles.linkText}>
                 {t('common.cancel')}
               </Text>
             </Pressable>
@@ -787,48 +746,46 @@ export default function CalendarDayScreen() {
         animationType="slide"
         transparent
         onRequestClose={() => setAssignmentModalVisible(false)}>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.2)',
-            justifyContent: 'flex-end',
-          }}>
-          <View style={{ backgroundColor: 'white', padding: 16 }}>
-            <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>
+        <View style={uiStyles.modalBackdrop}>
+          <View style={uiStyles.modalSheet}>
+            <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[12] }]}>
               {t('day.assignTitle')}
             </Text>
-            <Text style={{ color: 'black', marginBottom: 8 }}>{t('day.assignNameLabel')}</Text>
+            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>{t('day.assignNameLabel')}</Text>
             <TextInput
               value={assigneeName}
               onChangeText={setAssigneeName}
-              style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 12 }}
+              placeholderTextColor={theme.colors.textSecondary}
+              style={[uiStyles.input, { marginBottom: theme.spacing[12] }]}
             />
-            <Text style={{ color: 'black', marginBottom: 8 }}>{t('day.assignEmailLabel')}</Text>
+            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>{t('day.assignEmailLabel')}</Text>
             <TextInput
               value={assigneeEmail}
               onChangeText={setAssigneeEmail}
               keyboardType="email-address"
               autoCapitalize="none"
-              style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 12 }}
+              placeholderTextColor={theme.colors.textSecondary}
+              style={[uiStyles.input, { marginBottom: theme.spacing[12] }]}
             />
-            <Text style={{ color: 'black', marginBottom: 8 }}>{t('day.assignPhoneLabel')}</Text>
+            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>{t('day.assignPhoneLabel')}</Text>
             <TextInput
               value={assigneePhone}
               onChangeText={setAssigneePhone}
               keyboardType="phone-pad"
-              style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 16 }}
+              placeholderTextColor={theme.colors.textSecondary}
+              style={[uiStyles.input, { marginBottom: theme.spacing[16] }]}
             />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Pressable onPress={() => setAssignmentModalVisible(false)}>
-                <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                <Text style={uiStyles.linkText}>
                   {t('common.cancel')}
                 </Text>
               </Pressable>
               <Pressable
                 onPress={handleAssignSlot}
                 disabled={assigningSlotId === selectedSlot?.id}
-                style={{ borderWidth: 1, borderColor: 'black', paddingVertical: 10, paddingHorizontal: 12 }}>
-                <Text style={{ color: 'black' }}>
+                style={uiStyles.button}>
+                <Text style={uiStyles.buttonText}>
                   {assigningSlotId === selectedSlot?.id ? t('day.processing') : t('day.assignConfirm')}
                 </Text>
               </Pressable>

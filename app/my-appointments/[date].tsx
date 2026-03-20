@@ -8,10 +8,12 @@ import {
   getMinutesSinceStartOfDay,
   parseDayKey,
 } from '../../src/features/mvp/calendar-utils';
+import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
 import type { AppointmentRecord } from '../../src/features/mvp/types';
 import { useParticipantAppointments } from '../../src/features/mvp/useParticipantAppointments';
 import { useAuth } from '../../src/firebase/useAuth';
 import { useTranslation } from '../../src/i18n/provider';
+import { theme, uiStyles } from '../../src/theme/ui';
 
 const hourWidth = 96;
 const timelineHeight = 164;
@@ -112,10 +114,10 @@ export default function MyAppointmentsDayScreen() {
 
   if (!selectedDate) {
     return (
-      <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black', marginBottom: 16 }}>{t('appointments.invalidDate')}</Text>
+      <View style={uiStyles.centeredLoading}>
+        <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[16] }]}>{t('appointments.invalidDate')}</Text>
         <Link href="/my-appointments">
-          <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+          <Text style={uiStyles.linkText}>
             {t('appointments.backToMonth')}
           </Text>
         </Link>
@@ -125,8 +127,8 @@ export default function MyAppointmentsDayScreen() {
 
   if (authLoading || loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black' }}>{t('common.loading')}</Text>
+      <View style={uiStyles.centeredLoading}>
+        <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -140,34 +142,16 @@ export default function MyAppointmentsDayScreen() {
   const timeRailWidth = hourWidth * 24;
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'white' }}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 16,
-          }}>
-          <Pressable onPress={() => navigateToRelativeDay(-1)}>
-            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-              {'<- '}{t('appointments.previousDay')}
-            </Text>
-          </Pressable>
+    <View style={uiStyles.screen}>
+      <ScrollView contentContainerStyle={{ padding: theme.spacing[16], paddingBottom: 120 }}>
+        <CalendarNavigationHeader
+          title={formatDayTitle(selectedDate, locale)}
+          onPrevious={() => navigateToRelativeDay(-1)}
+          onNext={() => navigateToRelativeDay(1)}
+        />
 
-          <Text style={{ color: 'black', fontSize: 24, flex: 1, textAlign: 'center' }}>
-            {formatDayTitle(selectedDate, locale)}
-          </Text>
-
-          <Pressable onPress={() => navigateToRelativeDay(1)}>
-            <Text style={{ color: 'black', textDecorationLine: 'underline', textAlign: 'right' }}>
-              {t('appointments.nextDay')}{' ->'}
-            </Text>
-          </Pressable>
-        </View>
-
-        <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-          <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>
+        <View style={uiStyles.panel}>
+          <Text style={uiStyles.sectionTitle}>
             {t('appointments.timeline')}
           </Text>
 
@@ -181,8 +165,8 @@ export default function MyAppointmentsDayScreen() {
                 {hours.map((hour) => (
                   <View
                     key={`hour-label-${hour}`}
-                    style={{ width: hourWidth, borderRightWidth: 1, borderColor: 'black' }}>
-                    <Text style={{ color: 'black' }}>{`${`${hour}`.padStart(2, '0')}:00`}</Text>
+                    style={{ width: hourWidth, borderRightWidth: 1, borderColor: theme.colors.border }}>
+                    <Text style={uiStyles.metaText}>{`${`${hour}`.padStart(2, '0')}:00`}</Text>
                   </View>
                 ))}
               </View>
@@ -192,7 +176,9 @@ export default function MyAppointmentsDayScreen() {
                   position: 'relative',
                   height: timelineHeight,
                   borderWidth: 1,
-                  borderColor: 'black',
+                  borderColor: theme.colors.border,
+                  borderRadius: theme.radius.medium,
+                  backgroundColor: theme.colors.surface,
                 }}>
                 {hours.map((hour) => (
                   <View
@@ -203,7 +189,7 @@ export default function MyAppointmentsDayScreen() {
                       bottom: 0,
                       left: hour * hourWidth,
                       width: 1,
-                      backgroundColor: 'black',
+                      backgroundColor: theme.colors.border,
                     }}
                   />
                 ))}
@@ -234,13 +220,14 @@ export default function MyAppointmentsDayScreen() {
                           minHeight: 92,
                           padding: 10,
                           borderWidth: 2,
-                          borderColor: isSelected ? 'black' : '#666666',
-                          backgroundColor: '#f1f1f1',
+                          borderColor: isSelected ? theme.colors.accent : theme.colors.border,
+                          backgroundColor: theme.colors.surfaceSoft,
+                          borderRadius: theme.radius.medium,
                         }}>
-                        <Text style={{ color: 'black', marginBottom: 6 }} numberOfLines={1}>
+                        <Text style={[uiStyles.bodyText, { marginBottom: 6 }]} numberOfLines={1}>
                           {formatTimeRange(appointment)}
                         </Text>
-                        <Text style={{ color: 'black', fontSize: 12 }} numberOfLines={1}>
+                        <Text style={uiStyles.metaText} numberOfLines={1}>
                           {appointment.source === 'manual'
                             ? t('appointments.sourceManual')
                             : t('appointments.sourceSelfService')}
@@ -250,62 +237,62 @@ export default function MyAppointmentsDayScreen() {
                   })
                 ) : (
                   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                    <Text style={{ color: 'black' }}>{t('appointments.emptyDay')}</Text>
+                    <Text style={uiStyles.secondaryText}>{t('appointments.emptyDay')}</Text>
                   </View>
                 )}
               </View>
             </View>
           </ScrollView>
 
-          {error ? <Text style={{ color: 'black', marginTop: 12 }}>{error}</Text> : null}
+          {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
         </View>
 
-        <View style={{ borderWidth: 1, borderColor: 'black', padding: 16 }}>
-          <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>
+        <View style={uiStyles.panel}>
+          <Text style={uiStyles.sectionTitle}>
             {t('appointments.details')}
           </Text>
 
           <ScrollView style={{ maxHeight: detailPanelMaxHeight }}>
             {selectedAppointment ? (
               <>
-                <Text style={{ color: 'black', marginBottom: 6 }}>
+                <Text style={[uiStyles.bodyText, { marginBottom: 6 }]}>
                   {t('appointments.timeLabel', { time: formatTimeRange(selectedAppointment) })}
                 </Text>
-                <Text style={{ color: 'black', marginBottom: 6 }}>
+                <Text style={[uiStyles.secondaryText, { marginBottom: 6 }]}>
                   {selectedAppointment.source === 'manual'
                     ? t('appointments.sourceManual')
                     : t('appointments.sourceSelfService')}
                 </Text>
                 {selectedAppointment.participantName ? (
-                  <Text style={{ color: 'black', marginBottom: 6 }}>
+                  <Text style={[uiStyles.bodyText, { marginBottom: 6 }]}>
                     {t('appointments.nameLabel', { name: selectedAppointment.participantName })}
                   </Text>
                 ) : null}
-                <Text style={{ color: 'black', marginBottom: 6 }}>
+                <Text style={[uiStyles.bodyText, { marginBottom: 6 }]}>
                   {t('appointments.emailLabel', { email: selectedAppointment.participantEmail })}
                 </Text>
-                <Text style={{ color: 'black' }}>
+                <Text style={uiStyles.secondaryText}>
                   {t('appointments.createdAtLabel', {
                     dateTime: formatDateTime(selectedAppointment.createdAt),
                   })}
                 </Text>
               </>
             ) : dayAppointments.length ? (
-              <Text style={{ color: 'black' }}>{t('appointments.selectHint')}</Text>
+              <Text style={uiStyles.secondaryText}>{t('appointments.selectHint')}</Text>
             ) : (
-              <Text style={{ color: 'black' }}>{t('appointments.emptyDay')}</Text>
+              <Text style={uiStyles.secondaryText}>{t('appointments.emptyDay')}</Text>
             )}
           </ScrollView>
         </View>
 
-        <View style={{ alignItems: 'flex-end', marginTop: 16 }}>
+        <View style={[uiStyles.footerRow, { marginTop: theme.spacing[16] }]}>
           <Link href={`/my-appointments/week?date=${rawDate}`} style={{ marginBottom: 12 }}>
-            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+            <Text style={uiStyles.linkText}>
               {t('appointments.openWeekView')}
             </Text>
           </Link>
           <Link href="/my-appointments">
-            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+            <Text style={uiStyles.linkText}>
               {t('appointments.backToMonth')}
             </Text>
           </Link>

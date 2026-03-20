@@ -12,6 +12,7 @@ import { LanguageSwitcher } from '../src/i18n/language-switcher';
 import { useTranslation } from '../src/i18n/provider';
 import { useAppSettings } from '../src/settings/provider';
 import type { AppTheme, WeekStartsOn } from '../src/settings/types';
+import { theme as designTheme, uiStyles } from '../src/theme/ui';
 
 function ChoiceButton(props: {
   label: string;
@@ -21,14 +22,8 @@ function ChoiceButton(props: {
   return (
     <Pressable
       onPress={props.onPress}
-      style={{
-        borderWidth: 1,
-        borderColor: 'black',
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        backgroundColor: props.active ? '#f1f1f1' : 'white',
-      }}>
-      <Text style={{ color: 'black' }}>{props.label}</Text>
+      style={[uiStyles.button, props.active ? uiStyles.buttonActive : null]}>
+      <Text style={uiStyles.buttonText}>{props.label}</Text>
     </Pressable>
   );
 }
@@ -52,8 +47,8 @@ export default function SettingsScreen() {
 
   if (authLoading || loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black' }}>{t('common.loading')}</Text>
+      <View style={uiStyles.centeredLoading}>
+        <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -140,17 +135,17 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
-      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>{t('settings.title')}</Text>
+    <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
+      <Text style={uiStyles.pageTitle}>{t('settings.title')}</Text>
 
-      <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', fontSize: 18, marginBottom: 8 }}>{t('settings.language')}</Text>
+      <View style={uiStyles.panel}>
+        <Text style={[uiStyles.sectionTitle, { marginBottom: designTheme.spacing[8] }]}>{t('settings.language')}</Text>
         <LanguageSwitcher />
       </View>
 
-      <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', fontSize: 18, marginBottom: 8 }}>{t('settings.weekStart')}</Text>
-        <Text style={{ color: 'black', marginBottom: 12 }}>{t('settings.weekStartHelp')}</Text>
+      <View style={uiStyles.panel}>
+        <Text style={[uiStyles.sectionTitle, { marginBottom: designTheme.spacing[8] }]}>{t('settings.weekStart')}</Text>
+        <Text style={[uiStyles.secondaryText, { marginBottom: designTheme.spacing[12] }]}>{t('settings.weekStartHelp')}</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <ChoiceButton
             label={t('settings.weekStartMonday')}
@@ -165,9 +160,9 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', fontSize: 18, marginBottom: 8 }}>{t('settings.theme')}</Text>
-        <Text style={{ color: 'black', marginBottom: 12 }}>{t('settings.themeHelp')}</Text>
+      <View style={uiStyles.panel}>
+        <Text style={[uiStyles.sectionTitle, { marginBottom: designTheme.spacing[8] }]}>{t('settings.theme')}</Text>
+        <Text style={[uiStyles.secondaryText, { marginBottom: designTheme.spacing[12] }]}>{t('settings.themeHelp')}</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <ChoiceButton
             label={t('settings.themeLight')}
@@ -182,48 +177,49 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', fontSize: 18, marginBottom: 8 }}>{t('settings.publicCalendar')}</Text>
+      <View style={uiStyles.panel}>
+        <Text style={[uiStyles.sectionTitle, { marginBottom: designTheme.spacing[8] }]}>{t('settings.publicCalendar')}</Text>
         {calendar ? (
           <>
-            <Text style={{ color: 'black', marginBottom: 8 }}>
+            <Text style={[uiStyles.bodyText, { marginBottom: designTheme.spacing[8] }]}>
               {t('settings.ownerEmail', { email: calendar.ownerEmail })}
             </Text>
-            <Text style={{ color: 'black', marginBottom: 8 }}>
+            <Text style={[uiStyles.secondaryText, { marginBottom: designTheme.spacing[8] }]}>
               {t('dashboard.visibilityValue', { visibility: calendar.visibility })}
             </Text>
-            <Text style={{ color: 'black', marginBottom: 8 }}>{t('settings.publicSlug')}</Text>
+            <Text style={[uiStyles.bodyText, { marginBottom: designTheme.spacing[8] }]}>{t('settings.publicSlug')}</Text>
             <TextInput
               value={publicSlug}
               onChangeText={setPublicSlug}
               autoCapitalize="none"
               autoCorrect={false}
               placeholder={t('calendar.publicSlugPlaceholder')}
-              style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 8 }}
+              placeholderTextColor={designTheme.colors.textSecondary}
+              style={[uiStyles.input, { marginBottom: designTheme.spacing[8] }]}
             />
-            <Text style={{ color: 'black', marginBottom: 8 }}>{t('calendar.publicSlugHelp')}</Text>
+            <Text style={[uiStyles.secondaryText, { marginBottom: designTheme.spacing[8] }]}>{t('calendar.publicSlugHelp')}</Text>
             <Pressable onPress={handleSavePublicSlug} disabled={savingSlug}>
-              <Text style={{ color: 'black', textDecorationLine: 'underline', marginBottom: 12 }}>
+              <Text style={[uiStyles.linkText, { marginBottom: designTheme.spacing[12] }]}>
                 {savingSlug ? t('settings.savingSlug') : t('settings.saveSlug')}
               </Text>
             </Pressable>
             {calendar.publicSlug ? (
               <>
-                <Text style={{ color: 'black', marginBottom: 8 }}>
+                <Text style={[uiStyles.secondaryText, { marginBottom: designTheme.spacing[8] }]}>
                   {t('settings.publicLinkValue', { slug: calendar.publicSlug })}
                 </Text>
                 <Link href={`/${calendar.publicSlug}`} asChild>
-                  <Pressable style={{ alignSelf: 'flex-start', marginBottom: 12 }}>
-                    <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                  <Pressable style={{ alignSelf: 'flex-start', marginBottom: designTheme.spacing[12] }}>
+                    <Text style={uiStyles.linkText}>
                       {t('settings.openPublicPage')}
                     </Text>
                   </Pressable>
                 </Link>
               </>
             ) : (
-              <Text style={{ color: 'black', marginBottom: 12 }}>{t('settings.publicLinkEmpty')}</Text>
+              <Text style={[uiStyles.secondaryText, { marginBottom: designTheme.spacing[12] }]}>{t('settings.publicLinkEmpty')}</Text>
             )}
-            <Text style={{ color: 'black', marginBottom: 8 }}>
+            <Text style={[uiStyles.bodyText, { marginBottom: designTheme.spacing[8] }]}>
               {t('settings.newSlotsNotifications', {
                 status: calendar.notifyOnNewSlotsAvailable
                   ? t('calendar.notificationActive')
@@ -231,7 +227,7 @@ export default function SettingsScreen() {
               })}
             </Text>
             <Pressable onPress={handleToggleVisibility} disabled={togglingVisibility}>
-              <Text style={{ color: 'black', textDecorationLine: 'underline', marginBottom: 12 }}>
+              <Text style={[uiStyles.linkText, { marginBottom: designTheme.spacing[12] }]}>
                 {togglingVisibility
                   ? t('settings.updatingVisibility')
                   : calendar.visibility === 'public'
@@ -240,7 +236,7 @@ export default function SettingsScreen() {
               </Text>
             </Pressable>
             <Pressable onPress={handleToggleNotifications} disabled={togglingNotifications}>
-              <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+              <Text style={uiStyles.linkText}>
                 {togglingNotifications
                   ? t('settings.updatingNotifications')
                   : calendar.notifyOnNewSlotsAvailable
@@ -250,16 +246,16 @@ export default function SettingsScreen() {
             </Pressable>
           </>
         ) : (
-          <Text style={{ color: 'black' }}>{t('calendar.notAvailable')}</Text>
+          <Text style={uiStyles.secondaryText}>{t('calendar.notAvailable')}</Text>
         )}
 
-        {error ? <Text style={{ color: 'black', marginTop: 12 }}>{error}</Text> : null}
-        {settingsMessage ? <Text style={{ color: 'black', marginTop: 12 }}>{settingsMessage}</Text> : null}
+        {error ? <Text style={[uiStyles.secondaryText, { marginTop: designTheme.spacing[12] }]}>{error}</Text> : null}
+        {settingsMessage ? <Text style={[uiStyles.bodyText, { marginTop: designTheme.spacing[12] }]}>{settingsMessage}</Text> : null}
       </View>
 
-      <View style={{ alignItems: 'flex-end' }}>
+      <View style={uiStyles.footerRow}>
         <Link href="/(tabs)" style={{ marginTop: 16 }}>
-          <Text style={{ color: 'black' }}>{t('nav.backToDashboard')}</Text>
+          <Text style={uiStyles.linkText}>{t('nav.backToDashboard')}</Text>
         </Link>
       </View>
     </ScrollView>

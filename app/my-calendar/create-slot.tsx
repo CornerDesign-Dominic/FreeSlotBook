@@ -30,6 +30,7 @@ import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useAuth } from '../../src/firebase/useAuth';
 import { useTranslation } from '../../src/i18n/provider';
 import { useAppSettings } from '../../src/settings/provider';
+import { theme, uiStyles } from '../../src/theme/ui';
 
 function sanitizeDateInput(value: string) {
   const digitsOnly = value.replace(/\D/g, '').slice(0, 8);
@@ -248,90 +249,94 @@ export default function CreateSlotScreen() {
 
   if (authLoading || loading || slotsLoading || accessLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black' }}>{t('common.loading')}</Text>
+      <View style={uiStyles.centeredLoading}>
+        <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
       </View>
     );
   }
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: 'white' }}
-      contentContainerStyle={{ padding: 16 }}>
-      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>
+      style={uiStyles.screen}
+      contentContainerStyle={uiStyles.content}>
+      <Text style={uiStyles.pageTitle}>
         {isEditing ? t('createSlot.editTitle') : t('createSlot.title')}
       </Text>
 
-      <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', marginBottom: 8 }}>{t('createSlot.date')}</Text>
-        <View style={{ flexDirection: 'row', marginBottom: 12 }}>
+      <View style={uiStyles.panel}>
+        <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>{t('createSlot.date')}</Text>
+        <View style={{ flexDirection: 'row', marginBottom: theme.spacing[12] }}>
           <TextInput
             placeholder="TT.MM.YYYY"
             value={startDateInput}
             onChangeText={(value) => setStartDateInput(sanitizeDateInput(value))}
             keyboardType="number-pad"
-            style={{ flex: 1, borderWidth: 1, borderColor: 'black', padding: 12, marginRight: 8 }}
+            placeholderTextColor={theme.colors.textSecondary}
+            style={[uiStyles.input, { flex: 1, marginRight: theme.spacing[8] }]}
           />
           <Pressable
             onPress={() => openPicker('start')}
-            style={{ borderWidth: 1, borderColor: 'black', paddingHorizontal: 12, justifyContent: 'center' }}>
-            <Text style={{ color: 'black' }}>{t('createSlot.calendarButton')}</Text>
+            style={[uiStyles.button, { paddingHorizontal: theme.spacing[12] }]}>
+            <Text style={uiStyles.buttonText}>{t('createSlot.calendarButton')}</Text>
           </Pressable>
         </View>
 
-        <Text style={{ color: 'black', marginBottom: 8 }}>{t('createSlot.startTime')}</Text>
+        <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>{t('createSlot.startTime')}</Text>
         <TextInput
           placeholder="HH:MM"
           value={startTimeInput}
           onChangeText={(value) => setStartTimeInput(sanitizeTimeInput(value))}
           keyboardType="number-pad"
           maxLength={5}
-          style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 12 }}
+          placeholderTextColor={theme.colors.textSecondary}
+          style={[uiStyles.input, { marginBottom: theme.spacing[12] }]}
         />
 
-        <Text style={{ color: 'black', marginBottom: 8 }}>{t('createSlot.endTime')}</Text>
+        <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>{t('createSlot.endTime')}</Text>
         <TextInput
           placeholder="HH:MM"
           value={endTimeInput}
           onChangeText={(value) => setEndTimeInput(sanitizeTimeInput(value))}
           keyboardType="number-pad"
           maxLength={5}
-          style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 12 }}
+          placeholderTextColor={theme.colors.textSecondary}
+          style={[uiStyles.input, { marginBottom: theme.spacing[12] }]}
         />
 
-        <Text style={{ color: 'black', marginBottom: 8 }}>{t('createSlot.endDateOptional')}</Text>
-        <View style={{ flexDirection: 'row', marginBottom: 12 }}>
+        <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>{t('createSlot.endDateOptional')}</Text>
+        <View style={{ flexDirection: 'row', marginBottom: theme.spacing[12] }}>
           <TextInput
             placeholder="TT.MM.YYYY"
             value={endDateInput}
             onChangeText={(value) => setEndDateInput(sanitizeDateInput(value))}
             keyboardType="number-pad"
-            style={{ flex: 1, borderWidth: 1, borderColor: 'black', padding: 12, marginRight: 8 }}
+            placeholderTextColor={theme.colors.textSecondary}
+            style={[uiStyles.input, { flex: 1, marginRight: theme.spacing[8] }]}
           />
           <Pressable
             onPress={() => openPicker('end')}
-            style={{ borderWidth: 1, borderColor: 'black', paddingHorizontal: 12, justifyContent: 'center' }}>
-            <Text style={{ color: 'black' }}>{t('createSlot.calendarButton')}</Text>
+            style={[uiStyles.button, { paddingHorizontal: theme.spacing[12] }]}>
+            <Text style={uiStyles.buttonText}>{t('createSlot.calendarButton')}</Text>
           </Pressable>
         </View>
 
-        <Text style={{ color: 'black', marginBottom: 16 }}>
+        <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[16] }]}>
           {t('createSlot.sameDayHint')}
         </Text>
 
         {!isEditing ? (
           <Pressable
             onPress={() => setShowAssignmentSection((currentValue) => !currentValue)}
-            style={{ marginBottom: 12 }}>
-            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+            style={{ marginBottom: theme.spacing[12] }}>
+            <Text style={uiStyles.linkText}>
               {showAssignmentSection ? t('createSlot.hideAssignment') : t('createSlot.showAssignment')}
             </Text>
           </Pressable>
         ) : null}
 
         {!isEditing && showAssignmentSection ? (
-          <View style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 16 }}>
-            <Text style={{ color: 'black', marginBottom: 8 }}>
+          <View style={[uiStyles.subtlePanel, { marginBottom: theme.spacing[16] }]}>
+            <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[8] }]}>
               {t('createSlot.assignmentHint')}
             </Text>
 
@@ -347,25 +352,25 @@ export default function CreateSlotScreen() {
                     }
                     style={{
                       borderTopWidth: 1,
-                      borderColor: 'black',
-                      paddingTop: 12,
-                      marginTop: 12,
-                      backgroundColor: isSelected ? '#f1f1f1' : 'white',
+                      borderColor: theme.colors.border,
+                      paddingTop: theme.spacing[12],
+                      marginTop: theme.spacing[12],
+                      backgroundColor: isSelected ? theme.colors.accentSoft : theme.colors.surface,
                     }}>
-                    <Text style={{ color: 'black', marginBottom: 4 }}>{record.granteeEmail}</Text>
-                    <Text style={{ color: 'black' }}>
+                    <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4] }]}>{record.granteeEmail}</Text>
+                    <Text style={uiStyles.secondaryText}>
                       {isSelected ? t('createSlot.assignedDirectly') : t('createSlot.tapToSelect')}
                     </Text>
                   </Pressable>
                 );
               })
             ) : (
-              <Text style={{ color: 'black' }}>{t('createSlot.noAssignees')}</Text>
+              <Text style={uiStyles.secondaryText}>{t('createSlot.noAssignees')}</Text>
             )}
 
             {selectedAssigneeEmail ? (
-              <Pressable onPress={() => setSelectedAssigneeEmail(null)} style={{ marginTop: 12 }}>
-                <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+              <Pressable onPress={() => setSelectedAssigneeEmail(null)} style={{ marginTop: theme.spacing[12] }}>
+                <Text style={uiStyles.linkText}>
                   {t('createSlot.removeAssignment')}
                 </Text>
               </Pressable>
@@ -374,7 +379,7 @@ export default function CreateSlotScreen() {
         ) : null}
 
         {isEditing ? (
-          <Text style={{ color: 'black', marginBottom: 16 }}>{t('createSlot.editHint')}</Text>
+          <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[16] }]}>{t('createSlot.editHint')}</Text>
         ) : null}
 
         <Pressable
@@ -384,19 +389,18 @@ export default function CreateSlotScreen() {
             !calendar ||
             (isEditing && (!editingSlot || editingSlot.status === 'booked' || Boolean(editingSlot.appointmentId)))
           }
-          style={{
-            borderWidth: 1,
-            borderColor: 'black',
-            paddingVertical: 12,
-            alignItems: 'center',
-            opacity:
-              submitting ||
-              !calendar ||
-              (isEditing && (!editingSlot || editingSlot.status === 'booked' || Boolean(editingSlot.appointmentId)))
-                ? 0.6
-                : 1,
-          }}>
-          <Text style={{ color: 'black' }}>
+          style={[
+            uiStyles.outlineAction,
+            {
+              opacity:
+                submitting ||
+                !calendar ||
+                (isEditing && (!editingSlot || editingSlot.status === 'booked' || Boolean(editingSlot.appointmentId)))
+                  ? 0.6
+                  : 1,
+            },
+          ]}>
+          <Text style={uiStyles.buttonText}>
             {submitting
               ? t('createSlot.saving')
               : isEditing
@@ -405,33 +409,28 @@ export default function CreateSlotScreen() {
           </Text>
         </Pressable>
 
-        {message ? <Text style={{ color: 'black', marginTop: 12 }}>{message}</Text> : null}
-        {error ? <Text style={{ color: 'black', marginTop: 12 }}>{error}</Text> : null}
-        {slotsError ? <Text style={{ color: 'black', marginTop: 12 }}>{slotsError}</Text> : null}
-        {accessError ? <Text style={{ color: 'black', marginTop: 12 }}>{accessError}</Text> : null}
+        {message ? <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>{message}</Text> : null}
+        {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
+        {slotsError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{slotsError}</Text> : null}
+        {accessError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{accessError}</Text> : null}
       </View>
 
-      <View style={{ alignItems: 'flex-end' }}>
+      <View style={uiStyles.footerRow}>
         <Pressable
           onPress={() =>
             router.replace(
               preselectedDateParam ? `/my-calendar/${preselectedDateParam}` : '/my-calendar'
             )
           }>
-          <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+          <Text style={uiStyles.linkText}>
             {preselectedDateParam ? t('createSlot.backToDayView') : t('nav.backToCalendar')}
           </Text>
         </Pressable>
       </View>
 
       <Modal visible={pickerField !== null} animationType="slide" transparent onRequestClose={closePicker}>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.2)',
-            justifyContent: 'flex-end',
-          }}>
-          <View style={{ backgroundColor: 'white', padding: 16, minHeight: 420 }}>
+        <View style={uiStyles.modalBackdrop}>
+          <View style={[uiStyles.modalSheet, { minHeight: 420 }]}>
             <View
               style={{
                 flexDirection: 'row',
@@ -446,11 +445,11 @@ export default function CreateSlotScreen() {
                       new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
                   )
                 }>
-                <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                <Text style={uiStyles.linkText}>
                   {t('createSlot.pickerBack')}
                 </Text>
               </Pressable>
-              <Text style={{ color: 'black', fontSize: 18 }}>{formatMonthTitle(pickerMonth, locale)}</Text>
+              <Text style={uiStyles.sectionTitle}>{formatMonthTitle(pickerMonth, locale)}</Text>
               <Pressable
                 onPress={() =>
                   setPickerMonth(
@@ -458,16 +457,16 @@ export default function CreateSlotScreen() {
                       new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)
                   )
                 }>
-                <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                <Text style={uiStyles.linkText}>
                   {t('createSlot.pickerNext')}
                 </Text>
               </Pressable>
             </View>
 
-            <View style={{ flexDirection: 'row', marginBottom: 8 }}>
+            <View style={{ flexDirection: 'row', marginBottom: theme.spacing[8] }}>
               {weekdayLabels.map((label) => (
                 <View key={label} style={{ flex: 1 }}>
-                  <Text style={{ color: 'black', textAlign: 'center' }}>{label}</Text>
+                  <Text style={[uiStyles.metaText, { textAlign: 'center' }]}>{label}</Text>
                 </View>
               ))}
             </View>
@@ -493,22 +492,23 @@ export default function CreateSlotScreen() {
                         flex: 1,
                         minHeight: 48,
                         borderWidth: 1,
-                        borderColor: 'black',
+                        borderColor: theme.colors.border,
                         alignItems: 'center',
                         justifyContent: 'center',
                         opacity: day.isCurrentMonth ? 1 : 0.4,
-                        backgroundColor: isSelected ? '#f1f1f1' : 'white',
+                        backgroundColor: isSelected ? theme.colors.accentSoft : theme.colors.surface,
+                        borderRadius: theme.radius.small,
                       }}>
-                      <Text style={{ color: 'black' }}>{day.date.getDate()}</Text>
+                      <Text style={uiStyles.bodyText}>{day.date.getDate()}</Text>
                     </Pressable>
                   );
                 })}
               </View>
             ))}
 
-            <View style={{ marginTop: 16, alignItems: 'flex-end' }}>
+            <View style={{ marginTop: theme.spacing[16], alignItems: 'flex-end' }}>
               <Pressable onPress={closePicker}>
-                <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                <Text style={uiStyles.linkText}>
                   {t('createSlot.pickerClose')}
                 </Text>
               </Pressable>

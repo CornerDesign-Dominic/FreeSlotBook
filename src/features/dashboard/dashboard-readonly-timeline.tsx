@@ -15,6 +15,7 @@ import {
   splitIntervalAtMidnight,
   type TimelineWindow,
 } from './dashboard-timeline-utils';
+import { theme, uiStyles } from '../../theme/ui';
 
 export type DashboardTimelineItem = {
   id: string;
@@ -80,12 +81,12 @@ export function DashboardReadonlyTimeline(props: {
       onScroll={(event) => props.onScroll(event.nativeEvent.contentOffset.x)}
       contentContainerStyle={{ minWidth: contentWidth }}>
       <View style={{ width: contentWidth }}>
-        <View style={{ position: 'relative', height: 28, marginBottom: 10 }}>
+        <View style={{ position: 'relative', height: 28, marginBottom: theme.spacing[12] }}>
           {hourMarkers.map((marker) => (
             <View
               key={`hour-label-${marker.date.toISOString()}`}
               style={{ position: 'absolute', left: marker.left, top: 0 }}>
-              <Text style={{ color: 'black', fontSize: 12 }}>{marker.label}</Text>
+              <Text style={uiStyles.metaText}>{marker.label}</Text>
             </View>
           ))}
 
@@ -100,10 +101,11 @@ export function DashboardReadonlyTimeline(props: {
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderWidth: 1,
-                borderColor: 'black',
-                backgroundColor: '#f3f3f3',
+                borderColor: theme.colors.border,
+                backgroundColor: theme.colors.surfaceSoft,
+                borderRadius: theme.radius.small,
               }}>
-              <Text style={{ color: 'black', fontSize: 10 }}>{dividerLabel}</Text>
+              <Text style={uiStyles.metaText}>{dividerLabel}</Text>
             </View>
           ) : null}
         </View>
@@ -113,8 +115,9 @@ export function DashboardReadonlyTimeline(props: {
             position: 'relative',
             height: trackHeight,
             borderWidth: 1,
-            borderColor: 'black',
-            backgroundColor: 'white',
+            borderColor: theme.colors.border,
+            backgroundColor: theme.colors.surface,
+            borderRadius: theme.radius.medium,
           }}>
           {hourMarkers.map((marker) => (
             <View
@@ -125,7 +128,7 @@ export function DashboardReadonlyTimeline(props: {
                 top: 0,
                 bottom: 0,
                 width: 1,
-                backgroundColor: 'black',
+                backgroundColor: theme.colors.border,
               }}
             />
           ))}
@@ -140,8 +143,8 @@ export function DashboardReadonlyTimeline(props: {
                 width: getDateDividerWidth(),
                 borderLeftWidth: 1,
                 borderRightWidth: 1,
-                borderColor: 'black',
-                backgroundColor: '#f3f3f3',
+                borderColor: theme.colors.border,
+                backgroundColor: theme.colors.surfaceSoft,
               }}
             />
           ) : null}
@@ -153,7 +156,7 @@ export function DashboardReadonlyTimeline(props: {
               top: 0,
               bottom: 0,
               width: 2,
-              backgroundColor: 'black',
+              backgroundColor: theme.colors.accent,
             }}
           />
 
@@ -172,18 +175,19 @@ export function DashboardReadonlyTimeline(props: {
                     top: getTimelineItemTop(lane),
                     width,
                     minHeight: itemHeight,
-                    paddingHorizontal: 8,
-                    paddingVertical: 6,
+                    paddingHorizontal: theme.spacing[8],
+                    paddingVertical: theme.spacing[8],
                     borderWidth: 1,
                     borderColor: item.borderColor,
                     backgroundColor: item.backgroundColor,
                     justifyContent: 'center',
+                    borderRadius: theme.radius.small,
                   }}>
-                  <Text style={{ color: 'black', fontSize: 12 }} numberOfLines={1}>
+                  <Text style={uiStyles.metaText} numberOfLines={1}>
                     {item.primaryLabel}
                   </Text>
                   {item.secondaryLabel && width >= 96 ? (
-                    <Text style={{ color: 'black', fontSize: 11 }} numberOfLines={1}>
+                    <Text style={[uiStyles.metaText, { color: theme.colors.textPrimary }]} numberOfLines={1}>
                       {item.secondaryLabel}
                     </Text>
                   ) : null}
@@ -192,7 +196,7 @@ export function DashboardReadonlyTimeline(props: {
             })
           ) : (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: 'black' }}>{props.emptyLabel}</Text>
+              <Text style={uiStyles.secondaryText}>{props.emptyLabel}</Text>
             </View>
           )}
         </View>

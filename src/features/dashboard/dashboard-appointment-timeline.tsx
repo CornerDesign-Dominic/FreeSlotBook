@@ -10,6 +10,7 @@ import {
   type TimelineWindow,
 } from './dashboard-timeline-utils';
 import { DashboardReadonlyTimeline } from './dashboard-readonly-timeline';
+import { theme, uiStyles } from '../../theme/ui';
 
 export function DashboardAppointmentTimeline(props: {
   appointments: AppointmentRecord[];
@@ -55,8 +56,8 @@ export function DashboardAppointmentTimeline(props: {
               appointment.source === 'manual'
                 ? t('appointments.sourceManual')
                 : t('appointments.sourceSelfService'),
-            backgroundColor: '#f1f1f1',
-            borderColor: 'black',
+            backgroundColor: theme.colors.surfaceSoft,
+            borderColor: theme.colors.border,
           };
         })
         .filter((item): item is NonNullable<typeof item> => item !== null),
@@ -65,8 +66,8 @@ export function DashboardAppointmentTimeline(props: {
 
   if (props.loading) {
     return (
-      <View style={{ borderWidth: 1, borderColor: 'black', padding: 16 }}>
-        <Text style={{ color: 'black' }}>{t('common.loading')}</Text>
+      <View style={uiStyles.timelineShell}>
+        <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -81,7 +82,7 @@ export function DashboardAppointmentTimeline(props: {
         scrollRef={props.scrollRef}
         onScroll={props.onScroll}
       />
-      {props.error ? <Text style={{ color: 'black', marginTop: 12 }}>{props.error}</Text> : null}
+      {props.error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{props.error}</Text> : null}
     </View>
   );
 }

@@ -1,0 +1,176 @@
+import { StyleSheet } from 'react-native';
+
+import {
+  colorTokens,
+  radiusTokens,
+  shadowTokens,
+  spacingTokens,
+  typographyTokens,
+} from './tokens';
+
+export const theme = {
+  colors: colorTokens,
+  radius: radiusTokens,
+  spacing: spacingTokens,
+  typography: typographyTokens,
+  shadow: shadowTokens,
+} as const;
+
+export const uiStyles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colorTokens.background,
+  },
+  content: {
+    padding: spacingTokens[16],
+    paddingBottom: spacingTokens[32],
+  },
+  centeredLoading: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: colorTokens.background,
+    padding: spacingTokens[16],
+  },
+  pageTitle: {
+    color: colorTokens.textPrimary,
+    fontSize: typographyTokens.title,
+    fontWeight: '700',
+    marginBottom: spacingTokens[20],
+    letterSpacing: -0.4,
+  },
+  sectionTitle: {
+    color: colorTokens.textPrimary,
+    fontSize: typographyTokens.sectionTitle,
+    fontWeight: '600',
+    marginBottom: spacingTokens[12],
+    letterSpacing: -0.2,
+  },
+  bodyText: {
+    color: colorTokens.textPrimary,
+    fontSize: typographyTokens.body,
+  },
+  secondaryText: {
+    color: colorTokens.textSecondary,
+    fontSize: typographyTokens.body,
+  },
+  metaText: {
+    color: colorTokens.textSecondary,
+    fontSize: typographyTokens.meta,
+  },
+  panel: {
+    backgroundColor: colorTokens.surface,
+    borderWidth: 1,
+    borderColor: colorTokens.border,
+    borderRadius: radiusTokens.large,
+    padding: spacingTokens[16],
+    marginBottom: spacingTokens[16],
+    ...shadowTokens.soft,
+  },
+  subtlePanel: {
+    backgroundColor: colorTokens.surface,
+    borderWidth: 1,
+    borderColor: colorTokens.border,
+    borderRadius: radiusTokens.medium,
+    padding: spacingTokens[12],
+  },
+  timelineShell: {
+    backgroundColor: colorTokens.surfaceSoft,
+    borderWidth: 1,
+    borderColor: colorTokens.border,
+    borderRadius: radiusTokens.medium,
+    padding: spacingTokens[12],
+  },
+  linkText: {
+    color: colorTokens.accent,
+    fontSize: typographyTokens.body,
+    textDecorationLine: 'underline',
+  },
+  button: {
+    borderWidth: 1,
+    borderColor: colorTokens.border,
+    borderRadius: radiusTokens.small,
+    backgroundColor: colorTokens.surface,
+    paddingHorizontal: spacingTokens[12],
+    paddingVertical: spacingTokens[12],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonActive: {
+    backgroundColor: colorTokens.accentSoft,
+    borderColor: colorTokens.accent,
+  },
+  buttonText: {
+    color: colorTokens.textPrimary,
+    fontSize: typographyTokens.body,
+    fontWeight: '500',
+  },
+  outlineAction: {
+    borderWidth: 1,
+    borderColor: colorTokens.border,
+    borderRadius: radiusTokens.small,
+    backgroundColor: colorTokens.surface,
+    paddingHorizontal: spacingTokens[12],
+    paddingVertical: spacingTokens[12],
+    alignItems: 'center',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colorTokens.border,
+    borderRadius: radiusTokens.small,
+    backgroundColor: colorTokens.surface,
+    color: colorTokens.textPrimary,
+    paddingHorizontal: spacingTokens[12],
+    paddingVertical: spacingTokens[12],
+    fontSize: typographyTokens.body,
+  },
+  listItem: {
+    borderTopWidth: 1,
+    borderColor: colorTokens.border,
+    paddingTop: spacingTokens[12],
+    marginTop: spacingTokens[12],
+  },
+  footerRow: {
+    alignItems: 'flex-end',
+    marginTop: spacingTokens[4],
+  },
+  calendarNavigation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacingTokens[16],
+    gap: spacingTokens[12],
+  },
+  calendarNavigationButton: {
+    width: 36,
+    height: 36,
+    borderWidth: 1,
+    borderColor: colorTokens.border,
+    borderRadius: radiusTokens.medium,
+    backgroundColor: colorTokens.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadowTokens.soft,
+  },
+  calendarNavigationTitle: {
+    flex: 1,
+    color: colorTokens.textPrimary,
+    fontSize: typographyTokens.sectionTitle,
+    fontWeight: '600',
+    textAlign: 'center',
+    letterSpacing: -0.2,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(18, 24, 32, 0.18)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: colorTokens.surface,
+    borderTopLeftRadius: radiusTokens.large,
+    borderTopRightRadius: radiusTokens.large,
+    borderWidth: 1,
+    borderColor: colorTokens.border,
+    padding: spacingTokens[16],
+    ...shadowTokens.soft,
+  },
+});

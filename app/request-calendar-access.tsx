@@ -5,6 +5,7 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { requestCalendarAccessByOwnerEmail } from '../src/features/mvp/repository';
 import { useAuth } from '../src/firebase/useAuth';
 import { useTranslation } from '../src/i18n/provider';
+import { theme, uiStyles } from '../src/theme/ui';
 
 export default function RequestCalendarAccessScreen() {
   const { user, loading } = useAuth();
@@ -47,18 +48,18 @@ export default function RequestCalendarAccessScreen() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black' }}>{t('common.loading')}</Text>
+      <View style={uiStyles.centeredLoading}>
+        <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
-      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>{t('requestAccess.title')}</Text>
+    <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
+      <Text style={uiStyles.pageTitle}>{t('requestAccess.title')}</Text>
 
-      <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', marginBottom: 8 }}>
+      <View style={uiStyles.panel}>
+        <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>
           {t('requestAccess.ownerEmail')}
         </Text>
         <TextInput
@@ -67,24 +68,25 @@ export default function RequestCalendarAccessScreen() {
           onChangeText={setOwnerEmailInput}
           autoCapitalize="none"
           keyboardType="email-address"
-          style={{ borderWidth: 1, borderColor: 'black', padding: 12, marginBottom: 12 }}
+          placeholderTextColor={theme.colors.textSecondary}
+          style={[uiStyles.input, { marginBottom: theme.spacing[12] }]}
         />
         <Pressable
           onPress={handleRequestAccess}
           disabled={submitting || !user?.email}
-          style={{ borderWidth: 1, borderColor: 'black', paddingVertical: 12, alignItems: 'center', opacity: submitting ? 0.6 : 1 }}>
-          <Text style={{ color: 'black' }}>
+          style={[uiStyles.outlineAction, { opacity: submitting ? 0.6 : 1 }]}>
+          <Text style={uiStyles.buttonText}>
             {submitting ? t('requestAccess.submitting') : t('requestAccess.submit')}
           </Text>
         </Pressable>
 
-        <Text style={{ color: 'black', marginTop: 12 }}>{t('requestAccess.hint')}</Text>
-        {message ? <Text style={{ color: 'black', marginTop: 12 }}>{message}</Text> : null}
+        <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{t('requestAccess.hint')}</Text>
+        {message ? <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>{message}</Text> : null}
       </View>
 
-      <View style={{ alignItems: 'flex-end' }}>
+      <View style={uiStyles.footerRow}>
         <Link href="/(tabs)">
-          <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+          <Text style={uiStyles.linkText}>
             {t('nav.backToDashboard')}
           </Text>
         </Link>

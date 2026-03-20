@@ -14,6 +14,8 @@ import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useAuth } from '../../src/firebase/useAuth';
 import { useTranslation } from '../../src/i18n/provider';
 import { useAppSettings } from '../../src/settings/provider';
+import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
+import { theme, uiStyles } from '../../src/theme/ui';
 
 export default function MyCalendarScreen() {
   const { user, loading: authLoading } = useAuth();
@@ -40,8 +42,8 @@ export default function MyCalendarScreen() {
 
   if (authLoading || loading || slotsLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black' }}>{t('common.loading')}</Text>
+      <View style={uiStyles.centeredLoading}>
+        <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -55,26 +57,26 @@ export default function MyCalendarScreen() {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
-      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>{t('calendar.title')}</Text>
+    <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
+      <Text style={uiStyles.pageTitle}>{t('calendar.title')}</Text>
 
-      <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
+      <View style={uiStyles.panel}>
         {calendar ? (
           <>
-            <Text style={{ color: 'black', marginBottom: 8 }}>
+            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>
               {t('calendar.owner', { email: calendar.ownerEmail })}
             </Text>
-            <Text style={{ color: 'black', marginBottom: 8 }}>
+            <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[8] }]}>
               {t('dashboard.visibilityValue', { visibility: calendar.visibility })}
             </Text>
             {calendar.visibility === 'public' && calendar.publicSlug ? (
               <>
-                <Text style={{ color: 'black', marginBottom: 8 }}>
+                <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[8] }]}>
                   {t('calendar.publicLinkValue', { slug: calendar.publicSlug })}
                 </Text>
                 <Link href={`/${calendar.publicSlug}`} asChild>
-                  <Pressable style={{ alignSelf: 'flex-start', marginBottom: 12 }}>
-                    <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                  <Pressable style={{ alignSelf: 'flex-start', marginBottom: theme.spacing[12] }}>
+                    <Text style={uiStyles.linkText}>
                       {t('calendar.openPublicPage')}
                     </Text>
                   </Pressable>
@@ -83,65 +85,54 @@ export default function MyCalendarScreen() {
             ) : null}
             <Link href="/settings" asChild>
               <Pressable style={{ alignSelf: 'flex-start' }}>
-                <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                <Text style={uiStyles.linkText}>
                   {t('dashboard.openSettings')}
                 </Text>
               </Pressable>
             </Link>
           </>
         ) : (
-          <Text style={{ color: 'black' }}>{t('calendar.notAvailable')}</Text>
+          <Text style={uiStyles.secondaryText}>{t('calendar.notAvailable')}</Text>
         )}
 
-        {error ? <Text style={{ color: 'black', marginTop: 12 }}>{error}</Text> : null}
+        {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
       </View>
 
-      <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
+      <View style={uiStyles.panel}>
         <Link href="/my-calendar/create-slot" asChild>
-          <Pressable style={{ marginBottom: 16 }}>
-            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+          <Pressable style={{ marginBottom: theme.spacing[16] }}>
+            <Text style={uiStyles.linkText}>
               {t('calendar.createSlots')}
             </Text>
           </Pressable>
         </Link>
 
         <Link href="/my-calendar/access" asChild>
-          <Pressable style={{ marginBottom: 16 }}>
-            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+          <Pressable style={{ marginBottom: theme.spacing[16] }}>
+            <Text style={uiStyles.linkText}>
               {t('calendar.manageAccess')}
             </Text>
           </Pressable>
         </Link>
 
         <Link href={`/my-calendar/week?date=${getDayKey(visibleMonth)}`} asChild>
-          <Pressable style={{ marginBottom: 16 }}>
-            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+          <Pressable style={{ marginBottom: theme.spacing[16] }}>
+            <Text style={uiStyles.linkText}>
               {t('calendar.openWeekView')}
             </Text>
           </Pressable>
         </Link>
 
-        <View
-          style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Pressable onPress={goToPreviousMonth}>
-            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-              {t('calendar.previousMonth')}
-            </Text>
-          </Pressable>
-          <Text style={{ color: 'black', fontSize: 18 }}>
-            {formatMonthTitle(visibleMonth, locale)}
-          </Text>
-          <Pressable onPress={goToNextMonth}>
-            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-              {t('calendar.nextMonth')}
-            </Text>
-          </Pressable>
-        </View>
+        <CalendarNavigationHeader
+          title={formatMonthTitle(visibleMonth, locale)}
+          onPrevious={goToPreviousMonth}
+          onNext={goToNextMonth}
+        />
 
         <View style={{ flexDirection: 'row', marginBottom: 8 }}>
           {weekdayLabels.map((label) => (
             <View key={label} style={{ flex: 1 }}>
-              <Text style={{ color: 'black', textAlign: 'center' }}>{label}</Text>
+              <Text style={[uiStyles.metaText, { textAlign: 'center' }]}>{label}</Text>
             </View>
           ))}
         </View>
@@ -157,15 +148,16 @@ export default function MyCalendarScreen() {
                     style={{
                       flex: 1,
                       borderWidth: 1,
-                      borderColor: 'black',
+                      borderColor: theme.colors.border,
+                      borderRadius: theme.radius.small,
                       minHeight: 72,
-                      padding: 8,
-                      backgroundColor: day.isToday ? '#f3f3f3' : 'white',
+                      padding: theme.spacing[8],
+                      backgroundColor: day.isToday ? theme.colors.accentSoft : theme.colors.surface,
                       opacity: day.isCurrentMonth ? 1 : 0.45,
                     }}>
-                    <Text style={{ color: 'black', marginBottom: 6 }}>{day.date.getDate()}</Text>
+                    <Text style={[uiStyles.bodyText, { marginBottom: 6 }]}>{day.date.getDate()}</Text>
                     {slotCount ? (
-                      <Text style={{ color: 'black', fontSize: 12 }}>
+                      <Text style={uiStyles.metaText}>
                         {slotCount === 1
                           ? t('calendar.slotCount.one', { count: slotCount })
                           : t('calendar.slotCount.other', { count: slotCount })}
@@ -178,14 +170,14 @@ export default function MyCalendarScreen() {
           </View>
         ))}
 
-        <Text style={{ color: 'black', marginTop: 12 }}>{t('calendar.daysWithSlots')}</Text>
+        <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{t('calendar.daysWithSlots')}</Text>
 
-        {slotsError ? <Text style={{ color: 'black', marginTop: 12 }}>{slotsError}</Text> : null}
+        {slotsError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{slotsError}</Text> : null}
       </View>
 
-      <View style={{ alignItems: 'flex-end' }}>
+      <View style={uiStyles.footerRow}>
         <Link href="/(tabs)" style={{ marginTop: 16 }}>
-          <Text style={{ color: 'black' }}>{t('nav.backToDashboard')}</Text>
+          <Text style={uiStyles.linkText}>{t('nav.backToDashboard')}</Text>
         </Link>
       </View>
     </ScrollView>

@@ -10,9 +10,11 @@ import {
 } from '../../src/features/mvp/calendar-utils';
 import type { AppointmentRecord } from '../../src/features/mvp/types';
 import { useParticipantAppointments } from '../../src/features/mvp/useParticipantAppointments';
+import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
 import { useAuth } from '../../src/firebase/useAuth';
 import { useTranslation } from '../../src/i18n/provider';
 import { useAppSettings } from '../../src/settings/provider';
+import { theme, uiStyles } from '../../src/theme/ui';
 
 function getAppointmentCountsByDay(appointments: AppointmentRecord[]) {
   return appointments.reduce<Record<string, number>>((accumulator, appointment) => {
@@ -53,8 +55,8 @@ export default function MyAppointmentsMonthScreen() {
 
   if (authLoading || loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black' }}>{t('common.loading')}</Text>
+      <View style={uiStyles.centeredLoading}>
+        <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -68,43 +70,32 @@ export default function MyAppointmentsMonthScreen() {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
-      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>
+    <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
+      <Text style={uiStyles.pageTitle}>
         {t('appointments.title')}
       </Text>
 
-      <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', marginBottom: 12 }}>{t('appointments.description')}</Text>
+      <View style={uiStyles.panel}>
+        <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>{t('appointments.description')}</Text>
 
         <Link href={`/my-appointments/week?date=${getDayKey(visibleMonth)}`} asChild>
-          <Pressable style={{ alignSelf: 'flex-start', marginBottom: 16 }}>
-            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+          <Pressable style={{ alignSelf: 'flex-start', marginBottom: theme.spacing[16] }}>
+            <Text style={uiStyles.linkText}>
               {t('appointments.openWeekView')}
             </Text>
           </Pressable>
         </Link>
 
-        <View
-          style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Pressable onPress={goToPreviousMonth}>
-            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-              {t('appointments.previousMonth')}
-            </Text>
-          </Pressable>
-          <Text style={{ color: 'black', fontSize: 18 }}>
-            {formatMonthTitle(visibleMonth, locale)}
-          </Text>
-          <Pressable onPress={goToNextMonth}>
-            <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-              {t('appointments.nextMonth')}
-            </Text>
-          </Pressable>
-        </View>
+        <CalendarNavigationHeader
+          title={formatMonthTitle(visibleMonth, locale)}
+          onPrevious={goToPreviousMonth}
+          onNext={goToNextMonth}
+        />
 
         <View style={{ flexDirection: 'row', marginBottom: 8 }}>
           {weekdayLabels.map((label) => (
             <View key={label} style={{ flex: 1 }}>
-              <Text style={{ color: 'black', textAlign: 'center' }}>{label}</Text>
+              <Text style={[uiStyles.metaText, { textAlign: 'center' }]}>{label}</Text>
             </View>
           ))}
         </View>
@@ -120,15 +111,16 @@ export default function MyAppointmentsMonthScreen() {
                     style={{
                       flex: 1,
                       borderWidth: 1,
-                      borderColor: 'black',
+                      borderColor: theme.colors.border,
+                      borderRadius: theme.radius.small,
                       minHeight: 72,
                       padding: 8,
-                      backgroundColor: day.isToday ? '#f3f3f3' : 'white',
+                      backgroundColor: day.isToday ? theme.colors.accentSoft : theme.colors.surface,
                       opacity: day.isCurrentMonth ? 1 : 0.45,
                     }}>
-                    <Text style={{ color: 'black', marginBottom: 6 }}>{day.date.getDate()}</Text>
+                    <Text style={[uiStyles.bodyText, { marginBottom: 6 }]}>{day.date.getDate()}</Text>
                     {appointmentCount ? (
-                      <Text style={{ color: 'black', fontSize: 12 }}>
+                      <Text style={uiStyles.metaText}>
                         {appointmentCount === 1
                           ? t('appointments.count.one', { count: appointmentCount })
                           : t('appointments.count.other', { count: appointmentCount })}
@@ -142,17 +134,17 @@ export default function MyAppointmentsMonthScreen() {
         ))}
 
         {!appointments.length ? (
-          <Text style={{ color: 'black', marginTop: 12 }}>{t('appointments.emptyMonth')}</Text>
+          <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{t('appointments.emptyMonth')}</Text>
         ) : (
-          <Text style={{ color: 'black', marginTop: 12 }}>{t('appointments.monthHint')}</Text>
+          <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{t('appointments.monthHint')}</Text>
         )}
 
-        {error ? <Text style={{ color: 'black', marginTop: 12 }}>{error}</Text> : null}
+        {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
       </View>
 
-      <View style={{ alignItems: 'flex-end' }}>
+      <View style={uiStyles.footerRow}>
         <Link href="/(tabs)">
-          <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+          <Text style={uiStyles.linkText}>
             {t('nav.backToDashboard')}
           </Text>
         </Link>

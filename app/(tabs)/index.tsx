@@ -14,6 +14,7 @@ import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useParticipantAppointments } from '../../src/features/mvp/useParticipantAppointments';
 import { useAuth } from '../../src/firebase/useAuth';
 import { useTranslation } from '../../src/i18n/provider';
+import { theme, uiStyles } from '../../src/theme/ui';
 
 export default function HomeScreen() {
   const { user, loading } = useAuth();
@@ -72,15 +73,8 @@ export default function HomeScreen() {
 
   if (loading || dashboardLoading) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: 'white',
-          padding: 16,
-        }}>
-        <Text style={{ color: 'black' }}>{t('common.loading')}</Text>
+      <View style={[uiStyles.centeredLoading, { alignItems: 'center' }]}>
+        <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -88,32 +82,29 @@ export default function HomeScreen() {
   if (user) {
     return (
       <ScrollView
-        style={{
-          flex: 1,
-          backgroundColor: 'white',
-        }}
-        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+        style={uiStyles.screen}
+        contentContainerStyle={uiStyles.content}>
         <View
           style={{
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: 24,
+            marginBottom: theme.spacing[24],
           }}>
-          <Text style={{ color: 'black', fontSize: 28 }}>{t('dashboard.title')}</Text>
+          <Text style={uiStyles.pageTitle}>{t('dashboard.title')}</Text>
           <Link href="/settings" asChild>
-            <Pressable>
-              <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+            <Pressable style={{ paddingVertical: theme.spacing[8] }}>
+              <Text style={uiStyles.linkText}>
                 {t('dashboard.openSettings')}
               </Text>
             </Pressable>
           </Link>
         </View>
 
-        <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 12 }}>
+        <View style={uiStyles.panel}>
           <Link href="/my-calendar" asChild>
-            <Pressable style={{ alignSelf: 'flex-start', marginBottom: 4 }}>
-              <Text style={{ color: 'black', fontSize: 18, textDecorationLine: 'underline' }}>
+            <Pressable style={{ alignSelf: 'flex-start', marginBottom: theme.spacing[8] }}>
+              <Text style={[uiStyles.sectionTitle, uiStyles.linkText, { marginBottom: 0 }]}>
                 {t('dashboard.myCalendar')}
               </Text>
             </Pressable>
@@ -127,23 +118,23 @@ export default function HomeScreen() {
             onScroll={(x) => syncTimelineScroll('slots', x)}
           />
           <Link href="/my-calendar/access" asChild>
-            <Pressable style={{ alignSelf: 'flex-start', marginTop: 12 }}>
-              <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+            <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
+              <Text style={uiStyles.linkText}>
                 {t('dashboard.manageAccess')}
               </Text>
             </Pressable>
           </Link>
         </View>
 
-        <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 12 }}>
+        <View style={uiStyles.panel}>
           <Link href="/my-appointments" asChild>
             <Pressable style={{ alignSelf: 'flex-start' }}>
-              <Text style={{ color: 'black', fontSize: 18, textDecorationLine: 'underline' }}>
+              <Text style={[uiStyles.sectionTitle, uiStyles.linkText, { marginBottom: 0 }]}>
                 {t('dashboard.myAppointments')}
               </Text>
             </Pressable>
           </Link>
-          <View style={{ marginTop: 12 }}>
+          <View style={{ marginTop: theme.spacing[12] }}>
             <DashboardAppointmentTimeline
               appointments={appointments}
               loading={appointmentsLoading}
@@ -155,41 +146,43 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 24 }}>
-          <Text style={{ color: 'black', fontSize: 18, marginBottom: 4 }}>{t('dashboard.sharedCalendars')}</Text>
+        <View style={[uiStyles.panel, { marginBottom: theme.spacing[24] }]}>
+          <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[4] }]}>
+            {t('dashboard.sharedCalendars')}
+          </Text>
           {data.joinedCalendars.length ? (
             visibleJoinedCalendars.map((calendar) => (
               <Link key={calendar.id} href={`/shared-calendar/${calendar.id}`} asChild>
-                <Pressable style={{ marginTop: 12 }}>
-                  <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+                <Pressable style={{ marginTop: theme.spacing[12] }}>
+                  <Text style={uiStyles.linkText}>
                     {calendar.ownerEmail || t('dashboard.noOwnerEmail')}
                   </Text>
                 </Pressable>
               </Link>
             ))
           ) : (
-            <Text style={{ color: 'black' }}>{t('dashboard.noJoinedCalendars')}</Text>
+            <Text style={uiStyles.secondaryText}>{t('dashboard.noJoinedCalendars')}</Text>
           )}
           {hasMoreJoinedCalendars ? (
-            <Pressable disabled style={{ alignSelf: 'flex-start', marginTop: 12, opacity: 0.7 }}>
-              <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+            <Pressable disabled style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12], opacity: 0.7 }}>
+              <Text style={uiStyles.linkText}>
                 Alle anzeigen
               </Text>
             </Pressable>
           ) : null}
           <Link href="/request-calendar-access" asChild>
-            <Pressable style={{ alignSelf: 'flex-start', marginTop: 12 }}>
-              <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+            <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
+              <Text style={uiStyles.linkText}>
                 {t('dashboard.requestAccess')}
               </Text>
             </Pressable>
           </Link>
         </View>
 
-        {user.email ? <Text style={{ color: 'black', marginBottom: 16 }}>{user.email}</Text> : null}
-        {error ? <Text style={{ color: 'black', marginBottom: 16 }}>{error}</Text> : null}
+        {user.email ? <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>{user.email}</Text> : null}
+        {error ? <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>{error}</Text> : null}
 
-        <Text style={{ color: 'black' }} onPress={handleLogout}>
+        <Text style={uiStyles.linkText} onPress={handleLogout}>
           {t('dashboard.logout')}
         </Text>
       </ScrollView>
@@ -198,25 +191,22 @@ export default function HomeScreen() {
 
   return (
     <View
-      style={{
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'white',
-        padding: 16,
-      }}>
-      <Text style={{ color: 'black', fontSize: 28, marginBottom: 8 }}>
+      style={[
+        uiStyles.screen,
+        { justifyContent: 'center', alignItems: 'center', padding: theme.spacing[16] },
+      ]}>
+      <Text style={[uiStyles.pageTitle, { marginBottom: theme.spacing[8] }]}>
         FreeSlotBooking
       </Text>
-      <Text style={{ color: 'black', fontSize: 16 }}>{t('dashboard.chooseOption')}</Text>
+      <Text style={uiStyles.secondaryText}>{t('dashboard.chooseOption')}</Text>
       <Link href="/login" style={{ marginTop: 12 }}>
-        <Text style={{ color: 'black' }}>{t('dashboard.login')}</Text>
+        <Text style={uiStyles.linkText}>{t('dashboard.login')}</Text>
       </Link>
       <Link href="/register" style={{ marginTop: 16 }}>
-        <Text style={{ color: 'black' }}>{t('dashboard.createAccount')}</Text>
+        <Text style={uiStyles.linkText}>{t('dashboard.createAccount')}</Text>
       </Link>
       <Link href="/forgot-password" style={{ marginTop: 12 }}>
-        <Text style={{ color: 'black' }}>{t('dashboard.forgotPassword')}</Text>
+        <Text style={uiStyles.linkText}>{t('dashboard.forgotPassword')}</Text>
       </Link>
     </View>
   );

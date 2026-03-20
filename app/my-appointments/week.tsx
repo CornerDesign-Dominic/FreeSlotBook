@@ -12,9 +12,11 @@ import {
 } from '../../src/features/mvp/calendar-utils';
 import type { AppointmentRecord } from '../../src/features/mvp/types';
 import { useParticipantAppointments } from '../../src/features/mvp/useParticipantAppointments';
+import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
 import { useAuth } from '../../src/firebase/useAuth';
 import { useTranslation } from '../../src/i18n/provider';
 import { useAppSettings } from '../../src/settings/provider';
+import { theme, uiStyles } from '../../src/theme/ui';
 
 const hourWidth = 88;
 const rowHeight = 64;
@@ -114,8 +116,8 @@ export default function MyAppointmentsWeekScreen() {
 
   if (authLoading || loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black' }}>{t('common.loading')}</Text>
+      <View style={uiStyles.centeredLoading}>
+        <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -123,38 +125,22 @@ export default function MyAppointmentsWeekScreen() {
   const timeRailWidth = hourWidth * 24;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
-      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>
+    <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
+      <Text style={uiStyles.pageTitle}>
         {t('appointments.weekTitle')}
       </Text>
 
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 16,
-        }}>
-        <Pressable onPress={() => navigateToRelativeWeek(-1)}>
-          <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-            {'<- '}{t('appointments.previousWeek')}
-          </Text>
-        </Pressable>
-        <Text style={{ color: 'black', fontSize: 18 }}>
-          {formatWeekRange(baseDate, locale, weekStartsOn)}
-        </Text>
-        <Pressable onPress={() => navigateToRelativeWeek(1)}>
-          <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
-            {t('appointments.nextWeek')}{' ->'}
-          </Text>
-        </Pressable>
-      </View>
+      <CalendarNavigationHeader
+        title={formatWeekRange(baseDate, locale, weekStartsOn)}
+        onPrevious={() => navigateToRelativeWeek(-1)}
+        onNext={() => navigateToRelativeWeek(1)}
+      />
 
-      <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
+      <View style={uiStyles.panel}>
         <View style={{ flexDirection: 'row' }}>
           <View style={{ width: dayLabelWidth, marginRight: 8 }}>
             <View style={{ height: headerHeight, justifyContent: 'center' }}>
-              <Text style={{ color: 'black' }}>{t('appointments.weekDays')}</Text>
+              <Text style={uiStyles.secondaryText}>{t('appointments.weekDays')}</Text>
             </View>
             {weekDays.map((day) => (
               <Pressable
@@ -163,11 +149,11 @@ export default function MyAppointmentsWeekScreen() {
                 style={{
                   height: rowHeight,
                   borderTopWidth: 1,
-                  borderColor: 'black',
+                  borderColor: theme.colors.border,
                   justifyContent: 'center',
                   paddingRight: 8,
                 }}>
-                <Text style={{ color: 'black', fontWeight: day.isToday ? '700' : '400' }}>
+                <Text style={{ color: theme.colors.textPrimary, fontWeight: day.isToday ? '700' : '400' }}>
                   {formatDayLabel(day.date, locale)}
                 </Text>
               </Pressable>
@@ -187,13 +173,13 @@ export default function MyAppointmentsWeekScreen() {
                     style={{
                       width: hourWidth,
                       borderRightWidth: 1,
-                      borderColor: 'black',
+                      borderColor: theme.colors.border,
                       justifyContent: 'center',
                     }}>
-                    <Text style={{ color: 'black' }}>{`${`${hour}`.padStart(2, '0')}:00`}</Text>
+                    <Text style={uiStyles.metaText}>{`${`${hour}`.padStart(2, '0')}:00`}</Text>
                   </View>
                 ))}
-                <Text style={{ color: 'black', position: 'absolute', right: 0, top: 6 }}>24:00</Text>
+                <Text style={[uiStyles.metaText, { position: 'absolute', right: 0, top: 6 }]}>24:00</Text>
               </View>
 
               {weekDays.map((day) => (
@@ -202,8 +188,9 @@ export default function MyAppointmentsWeekScreen() {
                   style={{
                     height: rowHeight,
                     borderTopWidth: 1,
-                    borderColor: 'black',
+                    borderColor: theme.colors.border,
                     position: 'relative',
+                    backgroundColor: theme.colors.surface,
                   }}>
                   {hours.map((hour) => (
                     <View
@@ -214,7 +201,7 @@ export default function MyAppointmentsWeekScreen() {
                         bottom: 0,
                         left: hour * hourWidth,
                         width: 1,
-                        backgroundColor: 'black',
+                        backgroundColor: theme.colors.border,
                       }}
                     />
                   ))}
@@ -244,14 +231,15 @@ export default function MyAppointmentsWeekScreen() {
                           paddingHorizontal: 8,
                           paddingVertical: 6,
                           borderWidth: 1,
-                          borderColor: 'black',
-                          backgroundColor: '#f1f1f1',
+                          borderColor: theme.colors.border,
+                          backgroundColor: theme.colors.surfaceSoft,
                           justifyContent: 'center',
+                          borderRadius: theme.radius.small,
                         }}>
-                        <Text style={{ color: 'black', fontSize: 11 }} numberOfLines={1}>
+                        <Text style={uiStyles.metaText} numberOfLines={1}>
                           {formatAppointmentTimeRange(appointment, locale)}
                         </Text>
-                        <Text style={{ color: 'black', fontSize: 10 }} numberOfLines={1}>
+                        <Text style={[uiStyles.metaText, { color: theme.colors.textPrimary }]} numberOfLines={1}>
                           {appointment.source === 'manual'
                             ? t('appointments.sourceManual')
                             : t('appointments.sourceSelfService')}
@@ -266,14 +254,14 @@ export default function MyAppointmentsWeekScreen() {
         </View>
 
         {!appointments.length ? (
-          <Text style={{ color: 'black', marginTop: 12 }}>{t('appointments.emptyWeek')}</Text>
+          <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{t('appointments.emptyWeek')}</Text>
         ) : null}
-        {error ? <Text style={{ color: 'black', marginTop: 12 }}>{error}</Text> : null}
+        {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
       </View>
 
-      <View style={{ alignItems: 'flex-end' }}>
+      <View style={uiStyles.footerRow}>
         <Link href="/my-appointments">
-          <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+          <Text style={uiStyles.linkText}>
             {t('appointments.backToMonth')}
           </Text>
         </Link>

@@ -8,6 +8,7 @@ import { useCalendar } from '../../src/features/mvp/useCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useAuth } from '../../src/firebase/useAuth';
 import { useTranslation } from '../../src/i18n/provider';
+import { theme, uiStyles } from '../../src/theme/ui';
 
 export default function SharedCalendarScreen() {
   const params = useLocalSearchParams<{ calendarId?: string | string[] }>();
@@ -49,8 +50,8 @@ export default function SharedCalendarScreen() {
 
   if (authLoading || calendarLoading || slotsLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: 'white', padding: 16, justifyContent: 'center' }}>
-        <Text style={{ color: 'black' }}>{t('common.loading')}</Text>
+      <View style={uiStyles.centeredLoading}>
+        <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -91,31 +92,31 @@ export default function SharedCalendarScreen() {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
-      <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>{t('shared.title')}</Text>
+    <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
+      <Text style={uiStyles.pageTitle}>{t('shared.title')}</Text>
 
-      <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
+      <View style={uiStyles.panel}>
         {calendar ? (
           <>
-            <Text style={{ color: 'black', marginBottom: 8 }}>
+            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>
               {t('shared.owner', { email: calendar.ownerEmail })}
             </Text>
-            <Text style={{ color: 'black', marginBottom: 8 }}>
+            <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[8] }]}>
               {t('shared.calendarId', { id: calendar.id })}
             </Text>
-            <Text style={{ color: 'black' }}>
+            <Text style={uiStyles.secondaryText}>
               {t('dashboard.visibilityValue', { visibility: calendar.visibility })}
             </Text>
           </>
         ) : (
-          <Text style={{ color: 'black' }}>{t('shared.notLoaded')}</Text>
+          <Text style={uiStyles.secondaryText}>{t('shared.notLoaded')}</Text>
         )}
 
-        {calendarError ? <Text style={{ color: 'black', marginTop: 12 }}>{calendarError}</Text> : null}
+        {calendarError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{calendarError}</Text> : null}
       </View>
 
-      <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>{t('shared.freeSlots')}</Text>
+      <View style={uiStyles.panel}>
+        <Text style={uiStyles.sectionTitle}>{t('shared.freeSlots')}</Text>
         {availableSlots.length ? (
           availableSlots.map((slot) => (
             <Pressable
@@ -126,67 +127,62 @@ export default function SharedCalendarScreen() {
               }}
               style={{
                 borderTopWidth: 1,
-                borderColor: 'black',
-                paddingTop: 12,
-                marginTop: 12,
-                backgroundColor: selectedSlotId === slot.id ? '#f1f1f1' : 'white',
+                borderColor: theme.colors.border,
+                paddingTop: theme.spacing[12],
+                marginTop: theme.spacing[12],
+                backgroundColor: selectedSlotId === slot.id ? theme.colors.accentSoft : theme.colors.surface,
+                borderRadius: theme.radius.small,
               }}>
-              <Text style={{ color: 'black', marginBottom: 4 }}>
+              <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4] }]}>
                 {formatDateTime(slot.startsAt)} bis {formatDateTime(slot.endsAt)}
               </Text>
-              <Text style={{ color: 'black', marginBottom: 4 }}>{t('shared.statusOpen')}</Text>
+              <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[4] }]}>{t('shared.statusOpen')}</Text>
               {slot.startsAt ? (
-                <Text style={{ color: 'black' }}>
+                <Text style={uiStyles.metaText}>
                   {t('public.day', { day: getDayKey(slot.startsAt) })}
                 </Text>
               ) : null}
             </Pressable>
           ))
         ) : (
-          <Text style={{ color: 'black' }}>{t('shared.noSlots')}</Text>
+          <Text style={uiStyles.secondaryText}>{t('shared.noSlots')}</Text>
         )}
 
-        {slotsError ? <Text style={{ color: 'black', marginTop: 12 }}>{slotsError}</Text> : null}
+        {slotsError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{slotsError}</Text> : null}
       </View>
 
-      <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>
-        <Text style={{ color: 'black', fontSize: 18, marginBottom: 12 }}>{t('shared.bookingTitle')}</Text>
+      <View style={uiStyles.panel}>
+        <Text style={uiStyles.sectionTitle}>{t('shared.bookingTitle')}</Text>
         {selectedSlot ? (
           <>
-            <Text style={{ color: 'black', marginBottom: 4 }}>
+            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4] }]}>
               {t('shared.selectedSlot', {
                 range: `${formatDateTime(selectedSlot.startsAt)} bis ${formatDateTime(selectedSlot.endsAt)}`,
               })}
             </Text>
-            <Text style={{ color: 'black', marginBottom: 12 }}>
+            <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
               {calendar?.ownerId === user?.uid ? t('shared.ownSlotsLocked') : t('shared.canBook')}
             </Text>
           </>
         ) : (
-          <Text style={{ color: 'black', marginBottom: 12 }}>{t('shared.selectSlot')}</Text>
+          <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>{t('shared.selectSlot')}</Text>
         )}
 
         <Pressable
           onPress={handleBookSlot}
           disabled={!canBook || submitting}
-          style={{
-            borderWidth: 1,
-            borderColor: 'black',
-            paddingVertical: 12,
-            alignItems: 'center',
-            opacity: !canBook || submitting ? 0.55 : 1,
-          }}>
-          <Text style={{ color: 'black' }}>
+          style={[uiStyles.outlineAction, { opacity: !canBook || submitting ? 0.55 : 1 }]}>
+          <Text style={uiStyles.buttonText}>
             {submitting ? t('shared.submitting') : t('shared.submit')}
           </Text>
         </Pressable>
 
-        {message ? <Text style={{ color: 'black', marginTop: 12 }}>{message}</Text> : null}
+        {message ? <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>{message}</Text> : null}
       </View>
 
-      <View style={{ alignItems: 'flex-end' }}>
+      <View style={uiStyles.footerRow}>
         <Link href="/(tabs)">
-          <Text style={{ color: 'black', textDecorationLine: 'underline' }}>
+          <Text style={uiStyles.linkText}>
             {t('shared.backToDashboard')}
           </Text>
         </Link>
