@@ -1,11 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Button, Text, TextInput, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { FirebaseError } from 'firebase/app';
 
 import { logout, registerWithEmail, sendVerificationEmail } from '../src/firebase/auth';
 import { ensureOwnerAccountSetup } from '../src/features/mvp/repository';
 import { useAuth } from '../src/firebase/useAuth';
+import { theme } from '../src/theme/ui';
+import { authUiStyles } from '../src/theme/auth-ui';
 import { useTranslation } from '@/src/i18n/provider';
 
 function isValidEmail(email: string) {
@@ -89,33 +99,64 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 24 }}>{t('register.title')}</Text>
+    <KeyboardAvoidingView
+      style={authUiStyles.keyboardShell}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView
+        style={authUiStyles.scroll}
+        contentContainerStyle={authUiStyles.scrollContent}
+        keyboardShouldPersistTaps="handled">
+        <View style={authUiStyles.formWrap}>
+          <View style={authUiStyles.card}>
+            <View style={authUiStyles.header}>
+              <Text style={authUiStyles.title}>{t('register.title')}</Text>
+            </View>
 
-      <TextInput
-        placeholder={t('register.emailPlaceholder')}
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        style={{ borderWidth: 1, padding: 12 }}
-      />
+            <View style={authUiStyles.fieldGroup}>
+              <Text style={authUiStyles.label}>{t('register.emailPlaceholder')}</Text>
+              <TextInput
+                placeholder={t('register.emailPlaceholder')}
+                placeholderTextColor={theme.colors.textSecondary}
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                style={authUiStyles.input}
+              />
+            </View>
 
-      <TextInput
-        placeholder={t('register.passwordPlaceholder')}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        style={{ borderWidth: 1, padding: 12 }}
-      />
+            <View style={authUiStyles.fieldGroup}>
+              <Text style={authUiStyles.label}>{t('register.passwordPlaceholder')}</Text>
+              <TextInput
+                placeholder={t('register.passwordPlaceholder')}
+                placeholderTextColor={theme.colors.textSecondary}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                style={authUiStyles.input}
+              />
+            </View>
 
-      <Button
-        title={submitting ? t('register.submitting') : t('register.submit')}
-        onPress={handleRegister}
-        disabled={submitting}
-      />
+            <Pressable
+              onPress={handleRegister}
+              disabled={submitting}
+              style={[
+                authUiStyles.primaryButton,
+                submitting ? authUiStyles.primaryButtonDisabled : null,
+              ]}>
+              <Text style={authUiStyles.primaryButtonText}>
+                {submitting ? t('register.submitting') : t('register.submit')}
+              </Text>
+            </Pressable>
 
-      {message ? <Text>{message}</Text> : null}
-    </View>
+            {message ? (
+              <View style={authUiStyles.messageBox}>
+                <Text style={authUiStyles.messageText}>{message}</Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'expo-router';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
 import {
   buildMonthGrid,
@@ -21,6 +21,7 @@ export default function MyCalendarScreen() {
   const { user, loading: authLoading } = useAuth();
   const { t, language } = useTranslation();
   const { weekStartsOn } = useAppSettings();
+  const { width: screenWidth } = useWindowDimensions();
   const locale = language === 'de' ? 'de-DE' : 'en-US';
   const { calendar, loading, error } = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
@@ -39,6 +40,10 @@ export default function MyCalendarScreen() {
     () => getWeekdayLabels(language, weekStartsOn),
     [language, weekStartsOn]
   );
+  const calendarCellGap = theme.spacing[4];
+  const availableWidth = Math.max(screenWidth - theme.spacing[16] * 2 - theme.spacing[16] * 2, 280);
+  const cellWidth = (availableWidth - calendarCellGap * 6) / 7;
+  const cellHeight = Math.max(Math.min(cellWidth * 1.08, 74), 54);
 
   if (authLoading || loading || slotsLoading) {
     return (
@@ -58,7 +63,17 @@ export default function MyCalendarScreen() {
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
-      <Text style={uiStyles.pageTitle}>Mein Slot-Kalender</Text>
+      <Text
+        style={[
+          uiStyles.sectionTitle,
+          {
+            marginBottom: theme.spacing[16],
+            fontSize: 22,
+            letterSpacing: -0.3,
+          },
+        ]}>
+        Mein Slot-Kalender
+      </Text>
 
       <View style={uiStyles.panel}>
         <CalendarNavigationHeader
@@ -71,32 +86,40 @@ export default function MyCalendarScreen() {
           style={{
             flexDirection: 'row',
             marginBottom: theme.spacing[12],
-            paddingHorizontal: theme.spacing[4],
+            columnGap: calendarCellGap,
           }}>
           {weekdayLabels.map((label) => (
-            <View key={label} style={{ flex: 1 }}>
-              <Text style={[uiStyles.metaText, { textAlign: 'center' }]}>{label}</Text>
+            <View key={label} style={{ width: cellWidth }}>
+              <Text
+                numberOfLines={1}
+                style={[uiStyles.metaText, { textAlign: 'center', fontSize: 12 }]}>
+                {label}
+              </Text>
             </View>
           ))}
         </View>
 
-        {monthGrid.map((week, weekIndex) => (
-          <View key={`week-${weekIndex}`} style={{ flexDirection: 'row', marginBottom: theme.spacing[8] }}>
+        <View style={{ rowGap: calendarCellGap }}>
+          {monthGrid.map((week, weekIndex) => (
+            <View
+              key={`week-${weekIndex}`}
+              style={{ flexDirection: 'row', columnGap: calendarCellGap }}>
             {week.map((day) => {
               const slotCount = slotCountsByDay[day.key] ?? 0;
               const isOutsideMonth = !day.isCurrentMonth;
               const hasSlots = slotCount > 0;
 
               return (
-                <View key={day.key} style={{ flex: 1, marginHorizontal: 2 }}>
+                <View key={day.key} style={{ width: cellWidth }}>
                   <Link href={`/my-calendar/${day.key}`} asChild>
                     <Pressable
                       style={{
                         borderWidth: 1,
                         borderColor: day.isToday ? theme.colors.accent : theme.colors.border,
                         borderRadius: theme.radius.medium,
-                        minHeight: 78,
-                        padding: theme.spacing[12],
+                        minHeight: cellHeight,
+                        paddingHorizontal: theme.spacing[8],
+                        paddingVertical: theme.spacing[8],
                         backgroundColor: day.isToday
                           ? theme.colors.accentSoft
                           : hasSlots
@@ -107,30 +130,44 @@ export default function MyCalendarScreen() {
                         opacity: isOutsideMonth ? 0.55 : 1,
                       }}>
                       <Text
+                        numberOfLines={1}
                         style={[
                           uiStyles.bodyText,
                           {
-                            marginBottom: 6,
+                            marginBottom: hasSlots ? theme.spacing[8] : 0,
                             color: isOutsideMonth
                               ? theme.colors.textSecondary
                               : theme.colors.textPrimary,
                             fontWeight: day.isToday ? '700' : '500',
+                            fontSize: 15,
                           },
                         ]}>
                         {day.date.getDate()}
                       </Text>
                       {slotCount ? (
-                        <Text
-                          style={[
-                            uiStyles.metaText,
-                            {
-                              color: hasSlots ? theme.colors.textPrimary : theme.colors.textSecondary,
-                            },
-                          ]}>
-                          {slotCount === 1
-                            ? t('calendar.slotCount.one', { count: slotCount })
-                            : t('calendar.slotCount.other', { count: slotCount })}
-                        </Text>
+                        <View
+                          style={{
+                            alignSelf: 'flex-start',
+                            paddingHorizontal: theme.spacing[8],
+                            paddingVertical: 4,
+                            borderRadius: theme.radius.small,
+                            backgroundColor: day.isToday
+                              ? theme.colors.surface
+                              : theme.colors.accentSoft,
+                          }}>
+                          <Text
+                            numberOfLines={1}
+                            style={[
+                              uiStyles.metaText,
+                              {
+                                color: theme.colors.textPrimary,
+                                fontWeight: '600',
+                                fontSize: 11,
+                              },
+                            ]}>
+                            {slotCount}
+                          </Text>
+                        </View>
                       ) : null}
                     </Pressable>
                   </Link>
@@ -138,11 +175,12 @@ export default function MyCalendarScreen() {
               );
             })}
           </View>
-        ))}
+          ))}
+        </View>
 
         <View
           style={{
-            flexDirection: 'row',
+            flexDirection: screenWidth < 380 ? 'column' : 'row',
             gap: theme.spacing[12],
             marginTop: theme.spacing[16],
           }}>

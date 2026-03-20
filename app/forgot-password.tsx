@@ -1,8 +1,18 @@
 import { useState } from 'react';
-import { Button, Text, TextInput, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { FirebaseError } from 'firebase/app';
 
 import { sendResetPassword } from '../src/firebase/auth';
+import { theme } from '../src/theme/ui';
+import { authUiStyles } from '../src/theme/auth-ui';
 import { useTranslation } from '@/src/i18n/provider';
 
 function isValidEmail(email: string) {
@@ -57,25 +67,52 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 24 }}>{t('forgot.title')}</Text>
+    <KeyboardAvoidingView
+      style={authUiStyles.keyboardShell}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView
+        style={authUiStyles.scroll}
+        contentContainerStyle={authUiStyles.scrollContent}
+        keyboardShouldPersistTaps="handled">
+        <View style={authUiStyles.formWrap}>
+          <View style={authUiStyles.card}>
+            <View style={authUiStyles.header}>
+              <Text style={authUiStyles.title}>{t('forgot.title')}</Text>
+            </View>
 
-      <TextInput
-        placeholder={t('forgot.emailPlaceholder')}
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        style={{ borderWidth: 1, padding: 12 }}
-      />
+            <View style={authUiStyles.fieldGroup}>
+              <Text style={authUiStyles.label}>{t('forgot.emailPlaceholder')}</Text>
+              <TextInput
+                placeholder={t('forgot.emailPlaceholder')}
+                placeholderTextColor={theme.colors.textSecondary}
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                style={authUiStyles.input}
+              />
+            </View>
 
-      <Button
-        title={submitting ? t('forgot.submitting') : t('forgot.submit')}
-        onPress={handleReset}
-        disabled={submitting}
-      />
+            <Pressable
+              onPress={handleReset}
+              disabled={submitting}
+              style={[
+                authUiStyles.primaryButton,
+                submitting ? authUiStyles.primaryButtonDisabled : null,
+              ]}>
+              <Text style={authUiStyles.primaryButtonText}>
+                {submitting ? t('forgot.submitting') : t('forgot.submit')}
+              </Text>
+            </Pressable>
 
-      {message ? <Text>{message}</Text> : null}
-    </View>
+            {message ? (
+              <View style={authUiStyles.messageBox}>
+                <Text style={authUiStyles.messageText}>{message}</Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

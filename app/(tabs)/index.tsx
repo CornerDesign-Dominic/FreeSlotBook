@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
+import { Feather } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
@@ -89,14 +90,32 @@ export default function HomeScreen() {
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
+            gap: theme.spacing[12],
             marginBottom: theme.spacing[24],
           }}>
-          <Text style={uiStyles.pageTitle}>{t('dashboard.title')}</Text>
+          <Text
+            style={{
+              flex: 1,
+              color: theme.colors.textPrimary,
+              fontSize: theme.typography.sectionTitle,
+              fontWeight: '700',
+              letterSpacing: -0.2,
+            }}>
+            {t('dashboard.title')}
+          </Text>
           <Link href="/settings" asChild>
-            <Pressable style={{ paddingVertical: theme.spacing[8] }}>
-              <Text style={uiStyles.linkText}>
-                {t('dashboard.openSettings')}
-              </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('dashboard.openSettings')}
+              style={[
+                uiStyles.calendarNavigationButton,
+                {
+                  width: 40,
+                  height: 40,
+                  borderRadius: theme.radius.small,
+                },
+              ]}>
+              <Feather name="settings" size={18} color={theme.colors.accent} />
             </Pressable>
           </Link>
         </View>

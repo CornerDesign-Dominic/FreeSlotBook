@@ -1,10 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Button, Pressable, Text, TextInput, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { FirebaseError } from 'firebase/app';
 
 import { loginWithEmail, logout, sendVerificationEmail } from '../src/firebase/auth';
+import { theme } from '../src/theme/ui';
+import { authUiStyles } from '../src/theme/auth-ui';
 import { useAuth } from '../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 
@@ -144,49 +154,86 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 24 }}>{t('login.title')}</Text>
+    <KeyboardAvoidingView
+      style={authUiStyles.keyboardShell}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView
+        style={authUiStyles.scroll}
+        contentContainerStyle={authUiStyles.scrollContent}
+        keyboardShouldPersistTaps="handled">
+        <View style={authUiStyles.formWrap}>
+          <View style={authUiStyles.card}>
+            <View style={authUiStyles.header}>
+              <Text style={authUiStyles.title}>{t('login.title')}</Text>
+            </View>
 
-      <TextInput
-        placeholder={t('login.emailPlaceholder')}
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        style={{ borderWidth: 1, padding: 12 }}
-      />
+            <View style={authUiStyles.fieldGroup}>
+              <Text style={authUiStyles.label}>{t('login.emailPlaceholder')}</Text>
+              <TextInput
+                placeholder={t('login.emailPlaceholder')}
+                placeholderTextColor={theme.colors.textSecondary}
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                style={authUiStyles.input}
+              />
+            </View>
 
-      <TextInput
-        placeholder={t('login.passwordPlaceholder')}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        style={{ borderWidth: 1, padding: 12 }}
-      />
+            <View style={authUiStyles.fieldGroup}>
+              <Text style={authUiStyles.label}>{t('login.passwordPlaceholder')}</Text>
+              <TextInput
+                placeholder={t('login.passwordPlaceholder')}
+                placeholderTextColor={theme.colors.textSecondary}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                style={authUiStyles.input}
+              />
+            </View>
 
-      <Button
-        title={submitting ? t('login.submitting') : t('login.submit')}
-        onPress={handleLogin}
-        disabled={submitting}
-      />
+            <Pressable
+              onPress={handleLogin}
+              disabled={submitting}
+              style={[
+                authUiStyles.primaryButton,
+                submitting ? authUiStyles.primaryButtonDisabled : null,
+              ]}>
+              <Text style={authUiStyles.primaryButtonText}>
+                {submitting ? t('login.submitting') : t('login.submit')}
+              </Text>
+            </Pressable>
 
-      <Link href="/forgot-password" asChild>
-        <Pressable>
-          <Text>{t('login.forgotPassword')}</Text>
-        </Pressable>
-      </Link>
+            <View style={authUiStyles.secondaryActionGroup}>
+              <Link href="/forgot-password" asChild>
+                <Pressable>
+                  <Text style={authUiStyles.linkText}>{t('login.forgotPassword')}</Text>
+                </Pressable>
+              </Link>
 
-      <Text>{t('login.inviteHint')}</Text>
+              {message ? (
+                <View style={authUiStyles.messageBox}>
+                  <Text style={authUiStyles.messageText}>{message}</Text>
+                </View>
+              ) : null}
 
-      {message ? <Text>{message}</Text> : null}
-
-      {canResendVerification ? (
-        <Button
-          title={submitting ? t('login.resending') : t('login.resend')}
-          onPress={handleResendVerification}
-          disabled={submitting}
-        />
-      ) : null}
-    </View>
+              {canResendVerification ? (
+                <Pressable
+                  onPress={handleResendVerification}
+                  disabled={submitting}
+                  style={[
+                    authUiStyles.primaryButton,
+                    submitting ? authUiStyles.primaryButtonDisabled : null,
+                  ]}>
+                  <Text style={authUiStyles.primaryButtonText}>
+                    {submitting ? t('login.resending') : t('login.resend')}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
