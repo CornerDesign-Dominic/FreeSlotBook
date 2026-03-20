@@ -298,6 +298,8 @@ export const en = {
     'This area only shows your own received or booked appointments, separate from the slot calendar.',
   'appointments.weekTitle': 'Appointment week view',
   'appointments.dayTitle': 'Appointments of the day',
+  'appointments.timeline': 'Daily timeline',
+  'appointments.details': 'Appointment details',
   'appointments.weekDays': 'Days',
   'appointments.openWeekView': 'Open week view',
   'appointments.previousMonth': 'Previous month',
@@ -318,6 +320,8 @@ export const en = {
   'appointments.timeLabel': 'Time: {{time}}',
   'appointments.emailLabel': 'Email: {{email}}',
   'appointments.nameLabel': 'Name: {{name}}',
+  'appointments.createdAtLabel': 'Created: {{dateTime}}',
+  'appointments.selectHint': 'Select an appointment above to see its details.',
   'appointments.sourceManual': 'Assigned manually',
   'appointments.sourceSelfService': 'Booked by myself',
 

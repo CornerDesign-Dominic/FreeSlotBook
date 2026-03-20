@@ -300,6 +300,8 @@ export const de = {
     'Dieser Bereich zeigt nur deine eigenen erhaltenen oder gebuchten Termine, getrennt vom Slot-Kalender.',
   'appointments.weekTitle': 'Termin-Wochenansicht',
   'appointments.dayTitle': 'Termine des Tages',
+  'appointments.timeline': 'Tageszeitstrahl',
+  'appointments.details': 'Termininformationen',
   'appointments.weekDays': 'Tage',
   'appointments.openWeekView': 'Wochenansicht oeffnen',
   'appointments.previousMonth': 'Vorheriger Monat',
@@ -320,6 +322,8 @@ export const de = {
   'appointments.timeLabel': 'Zeit: {{time}}',
   'appointments.emailLabel': 'E-Mail: {{email}}',
   'appointments.nameLabel': 'Name: {{name}}',
+  'appointments.createdAtLabel': 'Erstellt: {{dateTime}}',
+  'appointments.selectHint': 'Waehle oben einen Termin aus, um die Details zu sehen.',
   'appointments.sourceManual': 'Manuell zugewiesen',
   'appointments.sourceSelfService': 'Selbst gebucht',
 
