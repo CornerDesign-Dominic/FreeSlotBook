@@ -123,6 +123,7 @@ export default function MyAppointmentsWeekScreen() {
   }
 
   const timeRailWidth = hourWidth * 24;
+  const gridLineColor = theme.colors.border;
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
@@ -130,11 +131,13 @@ export default function MyAppointmentsWeekScreen() {
         {t('appointments.weekTitle')}
       </Text>
 
-      <CalendarNavigationHeader
-        title={formatWeekRange(baseDate, locale, weekStartsOn)}
-        onPrevious={() => navigateToRelativeWeek(-1)}
-        onNext={() => navigateToRelativeWeek(1)}
-      />
+      <View style={{ marginBottom: theme.spacing[8] }}>
+        <CalendarNavigationHeader
+          title={formatWeekRange(baseDate, locale, weekStartsOn)}
+          onPrevious={() => navigateToRelativeWeek(-1)}
+          onNext={() => navigateToRelativeWeek(1)}
+        />
+      </View>
 
       <View style={uiStyles.panel}>
         <View style={{ flexDirection: 'row' }}>
@@ -149,11 +152,16 @@ export default function MyAppointmentsWeekScreen() {
                 style={{
                   height: rowHeight,
                   borderTopWidth: 1,
-                  borderColor: theme.colors.border,
+                  borderColor: gridLineColor,
                   justifyContent: 'center',
                   paddingRight: 8,
                 }}>
-                <Text style={{ color: theme.colors.textPrimary, fontWeight: day.isToday ? '700' : '400' }}>
+                <Text
+                  style={{
+                    color: theme.colors.textPrimary,
+                    fontSize: theme.typography.body,
+                    fontWeight: day.isToday ? '600' : '500',
+                  }}>
                   {formatDayLabel(day.date, locale)}
                 </Text>
               </Pressable>
@@ -173,7 +181,7 @@ export default function MyAppointmentsWeekScreen() {
                     style={{
                       width: hourWidth,
                       borderRightWidth: 1,
-                      borderColor: theme.colors.border,
+                      borderColor: gridLineColor,
                       justifyContent: 'center',
                     }}>
                     <Text style={uiStyles.metaText}>{`${`${hour}`.padStart(2, '0')}:00`}</Text>
@@ -188,7 +196,7 @@ export default function MyAppointmentsWeekScreen() {
                   style={{
                     height: rowHeight,
                     borderTopWidth: 1,
-                    borderColor: theme.colors.border,
+                    borderColor: gridLineColor,
                     position: 'relative',
                     backgroundColor: theme.colors.surface,
                   }}>
@@ -201,7 +209,8 @@ export default function MyAppointmentsWeekScreen() {
                         bottom: 0,
                         left: hour * hourWidth,
                         width: 1,
-                        backgroundColor: theme.colors.border,
+                        backgroundColor: gridLineColor,
+                        opacity: 0.7,
                       }}
                     />
                   ))}
@@ -253,9 +262,6 @@ export default function MyAppointmentsWeekScreen() {
           </ScrollView>
         </View>
 
-        {!appointments.length ? (
-          <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{t('appointments.emptyWeek')}</Text>
-        ) : null}
         {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
       </View>
 

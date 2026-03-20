@@ -5,6 +5,7 @@ import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-na
 import {
   buildWeekDays,
   formatWeekRange,
+  getDayKey,
   getMinutesSinceStartOfDay,
   getSlotsForDay,
   parseDayKey,
@@ -26,11 +27,17 @@ const headerHeight = 32;
 const hours = Array.from({ length: 24 }, (_, index) => index);
 
 function formatDayLabel(date: Date, locale: string) {
-  return date.toLocaleDateString(locale, {
+  const weekday = date.toLocaleDateString(locale, {
     weekday: 'short',
-    day: '2-digit',
-    month: '2-digit',
   });
+  const weekdayShort = weekday.replace(/\.$/, '').slice(0, 2);
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+
+  return {
+    weekday: `${weekdayShort}.`,
+    date: `${day}.${month}`,
+  };
 }
 
 function formatSlotTimeRange(slot: CalendarSlotRecord, locale: string) {
@@ -106,7 +113,7 @@ export default function CalendarWeekScreen() {
   const navigateToRelativeWeek = (offset: number) => {
     const nextDate = new Date(selectedWeekStart);
     nextDate.setDate(selectedWeekStart.getDate() + offset * 7);
-    router.replace(`/my-calendar/week?date=${nextDate.toISOString().slice(0, 10)}`);
+    router.replace(`/my-calendar/week?date=${getDayKey(nextDate)}`);
   };
 
   const openDay = (dayKey: string) => {
@@ -122,19 +129,27 @@ export default function CalendarWeekScreen() {
   }
 
   const timeRailWidth = hourWidth * 24;
+  const gridLineColor = theme.colors.border;
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
       <Text style={uiStyles.pageTitle}>{t('week.title')}</Text>
 
-      <CalendarNavigationHeader
-        title={formatWeekRange(baseDate, locale, weekStartsOn)}
-        onPrevious={() => navigateToRelativeWeek(-1)}
-        onNext={() => navigateToRelativeWeek(1)}
-      />
+      <View style={{ marginBottom: theme.spacing[8] }}>
+        <CalendarNavigationHeader
+          title={formatWeekRange(baseDate, locale, weekStartsOn)}
+          onPrevious={() => navigateToRelativeWeek(-1)}
+          onNext={() => navigateToRelativeWeek(1)}
+        />
+      </View>
 
       <View style={uiStyles.panel}>
-        <View style={{ flexDirection: 'row' }}>
+        <View
+          style={[
+            uiStyles.timelineShell,
+            { padding: theme.spacing[12], backgroundColor: theme.colors.background },
+          ]}>
+          <View style={{ flexDirection: 'row' }}>
           <View style={{ width: dayLabelWidth, marginRight: 8 }}>
             <View style={{ height: headerHeight, justifyContent: 'center' }}>
               <Text style={uiStyles.secondaryText}>{t('week.days')}</Text>
@@ -146,17 +161,32 @@ export default function CalendarWeekScreen() {
                 style={{
                   height: rowHeight,
                   borderTopWidth: 1,
-                  borderColor: theme.colors.border,
+                  borderColor: gridLineColor,
                   justifyContent: 'center',
                   paddingRight: 8,
+                  paddingLeft: theme.spacing[8],
+                  backgroundColor: day.isToday ? theme.colors.surfaceSoft : 'transparent',
+                  borderTopLeftRadius: day.isToday ? theme.radius.small : 0,
+                  borderBottomLeftRadius: day.isToday ? theme.radius.small : 0,
                 }}>
-                <Text
+                <View
                   style={{
-                    color: theme.colors.textPrimary,
-                    fontWeight: day.isToday ? '700' : '400',
+                    borderLeftWidth: day.isToday ? 2 : 0,
+                    borderLeftColor: day.isToday ? theme.colors.accent : 'transparent',
+                    paddingLeft: day.isToday ? theme.spacing[8] : 0,
                   }}>
-                  {formatDayLabel(day.date, locale)}
-                </Text>
+                  <Text
+                    style={{
+                      color: theme.colors.textPrimary,
+                      fontSize: theme.typography.body,
+                      fontWeight: day.isToday ? '600' : '500',
+                    }}>
+                    {formatDayLabel(day.date, locale).weekday}
+                  </Text>
+                  <Text style={uiStyles.metaText}>
+                    {formatDayLabel(day.date, locale).date}
+                  </Text>
+                </View>
               </Pressable>
             ))}
           </View>
@@ -174,13 +204,22 @@ export default function CalendarWeekScreen() {
                     style={{
                       width: hourWidth,
                       borderRightWidth: 1,
-                      borderColor: theme.colors.border,
+                      borderColor: gridLineColor,
                       justifyContent: 'center',
                     }}>
-                    <Text style={uiStyles.metaText}>{`${`${hour}`.padStart(2, '0')}:00`}</Text>
+                    <Text
+                      style={[
+                        uiStyles.metaText,
+                        {
+                          fontSize: 12,
+                          textAlign: 'right',
+                          paddingRight: theme.spacing[8],
+                        },
+                      ]}>
+                      {`${hour + 1}`.padStart(2, '0')}
+                    </Text>
                   </View>
                 ))}
-                <Text style={[uiStyles.metaText, { position: 'absolute', right: 0, top: 6 }]}>24:00</Text>
               </View>
 
               {weekDays.map((day) => (
@@ -189,7 +228,7 @@ export default function CalendarWeekScreen() {
                   style={{
                     height: rowHeight,
                     borderTopWidth: 1,
-                    borderColor: theme.colors.border,
+                    borderColor: gridLineColor,
                     position: 'relative',
                     backgroundColor: theme.colors.surface,
                   }}>
@@ -202,7 +241,8 @@ export default function CalendarWeekScreen() {
                         bottom: 0,
                         left: hour * hourWidth,
                         width: 1,
-                        backgroundColor: theme.colors.border,
+                        backgroundColor: gridLineColor,
+                        opacity: 0.7,
                       }}
                     />
                   ))}
@@ -255,6 +295,7 @@ export default function CalendarWeekScreen() {
               ))}
             </View>
           </ScrollView>
+        </View>
         </View>
 
         {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}

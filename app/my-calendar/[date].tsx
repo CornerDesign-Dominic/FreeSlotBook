@@ -409,6 +409,7 @@ export default function CalendarDayScreen() {
   const selectedSlotCanCancelAppointment =
     selectedSlot?.status === 'booked' && Boolean(selectedSlot?.appointmentId);
   const timeRailWidth = hourWidth * 24;
+  const gridLineColor = theme.colors.border;
   const footerStatusHint = getFooterStatusHint(
     selectedSlot?.status ?? null,
     Boolean(selectedSlot?.appointmentId)
@@ -423,112 +424,131 @@ export default function CalendarDayScreen() {
   return (
     <View style={uiStyles.screen}>
       <ScrollView contentContainerStyle={{ padding: theme.spacing[16], paddingBottom: 120 }}>
-        <CalendarNavigationHeader
-          title={formatDayTitle(selectedDate, locale)}
-          onPrevious={() => navigateToRelativeDay(-1)}
-          onNext={() => navigateToRelativeDay(1)}
-        />
+        <View style={{ marginBottom: theme.spacing[8] }}>
+          <CalendarNavigationHeader
+            title={formatDayTitle(selectedDate, locale)}
+            onPrevious={() => navigateToRelativeDay(-1)}
+            onNext={() => navigateToRelativeDay(1)}
+          />
+        </View>
 
         <View style={uiStyles.panel}>
           <Text style={uiStyles.sectionTitle}>{t('day.timeline')}</Text>
 
-          <ScrollView
-            ref={timelineScrollRef}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ minWidth: timeRailWidth }}>
-            <View style={{ width: timeRailWidth }}>
-              <View style={{ flexDirection: 'row', marginBottom: 12 }}>
-                {hours.map((hour) => (
-                  <View
-                    key={`hour-label-${hour}`}
-                    style={{ width: hourWidth, borderRightWidth: 1, borderColor: theme.colors.border }}>
-                    <Text style={uiStyles.metaText}>{`${`${hour}`.padStart(2, '0')}:00`}</Text>
-                  </View>
-                ))}
+          <View
+            style={[
+              uiStyles.timelineShell,
+              { backgroundColor: theme.colors.background, padding: theme.spacing[12] },
+            ]}>
+            <ScrollView
+              ref={timelineScrollRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ minWidth: timeRailWidth }}>
+              <View style={{ width: timeRailWidth }}>
+                <View style={{ flexDirection: 'row', marginBottom: 12 }}>
+                  {hours.map((hour) => (
+                    <View
+                      key={`hour-label-${hour}`}
+                      style={{ width: hourWidth, borderRightWidth: 1, borderColor: gridLineColor }}>
+                      <Text style={[uiStyles.metaText, { fontSize: 12 }]}>{`${`${hour}`.padStart(2, '0')}:00`}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <View
+                  style={{
+                    position: 'relative',
+                    height: timelineHeight,
+                    borderWidth: 1,
+                    borderColor: gridLineColor,
+                    borderRadius: theme.radius.medium,
+                    backgroundColor: theme.colors.surface,
+                  }}>
+                  {hours.map((hour) => (
+                    <View
+                      key={`hour-grid-${hour}`}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        bottom: 0,
+                        left: hour * hourWidth,
+                        width: 1,
+                        backgroundColor: gridLineColor,
+                        opacity: 0.7,
+                      }}
+                    />
+                  ))}
+
+                  {daySlots.length ? (
+                    daySlots.map((slot) => {
+                      if (!slot.startsAt || !slot.endsAt) {
+                        return null;
+                      }
+
+                      const left = (getMinutesSinceStartOfDay(slot.startsAt) / 60) * hourWidth;
+                      const durationMinutes = Math.max(
+                        (slot.endsAt.getTime() - slot.startsAt.getTime()) / 60000,
+                        30
+                      );
+                      const width = Math.max((durationMinutes / 60) * hourWidth, 84);
+                      const isSelected = selectedSlotId === slot.id;
+
+                      return (
+                        <Pressable
+                          key={slot.id}
+                          onPress={() => {
+                            setSelectedSlotId(slot.id);
+                            setActionMessage(null);
+                          }}
+                          style={{
+                            position: 'absolute',
+                            left,
+                            top: 28,
+                            width,
+                            minHeight: 92,
+                            padding: 10,
+                            borderWidth: isSelected ? 2 : 1,
+                            borderColor:
+                              isSelected
+                                ? theme.colors.accent
+                                : slot.status === 'inactive'
+                                  ? theme.colors.textSecondary
+                                  : theme.colors.border,
+                            backgroundColor:
+                              slot.status === 'inactive'
+                                ? theme.colors.accentSoft
+                                : slot.status === 'booked'
+                                  ? theme.colors.surfaceSoft
+                                  : theme.colors.surface,
+                            borderRadius: theme.radius.medium,
+                            shadowColor: isSelected ? theme.colors.shadow : 'transparent',
+                            shadowOffset: { width: 0, height: 6 },
+                            shadowOpacity: isSelected ? 0.08 : 0,
+                            shadowRadius: 12,
+                            elevation: isSelected ? 1 : 0,
+                          }}>
+                          <Text style={[uiStyles.bodyText, { marginBottom: 6 }]}>
+                            {formatTime(slot.startsAt)} - {formatTime(slot.endsAt)}
+                          </Text>
+                          <Text style={[uiStyles.secondaryText, { marginBottom: 4 }]}>
+                            {formatSlotStatus(slot.status)}
+                          </Text>
+                          <Text style={uiStyles.metaText}>
+                            {slot.appointmentId ? t('day.linkedAppointment') : t('day.noAppointment')}
+                          </Text>
+                        </Pressable>
+                      );
+                    })
+                  ) : (
+                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                      <Text style={uiStyles.secondaryText}>{t('day.noSlots')}</Text>
+                    </View>
+                  )}
+                </View>
               </View>
-
-              <View
-                style={{
-                  position: 'relative',
-                  height: timelineHeight,
-                  borderWidth: 1,
-                  borderColor: theme.colors.border,
-                  borderRadius: theme.radius.medium,
-                  backgroundColor: theme.colors.surface,
-                }}>
-                {hours.map((hour) => (
-                  <View
-                    key={`hour-grid-${hour}`}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      bottom: 0,
-                      left: hour * hourWidth,
-                      width: 1,
-                      backgroundColor: theme.colors.border,
-                    }}
-                  />
-                ))}
-
-                {daySlots.length ? (
-                  daySlots.map((slot) => {
-                    if (!slot.startsAt || !slot.endsAt) {
-                      return null;
-                    }
-
-                    const left = (getMinutesSinceStartOfDay(slot.startsAt) / 60) * hourWidth;
-                    const durationMinutes = Math.max(
-                      (slot.endsAt.getTime() - slot.startsAt.getTime()) / 60000,
-                      30
-                    );
-                    const width = Math.max((durationMinutes / 60) * hourWidth, 84);
-                    const isSelected = selectedSlotId === slot.id;
-
-                    return (
-                      <Pressable
-                        key={slot.id}
-                        onPress={() => {
-                          setSelectedSlotId(slot.id);
-                          setActionMessage(null);
-                        }}
-                        style={{
-                          position: 'absolute',
-                          left,
-                          top: 28,
-                          width,
-                          minHeight: 92,
-                          padding: 10,
-                          borderWidth: 2,
-                          borderColor: isSelected ? theme.colors.accent : theme.colors.border,
-                          backgroundColor:
-                            slot.status === 'inactive'
-                              ? theme.colors.accentSoft
-                              : slot.status === 'booked'
-                                ? theme.colors.surfaceSoft
-                                : theme.colors.surface,
-                          borderRadius: theme.radius.medium,
-                        }}>
-                        <Text style={[uiStyles.bodyText, { marginBottom: 6 }]}>
-                          {formatTime(slot.startsAt)} - {formatTime(slot.endsAt)}
-                        </Text>
-                        <Text style={[uiStyles.secondaryText, { marginBottom: 4 }]}>
-                          {formatSlotStatus(slot.status)}
-                        </Text>
-                        <Text style={uiStyles.metaText}>
-                          {slot.appointmentId ? t('day.linkedAppointment') : t('day.noAppointment')}
-                        </Text>
-                      </Pressable>
-                    );
-                  })
-                ) : (
-                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                    <Text style={uiStyles.secondaryText}>{t('day.noSlots')}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </View>
 
           {slotsError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{slotsError}</Text> : null}
           {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
@@ -540,7 +560,14 @@ export default function CalendarDayScreen() {
           </Text>
 
           {selectedSlot ? (
-            <>
+            <View
+              style={[
+                uiStyles.subtlePanel,
+                {
+                  marginBottom: theme.spacing[12],
+                  backgroundColor: theme.colors.surfaceSoft,
+                },
+              ]}>
               <Text style={[uiStyles.bodyText, { marginBottom: 6 }]}>
                 {t('day.timeLabel', {
                   time: `${formatTime(selectedSlot.startsAt)} - ${formatTime(selectedSlot.endsAt)}`,
@@ -552,7 +579,7 @@ export default function CalendarDayScreen() {
               <Text style={[uiStyles.secondaryText, { marginBottom: 12 }]}>
                 {selectedSlot.appointmentId ? t('day.hasAppointment') : t('day.hasNoAppointment')}
               </Text>
-            </>
+            </View>
           ) : null}
 
           <ScrollView style={{ maxHeight: historyPanelMaxHeight }}>
@@ -618,19 +645,28 @@ export default function CalendarDayScreen() {
           backgroundColor: theme.colors.surface,
           flexDirection: 'row',
           justifyContent: 'space-between',
-          alignItems: 'center',
+          alignItems: 'flex-start',
         }}>
         <Link href={`/my-calendar/create-slot?date=${rawDate}`} asChild>
-          <Pressable style={uiStyles.button}>
+          <Pressable style={[uiStyles.button, { minWidth: 112 }]}>
             <Text style={uiStyles.buttonText}>{t('day.addSlot')}</Text>
           </Pressable>
         </Link>
 
-        <View style={{ alignItems: 'flex-end' }}>
+        <View
+          style={[
+            uiStyles.subtlePanel,
+            {
+              alignItems: 'flex-end',
+              minWidth: 220,
+              padding: theme.spacing[12],
+              backgroundColor: theme.colors.surfaceSoft,
+            },
+          ]}>
           {selectedSlotCanEdit ? (
             <View style={{ marginBottom: theme.spacing[8] }}>
               <Link href={`/my-calendar/create-slot?date=${rawDate}&slotId=${selectedSlot?.id}`} asChild>
-                <Pressable style={uiStyles.button}>
+                <Pressable style={[uiStyles.button, { minWidth: 132 }]}>
                   <Text style={uiStyles.buttonText}>{t('day.editSlot')}</Text>
                 </Pressable>
               </Link>
@@ -639,7 +675,7 @@ export default function CalendarDayScreen() {
           {selectedSlotCanAssign ? (
             <Pressable
               onPress={handleOpenAssignmentModal}
-              style={[uiStyles.button, { marginBottom: theme.spacing[8] }]}>
+              style={[uiStyles.button, { marginBottom: theme.spacing[8], minWidth: 132 }]}>
               <Text style={uiStyles.buttonText}>{t('day.assignSlot')}</Text>
             </Pressable>
           ) : null}
@@ -647,7 +683,7 @@ export default function CalendarDayScreen() {
             <Pressable
               onPress={handleToggleHold}
               disabled={updatingAvailabilitySlotId === selectedSlot?.id}
-              style={[uiStyles.button, { marginBottom: theme.spacing[8] }]}>
+              style={[uiStyles.button, { marginBottom: theme.spacing[8], minWidth: 132 }]}>
               <Text style={uiStyles.buttonText}>
                 {updatingAvailabilitySlotId === selectedSlot?.id
                   ? t('day.processing')
@@ -659,7 +695,7 @@ export default function CalendarDayScreen() {
             <Pressable
               onPress={handleDeactivateSlot}
               disabled={deactivatingSlotId === selectedSlot?.id}
-              style={uiStyles.button}>
+              style={[uiStyles.button, { minWidth: 132 }]}>
               <Text style={uiStyles.buttonText}>
                 {deactivatingSlotId === selectedSlot?.id ? t('day.processing') : t('day.setInactive')}
               </Text>
@@ -668,7 +704,7 @@ export default function CalendarDayScreen() {
             <Pressable
               onPress={handleCancelAppointment}
               disabled={cancellingAppointmentId === selectedSlot?.appointmentId}
-              style={uiStyles.button}>
+              style={[uiStyles.button, { minWidth: 132 }]}>
               <Text style={uiStyles.buttonText}>
                 {cancellingAppointmentId === selectedSlot?.appointmentId
                   ? t('day.processing')
@@ -680,7 +716,7 @@ export default function CalendarDayScreen() {
               <Text style={uiStyles.secondaryText}>{t('day.noAction')}</Text>
             </View>
           )}
-          <Text style={[uiStyles.metaText, { marginTop: 8, maxWidth: 220, textAlign: 'right' }]}>
+          <Text style={[uiStyles.metaText, { marginTop: 10, maxWidth: 220, textAlign: 'right' }]}>
             {footerStatusHint}
           </Text>
         </View>
