@@ -7,7 +7,7 @@ import { bookSharedCalendarSlot } from '../../src/features/mvp/repository';
 import { useCalendar } from '../../src/features/mvp/useCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useAuth } from '../../src/firebase/useAuth';
-import { useTranslation } from '../../src/i18n/provider';
+import { useTranslation } from '@/src/i18n/provider';
 import { theme, uiStyles } from '../../src/theme/ui';
 
 export default function SharedCalendarScreen() {

@@ -31,7 +31,7 @@ import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import type { CalendarSlotEventRecord, SlotStatus } from '../../src/features/mvp/types';
 import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
 import { useAuth } from '../../src/firebase/useAuth';
-import { useTranslation } from '../../src/i18n/provider';
+import { useTranslation } from '@/src/i18n/provider';
 import { theme, uiStyles } from '../../src/theme/ui';
 
 const hourWidth = 96;

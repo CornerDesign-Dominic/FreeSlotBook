@@ -14,8 +14,8 @@ import type { AppointmentRecord } from '../../src/features/mvp/types';
 import { useParticipantAppointments } from '../../src/features/mvp/useParticipantAppointments';
 import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
 import { useAuth } from '../../src/firebase/useAuth';
-import { useTranslation } from '../../src/i18n/provider';
-import { useAppSettings } from '../../src/settings/provider';
+import { useTranslation } from '@/src/i18n/provider';
+import { useAppSettings } from '@/src/settings/provider';
 import { theme, uiStyles } from '../../src/theme/ui';
 
 const hourWidth = 88;

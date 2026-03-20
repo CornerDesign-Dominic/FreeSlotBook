@@ -3,7 +3,7 @@ import { Button, Text, TextInput, View } from 'react-native';
 import { FirebaseError } from 'firebase/app';
 
 import { sendResetPassword } from '../src/firebase/auth';
-import { useTranslation } from '../src/i18n/provider';
+import { useTranslation } from '@/src/i18n/provider';
 
 function isValidEmail(email: string) {
   return /\S+@\S+\.\S+/.test(email);

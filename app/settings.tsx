@@ -9,8 +9,8 @@ import {
 import { useOwnerCalendar } from '../src/features/mvp/useOwnerCalendar';
 import { useAuth } from '../src/firebase/useAuth';
 import { LanguageSwitcher } from '../src/i18n/language-switcher';
-import { useTranslation } from '../src/i18n/provider';
-import { useAppSettings } from '../src/settings/provider';
+import { useTranslation } from '@/src/i18n/provider';
+import { useAppSettings } from '@/src/settings/provider';
 import type { AppTheme, WeekStartsOn } from '../src/settings/types';
 import { theme as designTheme, uiStyles } from '../src/theme/ui';
 

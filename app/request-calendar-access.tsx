@@ -4,7 +4,7 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { requestCalendarAccessByOwnerEmail } from '../src/features/mvp/repository';
 import { useAuth } from '../src/firebase/useAuth';
-import { useTranslation } from '../src/i18n/provider';
+import { useTranslation } from '@/src/i18n/provider';
 import { theme, uiStyles } from '../src/theme/ui';
 
 export default function RequestCalendarAccessScreen() {

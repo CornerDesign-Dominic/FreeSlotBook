@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 
-import { useTranslation } from './provider';
+import { useTranslation } from '@/src/i18n/provider';
 import type { Language } from './types';
 
 function LanguageButton(props: {

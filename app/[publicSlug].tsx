@@ -4,7 +4,7 @@ import { Text, View } from 'react-native';
 
 import { PublicCalendarScreenContent } from '../src/features/mvp/public-calendar-screen';
 import { getPublicCalendarIdBySlug } from '../src/features/mvp/repository';
-import { useTranslation } from '../src/i18n/provider';
+import { useTranslation } from '@/src/i18n/provider';
 
 export default function PublicSlugScreen() {
   const { t } = useTranslation();

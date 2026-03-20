@@ -1,19 +1,16 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 
 import { ensureOwnerAccountSetup, upsertOwnerDeviceToken } from './repository';
 import { useAuth } from '../../firebase/useAuth';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+function isExpoGo() {
+  return (
+    Constants.appOwnership === 'expo' ||
+    Constants.executionEnvironment === 'storeClient'
+  );
+}
 
 export function useNotificationSetup() {
   const { user } = useAuth();
@@ -27,12 +24,29 @@ export function useNotificationSetup() {
     const ownerUser = { uid: currentUser.uid, email: currentUser.email };
 
     let isActive = true;
-    const responseSubscription = Notifications.addNotificationResponseReceivedListener(() => {
-      // Navigation from notifications can be added later on top of this listener.
-    });
+    let responseSubscription: { remove: () => void } | null = null;
 
     async function setupNotifications() {
       try {
+        if (isExpoGo()) {
+          return;
+        }
+
+        const Notifications = await import('expo-notifications');
+
+        Notifications.setNotificationHandler({
+          handleNotification: async () => ({
+            shouldPlaySound: true,
+            shouldSetBadge: false,
+            shouldShowBanner: true,
+            shouldShowList: true,
+          }),
+        });
+
+        responseSubscription = Notifications.addNotificationResponseReceivedListener(() => {
+          // Navigation from notifications can be added later on top of this listener.
+        });
+
         await ensureOwnerAccountSetup(ownerUser);
 
         if (Platform.OS === 'android') {
@@ -81,7 +95,7 @@ export function useNotificationSetup() {
 
     return () => {
       isActive = false;
-      responseSubscription.remove();
+      responseSubscription?.remove();
     };
   }, [user]);
 }

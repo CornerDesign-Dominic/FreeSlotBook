@@ -3,9 +3,9 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
-import { useNotificationSetup } from '../src/features/mvp/useNotificationSetup';
-import { I18nProvider } from '../src/i18n/provider';
-import { AppSettingsProvider, useAppSettings } from '../src/settings/provider';
+import { useNotificationSetup } from '@/src/features/mvp/useNotificationSetup';
+import { I18nProvider } from '@/src/i18n/provider';
+import { AppSettingsProvider, useAppSettings } from '@/src/settings/provider';
 
 export const unstable_settings = {
   anchor: '(tabs)',

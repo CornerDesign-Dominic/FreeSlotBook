@@ -12,7 +12,7 @@ import { useCalendarAccessList } from '../../src/features/mvp/useCalendarAccessL
 import { useCalendarAccessRequests } from '../../src/features/mvp/useCalendarAccessRequests';
 import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
 import { useAuth } from '../../src/firebase/useAuth';
-import { useTranslation } from '../../src/i18n/provider';
+import { useTranslation } from '@/src/i18n/provider';
 import { theme, uiStyles } from '../../src/theme/ui';
 
 export default function CalendarAccessScreen() {

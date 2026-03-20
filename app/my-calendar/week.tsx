@@ -15,8 +15,8 @@ import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import type { CalendarSlotRecord, SlotStatus } from '../../src/features/mvp/types';
 import { useAuth } from '../../src/firebase/useAuth';
-import { useTranslation } from '../../src/i18n/provider';
-import { useAppSettings } from '../../src/settings/provider';
+import { useTranslation } from '@/src/i18n/provider';
+import { useAppSettings } from '@/src/settings/provider';
 import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
 import { theme, uiStyles } from '../../src/theme/ui';
 

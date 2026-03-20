@@ -13,7 +13,7 @@ import { useDashboardData } from '../../src/features/mvp/useDashboardData';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useParticipantAppointments } from '../../src/features/mvp/useParticipantAppointments';
 import { useAuth } from '../../src/firebase/useAuth';
-import { useTranslation } from '../../src/i18n/provider';
+import { useTranslation } from '@/src/i18n/provider';
 import { theme, uiStyles } from '../../src/theme/ui';
 
 export default function HomeScreen() {

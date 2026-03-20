@@ -3,7 +3,7 @@ import type { RefObject } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
 import type { CalendarSlotRecord } from '../mvp/types';
-import { useTranslation } from '../../i18n/provider';
+import { useTranslation } from '@/src/i18n/provider';
 import {
   clipIntervalToWindow,
   intervalIntersectsWindow,

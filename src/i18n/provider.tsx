@@ -1,6 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import type { PropsWithChildren } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type Context,
+  type PropsWithChildren,
+} from 'react';
 
 import { translate } from './index';
 import type { TranslationKey } from './index';
@@ -17,7 +24,17 @@ type I18nContextValue = {
   ) => string;
 };
 
-const I18nContext = createContext<I18nContextValue | null>(null);
+const I18N_CONTEXT_KEY = '__freeSlotBookingI18nContext__';
+
+type GlobalI18nContextHost = typeof globalThis & {
+  __freeSlotBookingI18nContext__?: Context<I18nContextValue | null>;
+};
+
+const globalI18nContextHost = globalThis as GlobalI18nContextHost;
+
+const I18nContext =
+  globalI18nContextHost[I18N_CONTEXT_KEY] ??
+  (globalI18nContextHost[I18N_CONTEXT_KEY] = createContext<I18nContextValue | null>(null));
 
 export function I18nProvider(props: PropsWithChildren) {
   const [language, setLanguageState] = useState<Language>('de');

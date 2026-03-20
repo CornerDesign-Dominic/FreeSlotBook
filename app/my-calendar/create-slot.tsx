@@ -28,8 +28,8 @@ import { useCalendarAccessList } from '../../src/features/mvp/useCalendarAccessL
 import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useAuth } from '../../src/firebase/useAuth';
-import { useTranslation } from '../../src/i18n/provider';
-import { useAppSettings } from '../../src/settings/provider';
+import { useTranslation } from '@/src/i18n/provider';
+import { useAppSettings } from '@/src/settings/provider';
 import { theme, uiStyles } from '../../src/theme/ui';
 
 function sanitizeDateInput(value: string) {

@@ -1,6 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import type { PropsWithChildren } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type Context,
+  type PropsWithChildren,
+} from 'react';
 
 import type { AppTheme, WeekStartsOn } from './types';
 
@@ -14,7 +21,18 @@ type AppSettingsContextValue = {
   setWeekStartsOn: (weekStartsOn: WeekStartsOn) => Promise<void>;
 };
 
-const AppSettingsContext = createContext<AppSettingsContextValue | null>(null);
+const APP_SETTINGS_CONTEXT_KEY = '__freeSlotBookingAppSettingsContext__';
+
+type GlobalAppSettingsContextHost = typeof globalThis & {
+  __freeSlotBookingAppSettingsContext__?: Context<AppSettingsContextValue | null>;
+};
+
+const globalAppSettingsContextHost = globalThis as GlobalAppSettingsContextHost;
+
+const AppSettingsContext =
+  globalAppSettingsContextHost[APP_SETTINGS_CONTEXT_KEY] ??
+  (globalAppSettingsContextHost[APP_SETTINGS_CONTEXT_KEY] =
+    createContext<AppSettingsContextValue | null>(null));
 
 export function AppSettingsProvider(props: PropsWithChildren) {
   const [theme, setThemeState] = useState<AppTheme>('light');

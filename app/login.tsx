@@ -6,7 +6,7 @@ import { FirebaseError } from 'firebase/app';
 
 import { loginWithEmail, logout, sendVerificationEmail } from '../src/firebase/auth';
 import { useAuth } from '../src/firebase/useAuth';
-import { useTranslation } from '../src/i18n/provider';
+import { useTranslation } from '@/src/i18n/provider';
 
 function isValidEmail(email: string) {
   return /\S+@\S+\.\S+/.test(email);

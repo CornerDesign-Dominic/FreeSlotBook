@@ -8,7 +8,7 @@ import { bookPublicCalendarSlot } from './repository';
 import { PRIVACY_VERSION, TERMS_VERSION } from './types';
 import { useCalendar } from './useCalendar';
 import { useOwnerSlots } from './useOwnerSlots';
-import { useTranslation } from '../../i18n/provider';
+import { useTranslation } from '@/src/i18n/provider';
 
 function formatDateTime(value: Date | null, locale: string, fallback: string) {
   if (!value) {
