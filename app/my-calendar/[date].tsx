@@ -647,11 +647,13 @@ export default function CalendarDayScreen() {
           justifyContent: 'space-between',
           alignItems: 'flex-start',
         }}>
-        <Link href={`/my-calendar/create-slot?date=${rawDate}`} asChild>
-          <Pressable style={[uiStyles.button, { minWidth: 112 }]}>
-            <Text style={uiStyles.buttonText}>{t('day.addSlot')}</Text>
-          </Pressable>
-        </Link>
+        <View style={{ minWidth: 112 }}>
+          <Link href={`/my-calendar/create-slot?date=${rawDate}`} asChild>
+            <Pressable style={uiStyles.button}>
+              <Text style={uiStyles.buttonText}>{t('day.addSlot')}</Text>
+            </Pressable>
+          </Link>
+        </View>
 
         <View
           style={[
@@ -664,9 +666,9 @@ export default function CalendarDayScreen() {
             },
           ]}>
           {selectedSlotCanEdit ? (
-            <View style={{ marginBottom: theme.spacing[8] }}>
+            <View style={{ marginBottom: theme.spacing[8], minWidth: 132 }}>
               <Link href={`/my-calendar/create-slot?date=${rawDate}&slotId=${selectedSlot?.id}`} asChild>
-                <Pressable style={[uiStyles.button, { minWidth: 132 }]}>
+                <Pressable style={uiStyles.button}>
                   <Text style={uiStyles.buttonText}>{t('day.editSlot')}</Text>
                 </Pressable>
               </Link>

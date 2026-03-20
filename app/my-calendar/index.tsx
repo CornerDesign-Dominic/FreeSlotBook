@@ -58,95 +58,9 @@ export default function MyCalendarScreen() {
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
-      <Text style={uiStyles.pageTitle}>{t('calendar.title')}</Text>
+      <Text style={uiStyles.pageTitle}>Mein Slot-Kalender</Text>
 
       <View style={uiStyles.panel}>
-        <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>
-          {t('calendar.title')}
-        </Text>
-        {calendar ? (
-          <>
-            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4] }]}>
-              {t('calendar.owner', { email: calendar.ownerEmail })}
-            </Text>
-            <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
-              {t('dashboard.visibilityValue', { visibility: calendar.visibility })}
-            </Text>
-            {calendar.visibility === 'public' && calendar.publicSlug ? (
-              <View
-                style={[
-                  uiStyles.subtlePanel,
-                  {
-                    marginBottom: theme.spacing[12],
-                    backgroundColor: theme.colors.surfaceSoft,
-                  },
-                ]}>
-                <Text style={[uiStyles.metaText, { marginBottom: theme.spacing[8] }]}>
-                  {t('calendar.publicLinkValue', { slug: calendar.publicSlug })}
-                </Text>
-                <Link href={`/${calendar.publicSlug}`} asChild>
-                  <Pressable style={{ alignSelf: 'flex-start' }}>
-                    <Text style={uiStyles.linkText}>
-                      {t('calendar.openPublicPage')}
-                    </Text>
-                  </Pressable>
-                </Link>
-              </View>
-            ) : null}
-            <Link href="/settings" asChild>
-              <Pressable style={{ alignSelf: 'flex-start', paddingVertical: theme.spacing[4] }}>
-                <Text style={uiStyles.linkText}>
-                  {t('dashboard.openSettings')}
-                </Text>
-              </Pressable>
-            </Link>
-          </>
-        ) : (
-          <Text style={uiStyles.secondaryText}>{t('calendar.notAvailable')}</Text>
-        )}
-
-        {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
-      </View>
-
-      <View style={uiStyles.panel}>
-        <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[12] }]}>
-          {formatMonthTitle(visibleMonth, locale)}
-        </Text>
-
-        <View
-          style={[
-            uiStyles.subtlePanel,
-            {
-              marginBottom: theme.spacing[16],
-              backgroundColor: theme.colors.surfaceSoft,
-              gap: theme.spacing[12],
-            },
-          ]}>
-          <Link href="/my-calendar/create-slot" asChild>
-            <Pressable>
-              <Text style={uiStyles.linkText}>
-                {t('calendar.createSlots')}
-              </Text>
-            </Pressable>
-          </Link>
-
-          <Link href="/my-calendar/access" asChild>
-            <Pressable>
-              <Text style={uiStyles.linkText}>
-                {t('calendar.manageAccess')}
-              </Text>
-            </Pressable>
-          </Link>
-
-          <Link href={`/my-calendar/week?date=${getDayKey(visibleMonth)}`} asChild>
-            <Pressable>
-              <Text style={uiStyles.linkText}>
-                {t('calendar.openWeekView')}
-              </Text>
-            </Pressable>
-          </Link>
-        </View>
-
         <CalendarNavigationHeader
           title={formatMonthTitle(visibleMonth, locale)}
           onPrevious={goToPreviousMonth}
@@ -174,65 +88,93 @@ export default function MyCalendarScreen() {
               const hasSlots = slotCount > 0;
 
               return (
-                <Link key={day.key} href={`/my-calendar/${day.key}`} asChild>
-                  <Pressable
-                    style={{
-                      flex: 1,
-                      borderWidth: 1,
-                      borderColor: day.isToday ? theme.colors.accent : theme.colors.border,
-                      borderRadius: theme.radius.medium,
-                      minHeight: 78,
-                      padding: theme.spacing[12],
-                      marginHorizontal: 2,
-                      backgroundColor: day.isToday
-                        ? theme.colors.accentSoft
-                        : hasSlots
-                          ? theme.colors.surfaceSoft
-                          : isOutsideMonth
-                            ? theme.colors.background
-                            : theme.colors.surface,
-                      opacity: isOutsideMonth ? 0.55 : 1,
-                    }}>
-                    <Text
-                      style={[
-                        uiStyles.bodyText,
-                        {
-                          marginBottom: 6,
-                          color: isOutsideMonth
-                            ? theme.colors.textSecondary
-                            : theme.colors.textPrimary,
-                          fontWeight: day.isToday ? '700' : '500',
-                        },
-                      ]}>
-                      {day.date.getDate()}
-                    </Text>
-                    {slotCount ? (
+                <View key={day.key} style={{ flex: 1, marginHorizontal: 2 }}>
+                  <Link href={`/my-calendar/${day.key}`} asChild>
+                    <Pressable
+                      style={{
+                        borderWidth: 1,
+                        borderColor: day.isToday ? theme.colors.accent : theme.colors.border,
+                        borderRadius: theme.radius.medium,
+                        minHeight: 78,
+                        padding: theme.spacing[12],
+                        backgroundColor: day.isToday
+                          ? theme.colors.accentSoft
+                          : hasSlots
+                            ? theme.colors.surfaceSoft
+                            : isOutsideMonth
+                              ? theme.colors.background
+                              : theme.colors.surface,
+                        opacity: isOutsideMonth ? 0.55 : 1,
+                      }}>
                       <Text
                         style={[
-                          uiStyles.metaText,
+                          uiStyles.bodyText,
                           {
-                            color: hasSlots ? theme.colors.textPrimary : theme.colors.textSecondary,
+                            marginBottom: 6,
+                            color: isOutsideMonth
+                              ? theme.colors.textSecondary
+                              : theme.colors.textPrimary,
+                            fontWeight: day.isToday ? '700' : '500',
                           },
                         ]}>
-                        {slotCount === 1
-                          ? t('calendar.slotCount.one', { count: slotCount })
-                          : t('calendar.slotCount.other', { count: slotCount })}
+                        {day.date.getDate()}
                       </Text>
-                    ) : null}
-                  </Pressable>
-                </Link>
+                      {slotCount ? (
+                        <Text
+                          style={[
+                            uiStyles.metaText,
+                            {
+                              color: hasSlots ? theme.colors.textPrimary : theme.colors.textSecondary,
+                            },
+                          ]}>
+                          {slotCount === 1
+                            ? t('calendar.slotCount.one', { count: slotCount })
+                            : t('calendar.slotCount.other', { count: slotCount })}
+                        </Text>
+                      ) : null}
+                    </Pressable>
+                  </Link>
+                </View>
               );
             })}
           </View>
         ))}
 
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: theme.spacing[12],
+            marginTop: theme.spacing[16],
+          }}>
+          <View style={{ flex: 1 }}>
+            <Link href="/my-calendar/create-slot" asChild>
+              <Pressable style={uiStyles.button}>
+                <Text style={uiStyles.buttonText}>{t('calendar.createSlots')}</Text>
+              </Pressable>
+            </Link>
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Link href={`/my-calendar/week?date=${getDayKey(visibleMonth)}`} asChild>
+              <Pressable style={uiStyles.button}>
+                <Text style={uiStyles.buttonText}>{t('calendar.openWeekView')}</Text>
+              </Pressable>
+            </Link>
+          </View>
+        </View>
+
         {slotsError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{slotsError}</Text> : null}
+        {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
       </View>
 
-      <View style={uiStyles.footerRow}>
-        <Link href="/(tabs)" style={{ marginTop: 16 }}>
-          <Text style={uiStyles.linkText}>{t('nav.backToDashboard')}</Text>
-        </Link>
+      <View style={[uiStyles.footerRow, { alignItems: 'stretch' }]}>
+        <View style={{ marginTop: theme.spacing[4] }}>
+          <Link href="/(tabs)" asChild>
+            <Pressable style={uiStyles.button}>
+              <Text style={uiStyles.buttonText}>← Dashboard</Text>
+            </Pressable>
+          </Link>
+        </View>
       </View>
     </ScrollView>
   );

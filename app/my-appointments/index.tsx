@@ -78,13 +78,15 @@ export default function MyAppointmentsMonthScreen() {
       <View style={uiStyles.panel}>
         <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>{t('appointments.description')}</Text>
 
-        <Link href={`/my-appointments/week?date=${getDayKey(visibleMonth)}`} asChild>
-          <Pressable style={{ alignSelf: 'flex-start', marginBottom: theme.spacing[16] }}>
-            <Text style={uiStyles.linkText}>
-              {t('appointments.openWeekView')}
-            </Text>
-          </Pressable>
-        </Link>
+        <View style={{ alignSelf: 'flex-start', marginBottom: theme.spacing[16] }}>
+          <Link href={`/my-appointments/week?date=${getDayKey(visibleMonth)}`} asChild>
+            <Pressable>
+              <Text style={uiStyles.linkText}>
+                {t('appointments.openWeekView')}
+              </Text>
+            </Pressable>
+          </Link>
+        </View>
 
         <CalendarNavigationHeader
           title={formatMonthTitle(visibleMonth, locale)}
@@ -106,28 +108,29 @@ export default function MyAppointmentsMonthScreen() {
               const appointmentCount = appointmentCountsByDay[day.key] ?? 0;
 
               return (
-                <Link key={day.key} href={`/my-appointments/${day.key}`} asChild>
-                  <Pressable
-                    style={{
-                      flex: 1,
-                      borderWidth: 1,
-                      borderColor: theme.colors.border,
-                      borderRadius: theme.radius.small,
-                      minHeight: 72,
-                      padding: 8,
-                      backgroundColor: day.isToday ? theme.colors.accentSoft : theme.colors.surface,
-                      opacity: day.isCurrentMonth ? 1 : 0.45,
-                    }}>
-                    <Text style={[uiStyles.bodyText, { marginBottom: 6 }]}>{day.date.getDate()}</Text>
-                    {appointmentCount ? (
-                      <Text style={uiStyles.metaText}>
-                        {appointmentCount === 1
-                          ? t('appointments.count.one', { count: appointmentCount })
-                          : t('appointments.count.other', { count: appointmentCount })}
-                      </Text>
-                    ) : null}
-                  </Pressable>
-                </Link>
+                <View key={day.key} style={{ flex: 1 }}>
+                  <Link href={`/my-appointments/${day.key}`} asChild>
+                    <Pressable
+                      style={{
+                        borderWidth: 1,
+                        borderColor: theme.colors.border,
+                        borderRadius: theme.radius.small,
+                        minHeight: 72,
+                        padding: 8,
+                        backgroundColor: day.isToday ? theme.colors.accentSoft : theme.colors.surface,
+                        opacity: day.isCurrentMonth ? 1 : 0.45,
+                      }}>
+                      <Text style={[uiStyles.bodyText, { marginBottom: 6 }]}>{day.date.getDate()}</Text>
+                      {appointmentCount ? (
+                        <Text style={uiStyles.metaText}>
+                          {appointmentCount === 1
+                            ? t('appointments.count.one', { count: appointmentCount })
+                            : t('appointments.count.other', { count: appointmentCount })}
+                        </Text>
+                      ) : null}
+                    </Pressable>
+                  </Link>
+                </View>
               );
             })}
           </View>
