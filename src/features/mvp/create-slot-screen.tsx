@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, usePathname } from 'expo-router';
+import type { Href } from 'expo-router';
 import {
   Modal,
   Pressable,
@@ -57,6 +58,7 @@ export function CreateSlotScreen() {
   const { weekStartsOn } = useAppSettings();
   const { theme, uiStyles } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
+  const pathname = usePathname();
   const locale = language === 'de' ? 'de-DE' : 'en-US';
   const params = useLocalSearchParams<{ date?: string | string[]; slotId?: string | string[] }>();
   const preselectedDateParam = Array.isArray(params.date) ? params.date[0] : params.date ?? '';
@@ -111,6 +113,22 @@ export function CreateSlotScreen() {
     setPickerField(null);
   };
 
+  const resetFormForNewSlot = (nextStartDate?: Date | null) => {
+    const baseDate = nextStartDate ?? preselectedDate ?? null;
+
+    setStartDateInput(baseDate ? formatDateInput(baseDate) : '');
+    setEndDateInput('');
+    setStartTimeInput('');
+    setEndTimeInput('');
+    setMessage(null);
+    setShowAssignmentSection(false);
+    setSelectedAssigneeEmail(null);
+    setPickerMonth(() => {
+      const pickerBase = baseDate ?? new Date();
+      return new Date(pickerBase.getFullYear(), pickerBase.getMonth(), 1);
+    });
+  };
+
   useEffect(() => {
     if (!editingSlot?.startsAt || !editingSlot.endsAt) {
       return;
@@ -152,10 +170,10 @@ export function CreateSlotScreen() {
     closePicker();
   };
 
-  const handleCreateSlot = async () => {
+  const saveSlot = async () => {
     if (!calendar || !user) {
       setMessage(t('createSlot.notAvailable'));
-      return;
+      return null;
     }
 
     const startDate = parseGermanDateInput(startDateInput);
@@ -163,12 +181,12 @@ export function CreateSlotScreen() {
 
     if (!startDate) {
       setMessage(t('createSlot.invalidStartDate'));
-      return;
+      return null;
     }
 
     if (!endDate) {
       setMessage(t('createSlot.invalidEndDate'));
-      return;
+      return null;
     }
 
     const startsAt = parseTimeInput(startTimeInput, startDate);
@@ -176,27 +194,27 @@ export function CreateSlotScreen() {
 
     if (!startTimeInput.trim()) {
       setMessage(t('createSlot.startTimeRequired'));
-      return;
+      return null;
     }
 
     if (!endTimeInput.trim()) {
       setMessage(t('createSlot.endTimeRequired'));
-      return;
+      return null;
     }
 
     if (!startsAt) {
       setMessage(t('createSlot.invalidStartTime'));
-      return;
+      return null;
     }
 
     if (!endsAt) {
       setMessage(t('createSlot.invalidEndTime'));
-      return;
+      return null;
     }
 
     if (endsAt <= startsAt) {
       setMessage(t('createSlot.endAfterStart'));
-      return;
+      return null;
     }
 
     const overlappingSlotIds = findOverlappingSlots(
@@ -207,7 +225,7 @@ export function CreateSlotScreen() {
 
     if (overlappingSlotIds.length) {
       setMessage(t('createSlot.overlap'));
-      return;
+      return null;
     }
 
     setSubmitting(true);
@@ -238,12 +256,43 @@ export function CreateSlotScreen() {
         });
       }
 
-      router.replace(`/my-calendar/${getDayKey(startsAt)}?slotId=${slotId}`);
+      return { slotId, startsAt };
     } catch (nextError) {
       setMessage(nextError instanceof Error ? nextError.message : t('createSlot.saveError'));
+      return null;
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleCreateSlot = async () => {
+    const result = await saveSlot();
+
+    if (!result) {
+      return;
+    }
+
+    router.replace(`/my-calendar/${getDayKey(result.startsAt)}?slotId=${result.slotId}`);
+  };
+
+  const handleCreateSlotAndContinue = async () => {
+    const result = await saveSlot();
+
+    if (!result) {
+      return;
+    }
+
+    const dayKey = getDayKey(result.startsAt);
+    const resetHref = (pathname.startsWith('/new-slot')
+      ? `/new-slot?date=${dayKey}`
+      : `/my-calendar/create-slot?date=${dayKey}`) as Href;
+
+    if (isEditing) {
+      router.replace(resetHref);
+      return;
+    }
+
+    resetFormForNewSlot(result.startsAt);
   };
 
   const approvedAccessRecords = accessRecords.filter((record) => record.status === 'approved');
@@ -324,19 +373,17 @@ export function CreateSlotScreen() {
         <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[16] }]}>
           {t('createSlot.sameDayHint')}
         </Text>
+      </View>
 
-        {!isEditing ? (
-          <Pressable
-            onPress={() => setShowAssignmentSection((currentValue) => !currentValue)}
-            style={{ marginBottom: theme.spacing[12] }}>
-            <Text style={uiStyles.linkText}>
-              {showAssignmentSection ? t('createSlot.hideAssignment') : t('createSlot.showAssignment')}
-            </Text>
-          </Pressable>
-        ) : null}
+      <View style={uiStyles.panel}>
+        <Pressable
+          onPress={() => setShowAssignmentSection((currentValue) => !currentValue)}
+          style={uiStyles.button}>
+          <Text style={uiStyles.buttonText}>Slot zuweisen</Text>
+        </Pressable>
 
         {!isEditing && showAssignmentSection ? (
-          <View style={[uiStyles.subtlePanel, { marginBottom: theme.spacing[16] }]}>
+          <View style={[uiStyles.subtlePanel, { marginTop: theme.spacing[12] }]}>
             <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[8] }]}>
               {t('createSlot.assignmentHint')}
             </Text>
@@ -378,37 +425,61 @@ export function CreateSlotScreen() {
             ) : null}
           </View>
         ) : null}
+      </View>
+
+      <View style={uiStyles.panel}>
+        <View style={{ gap: theme.spacing[12] }}>
+          <Pressable
+            onPress={handleCreateSlotAndContinue}
+            disabled={
+              submitting ||
+              !calendar ||
+              (isEditing && (!editingSlot || editingSlot.status === 'booked' || Boolean(editingSlot.appointmentId)))
+            }
+            style={[
+              uiStyles.button,
+              uiStyles.buttonActive,
+              {
+                opacity:
+                  submitting ||
+                  !calendar ||
+                  (isEditing && (!editingSlot || editingSlot.status === 'booked' || Boolean(editingSlot.appointmentId)))
+                    ? 0.6
+                    : 1,
+              },
+            ]}>
+            <Text style={uiStyles.buttonText}>Speichern & S+</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={handleCreateSlot}
+            disabled={
+              submitting ||
+              !calendar ||
+              (isEditing && (!editingSlot || editingSlot.status === 'booked' || Boolean(editingSlot.appointmentId)))
+            }
+            style={[
+              uiStyles.outlineAction,
+              {
+                opacity:
+                  submitting ||
+                  !calendar ||
+                  (isEditing && (!editingSlot || editingSlot.status === 'booked' || Boolean(editingSlot.appointmentId)))
+                    ? 0.6
+                    : 1,
+              },
+            ]}>
+            <Text style={uiStyles.buttonText}>Speichern</Text>
+          </Pressable>
+
+          <Pressable onPress={() => router.back()} style={uiStyles.outlineAction}>
+            <Text style={uiStyles.buttonText}>Abbrechen</Text>
+          </Pressable>
+        </View>
 
         {isEditing ? (
-          <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[16] }]}>{t('createSlot.editHint')}</Text>
+          <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[16] }]}>{t('createSlot.editHint')}</Text>
         ) : null}
-
-        <Pressable
-          onPress={handleCreateSlot}
-          disabled={
-            submitting ||
-            !calendar ||
-            (isEditing && (!editingSlot || editingSlot.status === 'booked' || Boolean(editingSlot.appointmentId)))
-          }
-          style={[
-            uiStyles.outlineAction,
-            {
-              opacity:
-                submitting ||
-                !calendar ||
-                (isEditing && (!editingSlot || editingSlot.status === 'booked' || Boolean(editingSlot.appointmentId)))
-                  ? 0.6
-                  : 1,
-            },
-          ]}>
-          <Text style={uiStyles.buttonText}>
-            {submitting
-              ? t('createSlot.saving')
-              : isEditing
-                ? t('createSlot.saveEdit')
-                : t('createSlot.save')}
-          </Text>
-        </Pressable>
 
         {message ? <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>{message}</Text> : null}
         {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
