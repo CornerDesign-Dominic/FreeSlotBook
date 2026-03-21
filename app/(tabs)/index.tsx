@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Feather } from '@expo/vector-icons';
 import { Link } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
 import { logout } from '../../src/firebase/auth';
@@ -18,6 +19,7 @@ import { useTranslation } from '@/src/i18n/provider';
 import { theme, uiStyles, useBottomSafeContentStyle } from '../../src/theme/ui';
 
 export default function HomeScreen() {
+  const isFocused = useIsFocused();
   const { user, loading } = useAuth();
   const { t } = useTranslation();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
@@ -33,7 +35,8 @@ export default function HomeScreen() {
   } = useParticipantAppointments(user?.email ?? null);
   const visibleJoinedCalendars = data.joinedCalendars.slice(0, 3);
   const hasMoreJoinedCalendars = data.joinedCalendars.length > 3;
-  const timelineWindow = useMemo(() => createRelativeTimelineWindow(new Date()), []);
+  const [timelineNow, setTimelineNow] = useState(() => new Date());
+  const timelineWindow = useMemo(() => createRelativeTimelineWindow(timelineNow), [timelineNow]);
   const slotTimelineRef = useRef<ScrollView | null>(null);
   const appointmentTimelineRef = useRef<ScrollView | null>(null);
   const ignoreNextScrollRef = useRef<{ slots: boolean; appointments: boolean }>({
@@ -46,6 +49,18 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
+    if (!isFocused) {
+      return;
+    }
+
+    setTimelineNow(new Date());
+  }, [isFocused]);
+
+  useEffect(() => {
+    if (!isFocused || loading || dashboardLoading) {
+      return;
+    }
+
     const initialOffset = getInitialTimelineOffset(timelineWindow, screenWidth);
     const timeout = setTimeout(() => {
       slotTimelineRef.current?.scrollTo({ x: initialOffset, animated: false });
@@ -53,7 +68,7 @@ export default function HomeScreen() {
     }, 0);
 
     return () => clearTimeout(timeout);
-  }, [screenWidth, timelineWindow]);
+  }, [dashboardLoading, isFocused, loading, screenWidth, timelineWindow]);
 
   const syncTimelineScroll = (source: 'slots' | 'appointments', x: number) => {
     if (ignoreNextScrollRef.current[source]) {
