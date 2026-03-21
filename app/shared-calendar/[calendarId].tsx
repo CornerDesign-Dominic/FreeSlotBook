@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { getDayKey } from '../../src/features/mvp/calendar-utils';
+import { AppScreenHeader } from '../../src/components/app-screen-header';
 import { bookSharedCalendarSlot } from '../../src/features/mvp/repository';
 import { useCalendar } from '../../src/features/mvp/useCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
@@ -93,7 +94,7 @@ export default function SharedCalendarScreen() {
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
-      <Text style={uiStyles.pageTitle}>{t('shared.title')}</Text>
+      <AppScreenHeader title={t('shared.title')} />
 
       <View style={uiStyles.panel}>
         {calendar ? (
@@ -180,13 +181,6 @@ export default function SharedCalendarScreen() {
         {message ? <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>{message}</Text> : null}
       </View>
 
-      <View style={uiStyles.footerRow}>
-        <Link href="/(tabs)">
-          <Text style={uiStyles.linkText}>
-            {t('shared.backToDashboard')}
-          </Text>
-        </Link>
-      </View>
     </ScrollView>
   );
 }

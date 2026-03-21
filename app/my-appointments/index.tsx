@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { Link } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { AppScreenHeader } from '../../src/components/app-screen-header';
+import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
 import {
   buildMonthGrid,
   formatMonthTitle,
@@ -10,7 +12,6 @@ import {
 } from '../../src/features/mvp/calendar-utils';
 import type { AppointmentRecord } from '../../src/features/mvp/types';
 import { useParticipantAppointments } from '../../src/features/mvp/useParticipantAppointments';
-import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
 import { useAuth } from '../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';
@@ -71,19 +72,17 @@ export default function MyAppointmentsMonthScreen() {
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
-      <Text style={uiStyles.pageTitle}>
-        {t('appointments.title')}
-      </Text>
+      <AppScreenHeader title={t('appointments.title')} />
 
       <View style={uiStyles.panel}>
-        <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>{t('appointments.description')}</Text>
+        <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
+          {t('appointments.description')}
+        </Text>
 
         <View style={{ alignSelf: 'flex-start', marginBottom: theme.spacing[16] }}>
           <Link href={`/my-appointments/week?date=${getDayKey(visibleMonth)}`} asChild>
             <Pressable>
-              <Text style={uiStyles.linkText}>
-                {t('appointments.openWeekView')}
-              </Text>
+              <Text style={uiStyles.linkText}>{t('appointments.openWeekView')}</Text>
             </Pressable>
           </Link>
         </View>
@@ -137,20 +136,16 @@ export default function MyAppointmentsMonthScreen() {
         ))}
 
         {!appointments.length ? (
-          <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{t('appointments.emptyMonth')}</Text>
+          <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>
+            {t('appointments.emptyMonth')}
+          </Text>
         ) : (
-          <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{t('appointments.monthHint')}</Text>
+          <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>
+            {t('appointments.monthHint')}
+          </Text>
         )}
 
         {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
-      </View>
-
-      <View style={uiStyles.footerRow}>
-        <Link href="/(tabs)">
-          <Text style={uiStyles.linkText}>
-            {t('nav.backToDashboard')}
-          </Text>
-        </Link>
       </View>
     </ScrollView>
   );

@@ -19,6 +19,7 @@ import {
   getSlotsForDay,
   parseDayKey,
 } from '../../src/features/mvp/calendar-utils';
+import { AppScreenHeader } from '../../src/components/app-screen-header';
 import {
   assignCalendarSlotByOwner,
   cancelAppointmentByOwner,
@@ -424,6 +425,7 @@ export default function CalendarDayScreen() {
   return (
     <View style={uiStyles.screen}>
       <ScrollView contentContainerStyle={{ padding: theme.spacing[16], paddingBottom: 120 }}>
+        <AppScreenHeader title={t('calendar.title')} />
         <View style={{ marginBottom: theme.spacing[8] }}>
           <CalendarNavigationHeader
             title={formatDayTitle(selectedDate, locale)}
@@ -627,13 +629,6 @@ export default function CalendarDayScreen() {
           {actionMessage ? <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>{actionMessage}</Text> : null}
         </View>
 
-        <View style={[uiStyles.footerRow, { marginTop: theme.spacing[16] }]}>
-          <Link href="/my-calendar">
-            <Text style={uiStyles.linkText}>
-              {t('day.backToMonth')}
-            </Text>
-          </Link>
-        </View>
       </ScrollView>
 
       <View

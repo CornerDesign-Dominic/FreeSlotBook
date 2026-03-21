@@ -8,6 +8,7 @@ import {
   getMinutesSinceStartOfDay,
   parseDayKey,
 } from '../../src/features/mvp/calendar-utils';
+import { AppScreenHeader } from '../../src/components/app-screen-header';
 import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
 import type { AppointmentRecord } from '../../src/features/mvp/types';
 import { useParticipantAppointments } from '../../src/features/mvp/useParticipantAppointments';
@@ -144,6 +145,7 @@ export default function MyAppointmentsDayScreen() {
   return (
     <View style={uiStyles.screen}>
       <ScrollView contentContainerStyle={{ padding: theme.spacing[16], paddingBottom: 120 }}>
+        <AppScreenHeader title={t('appointments.title')} />
         <CalendarNavigationHeader
           title={formatDayTitle(selectedDate, locale)}
           onPrevious={() => navigateToRelativeDay(-1)}
@@ -285,18 +287,6 @@ export default function MyAppointmentsDayScreen() {
           </ScrollView>
         </View>
 
-        <View style={[uiStyles.footerRow, { marginTop: theme.spacing[16] }]}>
-          <Link href={`/my-appointments/week?date=${rawDate}`} style={{ marginBottom: 12 }}>
-            <Text style={uiStyles.linkText}>
-              {t('appointments.openWeekView')}
-            </Text>
-          </Link>
-          <Link href="/my-appointments">
-            <Text style={uiStyles.linkText}>
-              {t('appointments.backToMonth')}
-            </Text>
-          </Link>
-        </View>
       </ScrollView>
     </View>
   );

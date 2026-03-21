@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'expo-router';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import {
@@ -8,6 +7,7 @@ import {
   removeCalendarAccess,
   upsertCalendarAccess,
 } from '../../src/features/mvp/repository';
+import { AppScreenHeader } from '../../src/components/app-screen-header';
 import { useCalendarAccessList } from '../../src/features/mvp/useCalendarAccessList';
 import { useCalendarAccessRequests } from '../../src/features/mvp/useCalendarAccessRequests';
 import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
@@ -153,7 +153,7 @@ export default function CalendarAccessScreen() {
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
-      <Text style={uiStyles.pageTitle}>{t('access.title')}</Text>
+      <AppScreenHeader title={t('access.title')} />
 
       <View style={uiStyles.panel}>
         <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>{t('access.newGrant')}</Text>
@@ -251,13 +251,6 @@ export default function CalendarAccessScreen() {
         )}
       </View>
 
-      <View style={uiStyles.footerRow}>
-        <Link href="/my-calendar">
-          <Text style={uiStyles.linkText}>
-            {t('access.backToCalendar')}
-          </Text>
-        </Link>
-      </View>
     </ScrollView>
   );
 }

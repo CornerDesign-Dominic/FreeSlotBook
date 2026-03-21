@@ -6,6 +6,7 @@ import {
   updateCalendarNotificationSettings,
   updateCalendarVisibility,
 } from '../src/features/mvp/repository';
+import { AppScreenHeader } from '../src/components/app-screen-header';
 import { useOwnerCalendar } from '../src/features/mvp/useOwnerCalendar';
 import { useAuth } from '../src/firebase/useAuth';
 import { LanguageSwitcher } from '../src/i18n/language-switcher';
@@ -136,7 +137,7 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
-      <Text style={uiStyles.pageTitle}>{t('settings.title')}</Text>
+      <AppScreenHeader title={t('settings.title')} />
 
       <View style={uiStyles.panel}>
         <Text style={[uiStyles.sectionTitle, { marginBottom: designTheme.spacing[8] }]}>{t('settings.language')}</Text>
@@ -253,11 +254,6 @@ export default function SettingsScreen() {
         {settingsMessage ? <Text style={[uiStyles.bodyText, { marginTop: designTheme.spacing[12] }]}>{settingsMessage}</Text> : null}
       </View>
 
-      <View style={uiStyles.footerRow}>
-        <Link href="/(tabs)" style={{ marginTop: 16 }}>
-          <Text style={uiStyles.linkText}>{t('nav.backToDashboard')}</Text>
-        </Link>
-      </View>
     </ScrollView>
   );
 }

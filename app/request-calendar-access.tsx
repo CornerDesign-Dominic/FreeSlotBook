@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Link } from 'expo-router';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { requestCalendarAccessByOwnerEmail } from '../src/features/mvp/repository';
+import { AppScreenHeader } from '../src/components/app-screen-header';
 import { useAuth } from '../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { theme, uiStyles } from '../src/theme/ui';
@@ -56,7 +56,7 @@ export default function RequestCalendarAccessScreen() {
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
-      <Text style={uiStyles.pageTitle}>{t('requestAccess.title')}</Text>
+      <AppScreenHeader title={t('requestAccess.title')} />
 
       <View style={uiStyles.panel}>
         <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>
@@ -84,13 +84,6 @@ export default function RequestCalendarAccessScreen() {
         {message ? <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>{message}</Text> : null}
       </View>
 
-      <View style={uiStyles.footerRow}>
-        <Link href="/(tabs)">
-          <Text style={uiStyles.linkText}>
-            {t('nav.backToDashboard')}
-          </Text>
-        </Link>
-      </View>
     </ScrollView>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Link, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
 import {
@@ -11,6 +11,7 @@ import {
   parseDayKey,
   startOfWeek,
 } from '../../src/features/mvp/calendar-utils';
+import { AppScreenHeader } from '../../src/components/app-screen-header';
 import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import type { CalendarSlotRecord, SlotStatus } from '../../src/features/mvp/types';
@@ -133,7 +134,7 @@ export default function CalendarWeekScreen() {
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
-      <Text style={uiStyles.pageTitle}>{t('week.title')}</Text>
+      <AppScreenHeader title={t('week.title')} />
 
       <View style={{ marginBottom: theme.spacing[8] }}>
         <CalendarNavigationHeader
@@ -302,13 +303,6 @@ export default function CalendarWeekScreen() {
         {slotsError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{slotsError}</Text> : null}
       </View>
 
-      <View style={uiStyles.footerRow}>
-        <Link href="/my-calendar">
-          <Text style={uiStyles.linkText}>
-            {t('week.backToMonth')}
-          </Text>
-        </Link>
-      </View>
     </ScrollView>
   );
 }

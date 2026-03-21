@@ -42,7 +42,10 @@ function RootLayoutContent() {
             flex: 1,
             paddingTop: designTheme.spacing[8],
           }}>
-          <Stack>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+            }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           </Stack>
         </View>

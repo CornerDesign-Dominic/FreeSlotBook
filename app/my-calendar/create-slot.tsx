@@ -20,6 +20,7 @@ import {
   parseGermanDateInput,
   parseTimeInput,
 } from '../../src/features/mvp/calendar-utils';
+import { AppScreenHeader } from '../../src/components/app-screen-header';
 import {
   createCalendarSlotWithOptionalAssignment,
   updateCalendarSlotTimes,
@@ -259,9 +260,7 @@ export default function CreateSlotScreen() {
     <ScrollView
       style={uiStyles.screen}
       contentContainerStyle={uiStyles.content}>
-      <Text style={uiStyles.pageTitle}>
-        {isEditing ? t('createSlot.editTitle') : t('createSlot.title')}
-      </Text>
+      <AppScreenHeader title={isEditing ? t('createSlot.editTitle') : t('createSlot.title')} />
 
       <View style={uiStyles.panel}>
         <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>{t('createSlot.date')}</Text>
@@ -413,19 +412,6 @@ export default function CreateSlotScreen() {
         {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
         {slotsError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{slotsError}</Text> : null}
         {accessError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{accessError}</Text> : null}
-      </View>
-
-      <View style={uiStyles.footerRow}>
-        <Pressable
-          onPress={() =>
-            router.replace(
-              preselectedDateParam ? `/my-calendar/${preselectedDateParam}` : '/my-calendar'
-            )
-          }>
-          <Text style={uiStyles.linkText}>
-            {preselectedDateParam ? t('createSlot.backToDayView') : t('nav.backToCalendar')}
-          </Text>
-        </Pressable>
       </View>
 
       <Modal visible={pickerField !== null} animationType="slide" transparent onRequestClose={closePicker}>

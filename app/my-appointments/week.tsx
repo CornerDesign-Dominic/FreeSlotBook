@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Link, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
 import {
@@ -10,6 +10,7 @@ import {
   parseDayKey,
   startOfWeek,
 } from '../../src/features/mvp/calendar-utils';
+import { AppScreenHeader } from '../../src/components/app-screen-header';
 import type { AppointmentRecord } from '../../src/features/mvp/types';
 import { useParticipantAppointments } from '../../src/features/mvp/useParticipantAppointments';
 import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
@@ -127,9 +128,7 @@ export default function MyAppointmentsWeekScreen() {
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
-      <Text style={uiStyles.pageTitle}>
-        {t('appointments.weekTitle')}
-      </Text>
+      <AppScreenHeader title={t('appointments.weekTitle')} />
 
       <View style={{ marginBottom: theme.spacing[8] }}>
         <CalendarNavigationHeader
@@ -265,13 +264,6 @@ export default function MyAppointmentsWeekScreen() {
         {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
       </View>
 
-      <View style={uiStyles.footerRow}>
-        <Link href="/my-appointments">
-          <Text style={uiStyles.linkText}>
-            {t('appointments.backToMonth')}
-          </Text>
-        </Link>
-      </View>
     </ScrollView>
   );
 }

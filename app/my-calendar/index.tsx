@@ -1,20 +1,21 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'expo-router';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppScreenHeader } from '../../src/components/app-screen-header';
+import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
 import {
   buildMonthGrid,
   formatMonthTitle,
   getDayKey,
   getWeekdayLabels,
-  getSlotCountsByDay,
 } from '../../src/features/mvp/calendar-utils';
 import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useAuth } from '../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';
-import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
 import { theme, uiStyles } from '../../src/theme/ui';
 
 export default function MyCalendarScreen() {
@@ -22,6 +23,7 @@ export default function MyCalendarScreen() {
   const { t, language } = useTranslation();
   const { weekStartsOn } = useAppSettings();
   const { width: screenWidth } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const locale = language === 'de' ? 'de-DE' : 'en-US';
   const { calendar, loading, error } = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
@@ -35,7 +37,25 @@ export default function MyCalendarScreen() {
     () => buildMonthGrid(visibleMonth, weekStartsOn),
     [visibleMonth, weekStartsOn]
   );
-  const slotCountsByDay = useMemo(() => getSlotCountsByDay(slots), [slots]);
+  const slotCountsByDay = useMemo(() => {
+    return slots.reduce<Record<string, { available: number; booked: number }>>((accumulator, slot) => {
+      if (!slot.startsAt) {
+        return accumulator;
+      }
+
+      const dayKey = getDayKey(slot.startsAt);
+      const currentDay = accumulator[dayKey] ?? { available: 0, booked: 0 };
+
+      if (slot.status === 'available') {
+        currentDay.available += 1;
+      } else if (slot.status === 'booked') {
+        currentDay.booked += 1;
+      }
+
+      accumulator[dayKey] = currentDay;
+      return accumulator;
+    }, {});
+  }, [slots]);
   const weekdayLabels = useMemo(
     () => getWeekdayLabels(language, weekStartsOn),
     [language, weekStartsOn]
@@ -61,19 +81,24 @@ export default function MyCalendarScreen() {
     setVisibleMonth((currentMonth) => new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
   };
 
+  const formatCompactCount = (count: number) => {
+    if (count > 9) {
+      return '9+';
+    }
+
+    return `${count}`;
+  };
+
   return (
-    <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
-      <Text
-        style={[
-          uiStyles.sectionTitle,
-          {
-            marginBottom: theme.spacing[16],
-            fontSize: 22,
-            letterSpacing: -0.3,
-          },
-        ]}>
-        Mein Slot-Kalender
-      </Text>
+    <ScrollView
+      style={uiStyles.screen}
+      contentContainerStyle={[
+        uiStyles.content,
+        {
+          paddingBottom: theme.spacing[12] + insets.bottom + theme.spacing[8],
+        },
+      ]}>
+      <AppScreenHeader title="Mein Slot-Kalender" />
 
       <View style={uiStyles.panel}>
         <CalendarNavigationHeader
@@ -104,112 +129,112 @@ export default function MyCalendarScreen() {
             <View
               key={`week-${weekIndex}`}
               style={{ flexDirection: 'row', columnGap: calendarCellGap }}>
-            {week.map((day) => {
-              const slotCount = slotCountsByDay[day.key] ?? 0;
-              const isOutsideMonth = !day.isCurrentMonth;
-              const hasSlots = slotCount > 0;
+              {week.map((day) => {
+                const slotCounts = slotCountsByDay[day.key] ?? { available: 0, booked: 0 };
+                const isOutsideMonth = !day.isCurrentMonth;
+                const hasVisibleCounts = slotCounts.available > 0 || slotCounts.booked > 0;
 
-              return (
-                <View key={day.key} style={{ width: cellWidth }}>
-                  <Link href={`/my-calendar/${day.key}`} asChild>
-                    <Pressable
-                      style={{
-                        borderWidth: 1,
-                        borderColor: day.isToday ? theme.colors.accent : theme.colors.border,
-                        borderRadius: theme.radius.medium,
-                        minHeight: cellHeight,
-                        paddingHorizontal: theme.spacing[8],
-                        paddingVertical: theme.spacing[8],
-                        backgroundColor: day.isToday
-                          ? theme.colors.accentSoft
-                          : hasSlots
-                            ? theme.colors.surfaceSoft
-                            : isOutsideMonth
-                              ? theme.colors.background
-                              : theme.colors.surface,
-                        opacity: isOutsideMonth ? 0.55 : 1,
-                      }}>
-                      <Text
-                        numberOfLines={1}
-                        style={[
-                          uiStyles.bodyText,
-                          {
-                            marginBottom: hasSlots ? theme.spacing[8] : 0,
-                            color: isOutsideMonth
-                              ? theme.colors.textSecondary
-                              : theme.colors.textPrimary,
-                            fontWeight: day.isToday ? '700' : '500',
-                            fontSize: 15,
-                          },
-                        ]}>
-                        {day.date.getDate()}
-                      </Text>
-                      {slotCount ? (
-                        <View
-                          style={{
-                            alignSelf: 'flex-start',
-                            paddingHorizontal: theme.spacing[8],
-                            paddingVertical: 4,
-                            borderRadius: theme.radius.small,
-                            backgroundColor: day.isToday
-                              ? theme.colors.surface
-                              : theme.colors.accentSoft,
-                          }}>
-                          <Text
-                            numberOfLines={1}
-                            style={[
-                              uiStyles.metaText,
-                              {
-                                color: theme.colors.textPrimary,
-                                fontWeight: '600',
-                                fontSize: 11,
-                              },
-                            ]}>
-                            {slotCount}
-                          </Text>
-                        </View>
-                      ) : null}
-                    </Pressable>
-                  </Link>
-                </View>
-              );
-            })}
-          </View>
+                return (
+                  <View key={day.key} style={{ width: cellWidth }}>
+                    <Link href={`/my-calendar/${day.key}`} asChild>
+                      <Pressable
+                        style={{
+                          borderWidth: 1,
+                          borderColor: day.isToday ? theme.colors.accent : theme.colors.border,
+                          borderRadius: theme.radius.medium,
+                          height: cellHeight,
+                          paddingHorizontal: theme.spacing[8],
+                          paddingVertical: theme.spacing[8],
+                          justifyContent: 'space-between',
+                          backgroundColor: day.isToday
+                            ? theme.colors.accentSoft
+                            : hasVisibleCounts
+                              ? theme.colors.surfaceSoft
+                              : isOutsideMonth
+                                ? theme.colors.background
+                                : theme.colors.surface,
+                          opacity: isOutsideMonth ? 0.55 : 1,
+                        }}>
+                        <Text
+                          numberOfLines={1}
+                          style={[
+                            uiStyles.bodyText,
+                            {
+                              color: isOutsideMonth
+                                ? theme.colors.textSecondary
+                                : theme.colors.textPrimary,
+                              fontWeight: day.isToday ? '700' : '500',
+                              fontSize: 14,
+                            },
+                          ]}>
+                          {day.date.getDate()}
+                        </Text>
+                        {hasVisibleCounts ? (
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              minHeight: 18,
+                              gap: theme.spacing[8],
+                            }}>
+                            <View style={{ flex: 1, alignItems: 'flex-start' }}>
+                              <Text
+                                style={[
+                                  uiStyles.metaText,
+                                  {
+                                    color: theme.colors.accent,
+                                    fontSize: 13,
+                                    fontWeight: '700',
+                                  },
+                                ]}>
+                                {formatCompactCount(slotCounts.available)}
+                              </Text>
+                            </View>
+
+                            <View
+                              style={{
+                                flex: 1,
+                                alignItems: 'flex-end',
+                              }}>
+                              <Text
+                                style={[
+                                  uiStyles.metaText,
+                                  {
+                                    color: theme.colors.textSecondary,
+                                    fontSize: 13,
+                                    fontWeight: '700',
+                                  },
+                                ]}>
+                                {formatCompactCount(slotCounts.booked)}
+                              </Text>
+                            </View>
+                          </View>
+                        ) : null}
+                      </Pressable>
+                    </Link>
+                  </View>
+                );
+              })}
+            </View>
           ))}
-        </View>
-
-        <View
-          style={{
-            flexDirection: screenWidth < 380 ? 'column' : 'row',
-            gap: theme.spacing[12],
-            marginTop: theme.spacing[16],
-          }}>
-          <View style={{ flex: 1 }}>
-            <Link href="/my-calendar/create-slot" asChild>
-              <Pressable style={uiStyles.button}>
-                <Text style={uiStyles.buttonText}>{t('calendar.createSlots')}</Text>
-              </Pressable>
-            </Link>
-          </View>
-
-          <View style={{ flex: 1 }}>
-            <Link href={`/my-calendar/week?date=${getDayKey(visibleMonth)}`} asChild>
-              <Pressable style={uiStyles.button}>
-                <Text style={uiStyles.buttonText}>{t('calendar.openWeekView')}</Text>
-              </Pressable>
-            </Link>
-          </View>
         </View>
 
         {slotsError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{slotsError}</Text> : null}
         {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
       </View>
 
-      <View style={[uiStyles.footerRow, { alignItems: 'stretch' }]}>
-        <View style={{ marginTop: theme.spacing[4] }}>
-          <Link href="/(tabs)" asChild>
+      <View style={uiStyles.panel}>
+        <View style={{ gap: theme.spacing[12] }}>
+          <Link href="/my-calendar/create-slot" asChild>
             <Pressable style={uiStyles.button}>
-              <Text style={uiStyles.buttonText}>← Dashboard</Text>
+              <Text style={uiStyles.buttonText}>{t('calendar.createSlots')}</Text>
+            </Pressable>
+          </Link>
+
+          <Link href={`/my-calendar/week?date=${getDayKey(visibleMonth)}`} asChild>
+            <Pressable style={uiStyles.button}>
+              <Text style={uiStyles.buttonText}>{t('calendar.openWeekView')}</Text>
             </Pressable>
           </Link>
         </View>
