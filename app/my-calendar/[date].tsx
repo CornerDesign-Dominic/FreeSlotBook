@@ -54,7 +54,8 @@ export default function CalendarDayScreen() {
   const params = useLocalSearchParams<{ date?: string | string[]; slotId?: string | string[] }>();
   const rawDate = Array.isArray(params.date) ? params.date[0] : params.date ?? '';
   const initialSlotId = Array.isArray(params.slotId) ? params.slotId[0] : params.slotId ?? null;
-  const selectedDate = parseDayKey(rawDate);
+  const selectedDate = useMemo(() => parseDayKey(rawDate), [rawDate]);
+  const selectedDayKey = selectedDate ? getDayKey(selectedDate) : null;
   const { height: screenHeight, width: screenWidth } = useWindowDimensions();
   const timelineScrollRef = useRef<ScrollView>(null);
   const { user, loading: authLoading } = useAuth();
@@ -75,6 +76,9 @@ export default function CalendarDayScreen() {
   const [assigneeEmail, setAssigneeEmail] = useState('');
   const [assigneePhone, setAssigneePhone] = useState('');
   const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+  const initialScrollDayKeyRef = useRef<string | null>(null);
+  const [timelineReadyDayKey, setTimelineReadyDayKey] = useState<string | null>(null);
 
   const daySlots = useMemo(
     () => (selectedDate ? getSlotsForDay(slots, selectedDate) : []),
@@ -116,16 +120,29 @@ export default function CalendarDayScreen() {
       return;
     }
 
-    const now = new Date();
-    const currentMinutes = isSameDay(now, selectedDate) ? getMinutesSinceStartOfDay(now) : 0;
-    const defaultOffset = Math.max((currentMinutes / 60) * hourWidth - screenWidth * 0.35, 0);
+    if (!selectedDayKey || timelineReadyDayKey !== selectedDayKey) {
+      return;
+    }
 
-    const timeout = setTimeout(() => {
+    if (initialScrollDayKeyRef.current === selectedDayKey) {
+      return;
+    }
+
+    const isTodayView = isSameDay(selectedDate, currentTime);
+    const focusMinutes = isTodayView ? getMinutesSinceStartOfDay(currentTime) : 12 * 60;
+    const defaultOffset = Math.max((focusMinutes / 60) * hourWidth - screenWidth * 0.35, 0);
+
+    const animationFrame = requestAnimationFrame(() => {
       timelineScrollRef.current?.scrollTo({ x: defaultOffset, animated: false });
-    }, 0);
+      initialScrollDayKeyRef.current = selectedDayKey;
+    });
 
-    return () => clearTimeout(timeout);
-  }, [screenWidth, selectedDate]);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [currentTime, screenWidth, selectedDate, selectedDayKey, timelineReadyDayKey]);
+
+  useEffect(() => {
+    setTimelineReadyDayKey(null);
+  }, [selectedDayKey]);
 
   useEffect(() => {
     setActionMessage(null);
@@ -148,6 +165,20 @@ export default function CalendarDayScreen() {
       setCancellationMessage('');
     }
   }, [cancellationModalVisible]);
+
+  useEffect(() => {
+    setCurrentTime(new Date());
+
+    if (!selectedDate || !isSameDay(selectedDate, new Date())) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [selectedDate]);
 
   const formatTime = (value: Date | null) => {
     if (!value) {
@@ -400,6 +431,8 @@ export default function CalendarDayScreen() {
     selectedSlot?.status === 'booked' && Boolean(selectedSlot?.appointmentId);
   const timeRailWidth = hourWidth * 24;
   const gridLineColor = theme.colors.border;
+  const isTodayView = isSameDay(selectedDate, currentTime);
+  const nowMarkerLeft = (getMinutesSinceStartOfDay(currentTime) / 60) * hourWidth;
   const navigateToRelativeDay = (offset: number) => {
     const nextDate = new Date(selectedDate);
     nextDate.setDate(selectedDate.getDate() + offset);
@@ -427,6 +460,15 @@ export default function CalendarDayScreen() {
               ref={timelineScrollRef}
               horizontal
               showsHorizontalScrollIndicator={false}
+              onContentSizeChange={() => {
+                if (!selectedDayKey) {
+                  return;
+                }
+
+                setTimelineReadyDayKey((currentValue) =>
+                  currentValue === selectedDayKey ? currentValue : selectedDayKey
+                );
+              }}
               contentContainerStyle={{ minWidth: timeRailWidth }}>
               <View style={{ width: timeRailWidth }}>
                 <View style={{ flexDirection: 'row', marginBottom: 12 }}>
@@ -462,6 +504,20 @@ export default function CalendarDayScreen() {
                       }}
                     />
                   ))}
+
+                  {isTodayView ? (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        bottom: 0,
+                        left: nowMarkerLeft,
+                        width: 2,
+                        backgroundColor: theme.colors.accent,
+                        opacity: 0.7,
+                      }}
+                    />
+                  ) : null}
 
                   {daySlots.length ? (
                     daySlots.map((slot) => {
