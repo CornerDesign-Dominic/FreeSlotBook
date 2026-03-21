@@ -6,27 +6,30 @@ import { Text, View } from 'react-native';
 import { HapticTab } from '@/components/haptic-tab';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTranslation } from '@/src/i18n/provider';
-import { theme } from '@/src/theme/ui';
+import { useAppSettings } from '@/src/settings/provider';
+import { getThemeColors } from '@/src/theme/ui';
 
 export default function TabLayout() {
   useColorScheme();
+  const { theme: themeMode } = useAppSettings();
   const { t } = useTranslation();
+  const colors = getThemeColors(themeMode);
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: theme.colors.textPrimary,
-        tabBarInactiveTintColor: theme.colors.textSecondary,
+        tabBarActiveTintColor: colors.textPrimary,
+        tabBarInactiveTintColor: colors.textSecondary,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarShowLabel: false,
         sceneStyle: {
-          backgroundColor: theme.colors.background,
+          backgroundColor: colors.background,
         },
         tabBarStyle: {
           minHeight: 56,
-          backgroundColor: theme.colors.surface,
-          borderTopColor: theme.colors.border,
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
         },
       }}>
       <Tabs.Screen
