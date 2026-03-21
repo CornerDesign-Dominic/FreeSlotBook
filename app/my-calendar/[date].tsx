@@ -74,6 +74,7 @@ export default function CalendarDayScreen() {
   const [assigneeName, setAssigneeName] = useState('');
   const [assigneeEmail, setAssigneeEmail] = useState('');
   const [assigneePhone, setAssigneePhone] = useState('');
+  const [historyExpanded, setHistoryExpanded] = useState(false);
 
   const daySlots = useMemo(
     () => (selectedDate ? getSlotsForDay(slots, selectedDate) : []),
@@ -131,6 +132,10 @@ export default function CalendarDayScreen() {
   }, [rawDate]);
 
   useEffect(() => {
+    setHistoryExpanded(false);
+  }, [selectedSlotId]);
+
+  useEffect(() => {
     if (!assignmentModalVisible) {
       setAssigneeName('');
       setAssigneeEmail('');
@@ -172,22 +177,6 @@ export default function CalendarDayScreen() {
       default:
         return t('day.statusAvailable');
     }
-  };
-
-  const getFooterStatusHint = (status: SlotStatus | null, hasAppointment: boolean) => {
-    if (!status) {
-      return t('day.selectHint');
-    }
-
-    if (status === 'inactive') {
-      return t('day.inactiveHint');
-    }
-
-    if (status === 'booked' || hasAppointment) {
-      return t('day.bookedHint');
-    }
-
-    return t('day.availableHint');
   };
 
   const formatEventText = (event: CalendarSlotEventRecord) => {
@@ -411,11 +400,6 @@ export default function CalendarDayScreen() {
     selectedSlot?.status === 'booked' && Boolean(selectedSlot?.appointmentId);
   const timeRailWidth = hourWidth * 24;
   const gridLineColor = theme.colors.border;
-  const footerStatusHint = getFooterStatusHint(
-    selectedSlot?.status ?? null,
-    Boolean(selectedSlot?.appointmentId)
-  );
-
   const navigateToRelativeDay = (offset: number) => {
     const nextDate = new Date(selectedDate);
     nextDate.setDate(selectedDate.getDate() + offset);
@@ -424,18 +408,15 @@ export default function CalendarDayScreen() {
 
   return (
     <View style={uiStyles.screen}>
-      <ScrollView contentContainerStyle={{ padding: theme.spacing[16], paddingBottom: 120 }}>
+      <ScrollView contentContainerStyle={{ padding: theme.spacing[16], paddingBottom: theme.spacing[32] }}>
         <AppScreenHeader title={t('calendar.title')} />
-        <View style={{ marginBottom: theme.spacing[8] }}>
+
+        <View style={uiStyles.panel}>
           <CalendarNavigationHeader
             title={formatDayTitle(selectedDate, locale)}
             onPrevious={() => navigateToRelativeDay(-1)}
             onNext={() => navigateToRelativeDay(1)}
           />
-        </View>
-
-        <View style={uiStyles.panel}>
-          <Text style={uiStyles.sectionTitle}>{t('day.timeline')}</Text>
 
           <View
             style={[
@@ -584,140 +565,132 @@ export default function CalendarDayScreen() {
             </View>
           ) : null}
 
-          <ScrollView style={{ maxHeight: historyPanelMaxHeight }}>
-            {selectedSlot ? (
-              slotDetailLoading ? (
-                <Text style={uiStyles.secondaryText}>{t('day.historyLoading')}</Text>
-              ) : events.length ? (
-                events.map((event) => (
-                  <View
-                    key={event.id}
-                    style={{
-                      borderTopWidth: 1,
-                      borderColor: theme.colors.border,
-                      paddingTop: theme.spacing[12],
-                      marginTop: theme.spacing[12],
-                    }}>
-                    <Text style={[uiStyles.bodyText, { marginBottom: 4 }]}>{formatEventText(event)}</Text>
-                    <Text style={[uiStyles.secondaryText, { marginBottom: 4 }]}>
-                      {t('day.eventTime', { time: formatDateTime(event.createdAt) })}
-                    </Text>
-                    {event.statusAfter ? (
+          {selectedSlot ? (
+            <View style={{ marginTop: theme.spacing[4] }}>
+              <Pressable
+                onPress={() => setHistoryExpanded((currentValue) => !currentValue)}
+                style={{ alignSelf: 'flex-start', paddingVertical: theme.spacing[4] }}>
+                <Text style={uiStyles.linkText}>
+                  {historyExpanded ? 'Historie ausblenden' : 'Historie anzeigen'}
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {historyExpanded ? (
+            <ScrollView style={{ maxHeight: historyPanelMaxHeight, marginTop: theme.spacing[12] }}>
+              {selectedSlot ? (
+                slotDetailLoading ? (
+                  <Text style={uiStyles.secondaryText}>{t('day.historyLoading')}</Text>
+                ) : events.length ? (
+                  events.map((event) => (
+                    <View
+                      key={event.id}
+                      style={{
+                        borderTopWidth: 1,
+                        borderColor: theme.colors.border,
+                        paddingTop: theme.spacing[12],
+                        marginTop: theme.spacing[12],
+                      }}>
+                      <Text style={[uiStyles.bodyText, { marginBottom: 4 }]}>{formatEventText(event)}</Text>
                       <Text style={[uiStyles.secondaryText, { marginBottom: 4 }]}>
-                        {t('day.eventStatusAfter', { status: formatSlotStatus(event.statusAfter) })}
+                        {t('day.eventTime', { time: formatDateTime(event.createdAt) })}
                       </Text>
-                    ) : null}
-                    {event.targetEmail ? (
-                      <Text style={[uiStyles.secondaryText, { marginBottom: 4 }]}>
-                        {t('day.eventReference', { email: event.targetEmail })}
-                      </Text>
-                    ) : null}
-                    {event.note ? (
-                      <Text style={uiStyles.secondaryText}>
-                        {t('day.eventNote', { note: event.note })}
-                      </Text>
-                    ) : null}
-                  </View>
-                ))
-              ) : (
-                <Text style={uiStyles.secondaryText}>{t('day.historyEmpty')}</Text>
-              )
-            ) : null}
-          </ScrollView>
+                      {event.statusAfter ? (
+                        <Text style={[uiStyles.secondaryText, { marginBottom: 4 }]}>
+                          {t('day.eventStatusAfter', { status: formatSlotStatus(event.statusAfter) })}
+                        </Text>
+                      ) : null}
+                      {event.targetEmail ? (
+                        <Text style={[uiStyles.secondaryText, { marginBottom: 4 }]}>
+                          {t('day.eventReference', { email: event.targetEmail })}
+                        </Text>
+                      ) : null}
+                      {event.note ? (
+                        <Text style={uiStyles.secondaryText}>
+                          {t('day.eventNote', { note: event.note })}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ))
+                ) : (
+                  <Text style={uiStyles.secondaryText}>{t('day.historyEmpty')}</Text>
+                )
+              ) : null}
+            </ScrollView>
+          ) : null}
 
           {slotDetailError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{slotDetailError}</Text> : null}
           {actionMessage ? <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>{actionMessage}</Text> : null}
         </View>
 
-      </ScrollView>
+        <View style={uiStyles.panel}>
+          <View style={{ gap: theme.spacing[8] }}>
+            <Link href={`/my-calendar/create-slot?date=${rawDate}`} asChild>
+              <Pressable style={uiStyles.button}>
+                <Text style={uiStyles.buttonText}>{t('day.addSlot')}</Text>
+              </Pressable>
+            </Link>
 
-      <View
-        style={{
-          borderTopWidth: 1,
-          borderColor: theme.colors.border,
-          paddingHorizontal: theme.spacing[16],
-          paddingVertical: theme.spacing[12],
-          backgroundColor: theme.colors.surface,
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-        }}>
-        <View style={{ minWidth: 112 }}>
-          <Link href={`/my-calendar/create-slot?date=${rawDate}`} asChild>
-            <Pressable style={uiStyles.button}>
-              <Text style={uiStyles.buttonText}>{t('day.addSlot')}</Text>
-            </Pressable>
-          </Link>
-        </View>
-
-        <View
-          style={[
-            uiStyles.subtlePanel,
-            {
-              alignItems: 'flex-end',
-              minWidth: 220,
-              padding: theme.spacing[12],
-              backgroundColor: theme.colors.surfaceSoft,
-            },
-          ]}>
-          {selectedSlotCanEdit ? (
-            <View style={{ marginBottom: theme.spacing[8], minWidth: 132 }}>
+            {selectedSlotCanEdit ? (
               <Link href={`/my-calendar/create-slot?date=${rawDate}&slotId=${selectedSlot?.id}`} asChild>
                 <Pressable style={uiStyles.button}>
                   <Text style={uiStyles.buttonText}>{t('day.editSlot')}</Text>
                 </Pressable>
               </Link>
-            </View>
-          ) : null}
-          {selectedSlotCanAssign ? (
-            <Pressable
-              onPress={handleOpenAssignmentModal}
-              style={[uiStyles.button, { marginBottom: theme.spacing[8], minWidth: 132 }]}>
-              <Text style={uiStyles.buttonText}>{t('day.assignSlot')}</Text>
-            </Pressable>
-          ) : null}
-          {selectedSlotCanReactivate ? (
-            <Pressable
-              onPress={handleToggleHold}
-              disabled={updatingAvailabilitySlotId === selectedSlot?.id}
-              style={[uiStyles.button, { marginBottom: theme.spacing[8], minWidth: 132 }]}>
-              <Text style={uiStyles.buttonText}>
-                {updatingAvailabilitySlotId === selectedSlot?.id
-                  ? t('day.processing')
-                  : t('day.releaseSlot')}
-              </Text>
-            </Pressable>
-          ) : null}
-          {selectedSlotCanDeactivate ? (
-            <Pressable
-              onPress={handleDeactivateSlot}
-              disabled={deactivatingSlotId === selectedSlot?.id}
-              style={[uiStyles.button, { minWidth: 132 }]}>
-              <Text style={uiStyles.buttonText}>
-                {deactivatingSlotId === selectedSlot?.id ? t('day.processing') : t('day.setInactive')}
-              </Text>
-            </Pressable>
-          ) : selectedSlotCanCancelAppointment ? (
-            <Pressable
-              onPress={handleCancelAppointment}
-              disabled={cancellingAppointmentId === selectedSlot?.appointmentId}
-              style={[uiStyles.button, { minWidth: 132 }]}>
-              <Text style={uiStyles.buttonText}>
-                {cancellingAppointmentId === selectedSlot?.appointmentId
-                  ? t('day.processing')
-                  : t('day.cancelAppointment')}
-              </Text>
-            </Pressable>
-          ) : (
-            <View style={{ paddingVertical: 10, paddingHorizontal: 12, opacity: 0.55 }}>
-              <Text style={uiStyles.secondaryText}>{t('day.noAction')}</Text>
-            </View>
-          )}
-          <Text style={[uiStyles.metaText, { marginTop: 10, maxWidth: 220, textAlign: 'right' }]}>
-            {footerStatusHint}
-          </Text>
+            ) : null}
+            {selectedSlotCanAssign ? (
+              <Pressable onPress={handleOpenAssignmentModal} style={uiStyles.button}>
+                <Text style={uiStyles.buttonText}>{t('day.assignSlot')}</Text>
+              </Pressable>
+            ) : null}
+            {selectedSlotCanReactivate ? (
+              <Pressable
+                onPress={handleToggleHold}
+                disabled={updatingAvailabilitySlotId === selectedSlot?.id}
+                style={uiStyles.button}>
+                <Text style={uiStyles.buttonText}>
+                  {updatingAvailabilitySlotId === selectedSlot?.id
+                    ? t('day.processing')
+                    : t('day.releaseSlot')}
+                </Text>
+              </Pressable>
+            ) : null}
+            {selectedSlotCanDeactivate ? (
+              <Pressable
+                onPress={handleDeactivateSlot}
+                disabled={deactivatingSlotId === selectedSlot?.id}
+                style={uiStyles.button}>
+                <Text style={uiStyles.buttonText}>
+                  {deactivatingSlotId === selectedSlot?.id ? t('day.processing') : t('day.setInactive')}
+                </Text>
+              </Pressable>
+            ) : null}
+            {selectedSlotCanCancelAppointment ? (
+              <Pressable
+                onPress={handleCancelAppointment}
+                disabled={cancellingAppointmentId === selectedSlot?.appointmentId}
+                style={uiStyles.button}>
+                <Text style={uiStyles.buttonText}>
+                  {cancellingAppointmentId === selectedSlot?.appointmentId
+                    ? t('day.processing')
+                    : t('day.cancelAppointment')}
+                </Text>
+              </Pressable>
+            ) : null}
+            {!selectedSlotCanEdit &&
+            !selectedSlotCanAssign &&
+            !selectedSlotCanReactivate &&
+            !selectedSlotCanDeactivate &&
+            !selectedSlotCanCancelAppointment ? (
+              <View style={{ paddingVertical: 10, opacity: 0.55 }}>
+                <Text style={uiStyles.secondaryText}>{t('day.noAction')}</Text>
+              </View>
+            ) : null}
+          </View>
         </View>
-      </View>
+
+      </ScrollView>
 
       <Modal
         visible={cancellationModalVisible}

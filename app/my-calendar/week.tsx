@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
 import {
@@ -23,7 +23,7 @@ import { theme, uiStyles } from '../../src/theme/ui';
 
 const hourWidth = 88;
 const rowHeight = 64;
-const dayLabelWidth = 112;
+const dayLabelWidth = 45;
 const headerHeight = 32;
 const hours = Array.from({ length: 24 }, (_, index) => index);
 
@@ -136,15 +136,13 @@ export default function CalendarWeekScreen() {
     <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
       <AppScreenHeader title={t('week.title')} />
 
-      <View style={{ marginBottom: theme.spacing[8] }}>
+      <View style={uiStyles.panel}>
         <CalendarNavigationHeader
           title={formatWeekRange(baseDate, locale, weekStartsOn)}
           onPrevious={() => navigateToRelativeWeek(-1)}
           onNext={() => navigateToRelativeWeek(1)}
         />
-      </View>
 
-      <View style={uiStyles.panel}>
         <View
           style={{
             borderWidth: 1,
@@ -157,15 +155,21 @@ export default function CalendarWeekScreen() {
             <View
               style={{
                 width: dayLabelWidth,
+                flexBasis: dayLabelWidth,
+                flexGrow: 0,
+                flexShrink: 0,
+                minWidth: dayLabelWidth,
+                maxWidth: dayLabelWidth,
                 backgroundColor: theme.colors.surfaceSoft,
                 borderRightWidth: 1,
                 borderColor: theme.colors.border,
+                overflow: 'hidden',
               }}>
               <View
                 style={{
                   height: headerHeight,
                   justifyContent: 'center',
-                  paddingHorizontal: theme.spacing[12],
+                  alignItems: 'center',
                   borderBottomWidth: 1,
                   borderColor: theme.colors.border,
                 }}>
@@ -183,7 +187,7 @@ export default function CalendarWeekScreen() {
                     borderTopWidth: 1,
                     borderColor: theme.colors.border,
                     justifyContent: 'center',
-                    paddingHorizontal: theme.spacing[12],
+                    alignItems: 'center',
                     backgroundColor: day.isToday ? theme.colors.accentSoft : theme.colors.surfaceSoft,
                   }}>
                   <Text
@@ -192,10 +196,11 @@ export default function CalendarWeekScreen() {
                       fontSize: theme.typography.body,
                       fontWeight: day.isToday ? '700' : '600',
                       marginBottom: 2,
+                      textAlign: 'center',
                     }}>
                     {formatDayLabel(day.date, locale).weekday}
                   </Text>
-                  <Text style={[uiStyles.metaText, { fontSize: 12 }]}>
+                  <Text style={[uiStyles.metaText, { fontSize: 12, textAlign: 'center' }]}>
                     {formatDayLabel(day.date, locale).date}
                   </Text>
                 </Pressable>
@@ -324,6 +329,22 @@ export default function CalendarWeekScreen() {
 
         {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
         {slotsError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{slotsError}</Text> : null}
+      </View>
+
+      <View style={uiStyles.panel}>
+        <View style={{ gap: theme.spacing[12] }}>
+          <Link href="/my-calendar" asChild>
+            <Pressable style={uiStyles.button}>
+              <Text style={uiStyles.buttonText}>{t('week.backToMonth')}</Text>
+            </Pressable>
+          </Link>
+
+          <Link href={`/my-calendar/create-slot?date=${getDayKey(baseDate)}`} asChild>
+            <Pressable style={uiStyles.button}>
+              <Text style={uiStyles.buttonText}>{t('calendar.createSlots')}</Text>
+            </Pressable>
+          </Link>
+        </View>
       </View>
     </ScrollView>
   );
