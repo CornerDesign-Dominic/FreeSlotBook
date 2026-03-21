@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { StyleSheet } from 'react-native';
 
-import { getActiveThemeMode, getThemeColors, getThemeShadows, theme } from './ui';
+import { useAppSettings } from '@/src/settings/provider';
+import { getThemeColors, getThemeShadows, theme } from './ui';
 
 function buildAuthUiStyles(themeMode: 'light' | 'dark') {
   const colors = getThemeColors(themeMode);
@@ -117,10 +119,8 @@ const authUiStylesByTheme = {
   dark: buildAuthUiStyles('dark'),
 } as const;
 
-type AuthUiStyles = typeof authUiStylesByTheme.light;
+export function useAuthUiStyles() {
+  const { theme } = useAppSettings();
 
-export const authUiStyles = new Proxy({} as AuthUiStyles, {
-  get(_target, prop) {
-    return authUiStylesByTheme[getActiveThemeMode()][prop as keyof AuthUiStyles];
-  },
-});
+  return useMemo(() => authUiStylesByTheme[theme], [theme]);
+}

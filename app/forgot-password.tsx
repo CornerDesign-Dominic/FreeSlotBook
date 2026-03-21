@@ -11,8 +11,8 @@ import {
 import { FirebaseError } from 'firebase/app';
 
 import { sendResetPassword } from '../src/firebase/auth';
-import { theme, useBottomSafeContentStyle } from '../src/theme/ui';
-import { authUiStyles } from '../src/theme/auth-ui';
+import { useAuthUiStyles } from '../src/theme/auth-ui';
+import { useAppTheme, useBottomSafeContentStyle } from '../src/theme/ui';
 import { useTranslation } from '@/src/i18n/provider';
 
 function isValidEmail(email: string) {
@@ -21,6 +21,8 @@ function isValidEmail(email: string) {
 
 export default function ForgotPasswordScreen() {
   const { t } = useTranslation();
+  const { theme } = useAppTheme();
+  const authUiStyles = useAuthUiStyles();
   const contentContainerStyle = useBottomSafeContentStyle(authUiStyles.scrollContent);
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');

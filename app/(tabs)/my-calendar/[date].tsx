@@ -34,7 +34,7 @@ import { useOwnerSlotDetail } from '../../../src/features/mvp/useOwnerSlotDetail
 import type { CalendarSlotEventRecord, SlotStatus } from '../../../src/features/mvp/types';
 import { useAuth } from '../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
-import { theme, uiStyles, useBottomSafeContentStyle } from '../../../src/theme/ui';
+import { useAppTheme, useBottomSafeContentStyle } from '../../../src/theme/ui';
 
 const hourWidth = 96;
 const timelineHeight = 164;
@@ -57,6 +57,7 @@ function shiftDay(date: Date, offset: number) {
 export default function CalendarDayScreen() {
   const isFocused = useIsFocused();
   const { t, language } = useTranslation();
+  const { theme, uiStyles } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle({
     padding: theme.spacing[16],
   });

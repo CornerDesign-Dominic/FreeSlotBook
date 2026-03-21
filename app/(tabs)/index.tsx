@@ -16,15 +16,13 @@ import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useParticipantAppointments } from '../../src/features/mvp/useParticipantAppointments';
 import { useAuth } from '../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
-import { useAppSettings } from '@/src/settings/provider';
-import { getThemeColors, theme, uiStyles, useBottomSafeContentStyle } from '../../src/theme/ui';
+import { useAppTheme, useBottomSafeContentStyle } from '../../src/theme/ui';
 
 export default function HomeScreen() {
   const isFocused = useIsFocused();
   const { user, loading } = useAuth();
-  const { theme: themeMode } = useAppSettings();
   const { t } = useTranslation();
-  const colors = getThemeColors(themeMode);
+  const { theme, uiStyles } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const { data, loading: dashboardLoading, error } = useDashboardData(
     user ? { uid: user.uid, email: user.email } : null
@@ -160,7 +158,7 @@ export default function HomeScreen() {
         <Text
           style={{
             flex: 1,
-            color: colors.textPrimary,
+            color: theme.colors.textPrimary,
             fontSize: theme.typography.sectionTitle,
             fontWeight: '700',
             letterSpacing: -0.2,
@@ -179,7 +177,7 @@ export default function HomeScreen() {
                 borderRadius: theme.radius.small,
               },
             ]}>
-            <Feather name="settings" size={18} color={colors.accent} />
+            <Feather name="settings" size={18} color={theme.colors.accent} />
           </Pressable>
         </Link>
       </View>

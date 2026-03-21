@@ -15,7 +15,7 @@ import {
   splitIntervalAtMidnight,
   type TimelineWindow,
 } from './dashboard-timeline-utils';
-import { theme, uiStyles } from '../../theme/ui';
+import { useAppTheme } from '../../theme/ui';
 
 export type DashboardTimelineItem = {
   id: string;
@@ -35,6 +35,7 @@ export function DashboardReadonlyTimeline(props: {
   scrollRef: RefObject<ScrollView | null>;
   onScroll: (x: number) => void;
 }) {
+  const { theme, uiStyles } = useAppTheme();
   const hourMarkers = useMemo(
     () => buildTimelineHourMarkers(props.window, props.locale),
     [props.locale, props.window]

@@ -12,7 +12,7 @@ import {
 import { AppScreenHeader } from '@/src/components/app-screen-header';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';
-import { theme, uiStyles, useBottomSafeContentStyle } from '@/src/theme/ui';
+import { useAppTheme, useBottomSafeContentStyle } from '@/src/theme/ui';
 import {
   buildMonthGrid,
   findOverlappingSlots,
@@ -55,6 +55,7 @@ type DateFieldKey = 'start' | 'end';
 export function CreateSlotScreen() {
   const { t, language } = useTranslation();
   const { weekStartsOn } = useAppSettings();
+  const { theme, uiStyles } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const locale = language === 'de' ? 'de-DE' : 'en-US';
   const params = useLocalSearchParams<{ date?: string | string[]; slotId?: string | string[] }>();

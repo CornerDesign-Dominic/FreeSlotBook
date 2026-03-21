@@ -2,11 +2,13 @@ import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { Link, Redirect } from 'expo-router';
 
 import { useAuth } from '@/src/firebase/useAuth';
-import { authUiStyles } from '@/src/theme/auth-ui';
-import { theme, useBottomSafeContentStyle } from '@/src/theme/ui';
+import { useAuthUiStyles } from '@/src/theme/auth-ui';
+import { useAppTheme, useBottomSafeContentStyle } from '@/src/theme/ui';
 
 export default function IndexScreen() {
   const { user, loading } = useAuth();
+  const { theme } = useAppTheme();
+  const authUiStyles = useAuthUiStyles();
   const contentContainerStyle = useBottomSafeContentStyle(authUiStyles.scrollContent);
 
   if (loading) {

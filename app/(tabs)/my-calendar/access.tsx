@@ -13,11 +13,12 @@ import { useCalendarAccessRequests } from '../../../src/features/mvp/useCalendar
 import { useOwnerCalendar } from '../../../src/features/mvp/useOwnerCalendar';
 import { useAuth } from '../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
-import { theme, uiStyles, useBottomSafeContentStyle } from '../../../src/theme/ui';
+import { useAppTheme, useBottomSafeContentStyle } from '../../../src/theme/ui';
 
 export default function CalendarAccessScreen() {
   const { user, loading: authLoading } = useAuth();
   const { t } = useTranslation();
+  const { theme, uiStyles } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const { calendar, loading, error } = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null

@@ -14,7 +14,7 @@ import type { AppointmentRecord } from '../../../src/features/mvp/types';
 import { useParticipantAppointments } from '../../../src/features/mvp/useParticipantAppointments';
 import { useAuth } from '../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
-import { theme, uiStyles, useBottomSafeContentStyle } from '../../../src/theme/ui';
+import { useAppTheme, useBottomSafeContentStyle } from '../../../src/theme/ui';
 
 const hourWidth = 96;
 const timelineHeight = 164;
@@ -41,6 +41,7 @@ export default function MyAppointmentsDayScreen() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { t, language } = useTranslation();
+  const { theme, uiStyles } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle({
     padding: theme.spacing[16],
   });

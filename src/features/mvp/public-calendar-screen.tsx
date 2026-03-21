@@ -9,7 +9,7 @@ import { PRIVACY_VERSION, TERMS_VERSION } from './types';
 import { useCalendar } from './useCalendar';
 import { useOwnerSlots } from './useOwnerSlots';
 import { useTranslation } from '@/src/i18n/provider';
-import { theme, useBottomSafeContentStyle } from '@/src/theme/ui';
+import { useAppTheme, useBottomSafeContentStyle } from '@/src/theme/ui';
 
 function formatDateTime(value: Date | null, locale: string, fallback: string) {
   if (!value) {
@@ -54,6 +54,7 @@ export function PublicCalendarScreenContent(props: {
   currentPublicPath: string;
 }) {
   const { t, language } = useTranslation();
+  const { theme } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle({ padding: 16 });
   const locale = language === 'de' ? 'de-DE' : 'en-US';
   const { calendar, loading: calendarLoading, error: calendarError } = useCalendar(props.calendarId);

@@ -1,13 +1,15 @@
 import { Feather } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
-import { theme, uiStyles } from '../theme/ui';
+import { useAppTheme } from '../theme/ui';
 
 export function CalendarNavigationHeader(props: {
   title: string;
   onPrevious: () => void;
   onNext: () => void;
 }) {
+  const { theme, uiStyles } = useAppTheme();
+
   return (
     <View style={uiStyles.calendarNavigation}>
       <Pressable

@@ -13,13 +13,15 @@ import { LanguageSwitcher } from '../src/i18n/language-switcher';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';
 import type { AppTheme, WeekStartsOn } from '../src/settings/types';
-import { theme as designTheme, uiStyles, useBottomSafeContentStyle } from '../src/theme/ui';
+import { useAppTheme, useBottomSafeContentStyle } from '../src/theme/ui';
 
 function ChoiceButton(props: {
   label: string;
   active: boolean;
   onPress: () => void;
 }) {
+  const { uiStyles } = useAppTheme();
+
   return (
     <Pressable
       onPress={props.onPress}
@@ -31,6 +33,7 @@ function ChoiceButton(props: {
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
+  const { theme: designTheme, uiStyles } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const { user, loading: authLoading } = useAuth();
   const { calendar, loading, error } = useOwnerCalendar(

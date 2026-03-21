@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { StyleProp, StyleSheet, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useAppSettings } from '@/src/settings/provider';
 import type { AppTheme } from '@/src/settings/types';
 import {
   colorTokensByTheme,
@@ -11,34 +12,18 @@ import {
   typographyTokens,
 } from './tokens';
 
-let activeThemeMode: AppTheme = 'light';
-
-export function setActiveThemeMode(themeMode: AppTheme) {
-  activeThemeMode = themeMode;
-}
-
-export function getActiveThemeMode() {
-  return activeThemeMode;
-}
-
-export function getThemeColors(themeMode: AppTheme = activeThemeMode) {
+export function getThemeColors(themeMode: AppTheme) {
   return colorTokensByTheme[themeMode];
 }
 
-export function getThemeShadows(themeMode: AppTheme = activeThemeMode) {
+export function getThemeShadows(themeMode: AppTheme) {
   return shadowTokensByTheme[themeMode];
 }
 
 export const theme = {
-  get colors() {
-    return getThemeColors();
-  },
   radius: radiusTokens,
   spacing: spacingTokens,
   typography: typographyTokens,
-  get shadow() {
-    return getThemeShadows();
-  },
 } as const;
 
 function buildUiStyles(themeMode: AppTheme) {
@@ -235,13 +220,26 @@ const uiStylesByTheme = {
   dark: buildUiStyles('dark'),
 } as const;
 
-type UiStyles = typeof uiStylesByTheme.light;
+export function useAppTheme() {
+  const { theme: themeMode } = useAppSettings();
 
-export const uiStyles = new Proxy({} as UiStyles, {
-  get(_target, prop) {
-    return uiStylesByTheme[activeThemeMode][prop as keyof UiStyles];
-  },
-});
+  return useMemo(() => {
+    const colors = getThemeColors(themeMode);
+    const shadows = getThemeShadows(themeMode);
+
+    return {
+      themeMode,
+      theme: {
+        colors,
+        radius: radiusTokens,
+        spacing: spacingTokens,
+        typography: typographyTokens,
+        shadow: shadows,
+      },
+      uiStyles: uiStylesByTheme[themeMode],
+    };
+  }, [themeMode]);
+}
 
 export function useBottomSafeContentStyle(
   baseStyle?: StyleProp<ViewStyle>,

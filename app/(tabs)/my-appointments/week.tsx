@@ -17,7 +17,7 @@ import { CalendarNavigationHeader } from '../../../src/components/calendar-navig
 import { useAuth } from '../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';
-import { theme, uiStyles, useBottomSafeContentStyle } from '../../../src/theme/ui';
+import { useAppTheme, useBottomSafeContentStyle } from '../../../src/theme/ui';
 
 const hourWidth = 88;
 const rowHeight = 64;
@@ -69,6 +69,7 @@ function getAppointmentsForDay(appointments: AppointmentRecord[], date: Date) {
 export default function MyAppointmentsWeekScreen() {
   const router = useRouter();
   const { t, language } = useTranslation();
+  const { theme, uiStyles } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const { weekStartsOn } = useAppSettings();
   const locale = language === 'de' ? 'de-DE' : 'en-US';

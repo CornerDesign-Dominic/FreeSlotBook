@@ -10,7 +10,7 @@ import {
   type TimelineWindow,
 } from './dashboard-timeline-utils';
 import { DashboardReadonlyTimeline } from './dashboard-readonly-timeline';
-import { theme, uiStyles } from '../../theme/ui';
+import { useAppTheme } from '../../theme/ui';
 
 export function DashboardAppointmentTimeline(props: {
   appointments: AppointmentRecord[];
@@ -21,7 +21,9 @@ export function DashboardAppointmentTimeline(props: {
   onScroll: (x: number) => void;
 }) {
   const { t, language } = useTranslation();
+  const { theme, uiStyles } = useAppTheme();
   const locale = language === 'de' ? 'de-DE' : 'en-US';
+  const colors = theme.colors;
   const items = useMemo(
     () =>
       props.appointments
@@ -56,12 +58,12 @@ export function DashboardAppointmentTimeline(props: {
               appointment.source === 'manual'
                 ? t('appointments.sourceManual')
                 : t('appointments.sourceSelfService'),
-            backgroundColor: theme.colors.surfaceSoft,
-            borderColor: theme.colors.border,
+            backgroundColor: colors.surfaceSoft,
+            borderColor: colors.border,
           };
         })
         .filter((item): item is NonNullable<typeof item> => item !== null),
-    [locale, props.appointments, props.window, t]
+    [colors.border, colors.surfaceSoft, locale, props.appointments, props.window, t]
   );
 
   if (props.loading) {

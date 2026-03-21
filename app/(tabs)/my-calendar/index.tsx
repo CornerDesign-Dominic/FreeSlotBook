@@ -15,12 +15,13 @@ import { useOwnerSlots } from '../../../src/features/mvp/useOwnerSlots';
 import { useAuth } from '../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';
-import { theme, uiStyles, useBottomSafeContentStyle } from '../../../src/theme/ui';
+import { useAppTheme, useBottomSafeContentStyle } from '../../../src/theme/ui';
 
 export default function MyCalendarScreen() {
   const { user, loading: authLoading } = useAuth();
   const { t, language } = useTranslation();
   const { weekStartsOn } = useAppSettings();
+  const { theme, uiStyles } = useAppTheme();
   const { width: screenWidth } = useWindowDimensions();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const locale = language === 'de' ? 'de-DE' : 'en-US';

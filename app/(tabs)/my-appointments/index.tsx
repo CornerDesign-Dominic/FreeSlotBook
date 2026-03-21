@@ -15,7 +15,7 @@ import { useParticipantAppointments } from '../../../src/features/mvp/usePartici
 import { useAuth } from '../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';
-import { theme, uiStyles, useBottomSafeContentStyle } from '../../../src/theme/ui';
+import { useAppTheme, useBottomSafeContentStyle } from '../../../src/theme/ui';
 
 function getAppointmentCountsByDay(appointments: AppointmentRecord[]) {
   return appointments.reduce<Record<string, number>>((accumulator, appointment) => {
@@ -33,6 +33,7 @@ function getAppointmentCountsByDay(appointments: AppointmentRecord[]) {
 export default function MyAppointmentsMonthScreen() {
   const { user, loading: authLoading } = useAuth();
   const { t, language } = useTranslation();
+  const { theme, uiStyles } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const { weekStartsOn } = useAppSettings();
   const { width: screenWidth } = useWindowDimensions();

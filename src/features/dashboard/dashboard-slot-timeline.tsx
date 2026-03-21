@@ -10,7 +10,7 @@ import {
   type TimelineWindow,
 } from './dashboard-timeline-utils';
 import { DashboardReadonlyTimeline } from './dashboard-readonly-timeline';
-import { theme, uiStyles } from '../../theme/ui';
+import { useAppTheme } from '../../theme/ui';
 
 export function DashboardSlotTimeline(props: {
   slots: CalendarSlotRecord[];
@@ -21,7 +21,9 @@ export function DashboardSlotTimeline(props: {
   onScroll: (x: number) => void;
 }) {
   const { t, language } = useTranslation();
+  const { theme, uiStyles } = useAppTheme();
   const locale = language === 'de' ? 'de-DE' : 'en-US';
+  const colors = theme.colors;
   const items = useMemo(
     () =>
       props.slots
@@ -57,16 +59,16 @@ export function DashboardSlotTimeline(props: {
             secondaryLabel,
             backgroundColor:
               slot.status === 'inactive'
-                ? theme.colors.accentSoft
+                ? colors.accentSoft
                 : slot.status === 'booked'
-                  ? theme.colors.surfaceSoft
-                  : theme.colors.surface,
+                  ? colors.surfaceSoft
+                  : colors.surface,
             borderColor:
-              slot.status === 'inactive' ? theme.colors.accent : theme.colors.border,
+              slot.status === 'inactive' ? colors.accent : colors.border,
           };
         })
         .filter((item): item is NonNullable<typeof item> => item !== null),
-    [locale, props.slots, props.window, t]
+    [colors.accent, colors.accentSoft, colors.border, colors.surface, colors.surfaceSoft, locale, props.slots, props.window, t]
   );
 
   if (props.loading) {
