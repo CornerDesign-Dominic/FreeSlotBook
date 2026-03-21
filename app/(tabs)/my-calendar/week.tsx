@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import {
   buildWeekDays,
@@ -59,6 +60,7 @@ function formatSlotTimeRange(slot: CalendarSlotRecord, locale: string) {
 }
 
 export default function CalendarWeekScreen() {
+  const isFocused = useIsFocused();
   const router = useRouter();
   const { t, language } = useTranslation();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
@@ -69,12 +71,16 @@ export default function CalendarWeekScreen() {
   const baseDate = useMemo(() => parseDayKey(rawDate) ?? new Date(), [rawDate]);
   const selectedWeekStart = startOfWeek(baseDate, weekStartsOn);
   const timelineScrollRef = useRef<ScrollView>(null);
-  const { width: screenWidth } = useWindowDimensions();
+  const lastAutoScrollSignatureRef = useRef<string | null>(null);
   const { user, loading: authLoading } = useAuth();
   const { calendar, loading, error } = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
   );
   const { slots, loading: slotsLoading, error: slotsError } = useOwnerSlots(calendar?.id ?? null);
+  const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
+  const [timelineReady, setTimelineReady] = useState(false);
+  const [focusVersion, setFocusVersion] = useState(0);
+  const selectedWeekKey = getDayKey(selectedWeekStart);
 
   const weekDays = useMemo(
     () => buildWeekDays(baseDate, weekStartsOn),
@@ -90,16 +96,71 @@ export default function CalendarWeekScreen() {
   );
 
   useEffect(() => {
-    const viewportWidth = Math.max(screenWidth - dayLabelWidth - 32, 120);
-    const currentMinutes = getMinutesSinceStartOfDay(new Date());
-    const offset = Math.max((currentMinutes / 60) * hourWidth - viewportWidth * 0.5, 0);
+    if (!isFocused) {
+      return;
+    }
 
-    const timeout = setTimeout(() => {
-      timelineScrollRef.current?.scrollTo({ x: offset, animated: false });
-    }, 0);
+    setFocusVersion((currentValue) => currentValue + 1);
+  }, [isFocused]);
 
-    return () => clearTimeout(timeout);
-  }, [screenWidth]);
+  useEffect(() => {
+    setTimelineReady(false);
+  }, [selectedWeekKey]);
+
+  useEffect(() => {
+    if (
+      !isFocused ||
+      authLoading ||
+      loading ||
+      slotsLoading ||
+      !timelineReady ||
+      !timelineViewportWidth
+    ) {
+      return;
+    }
+
+    const signature = `${selectedWeekKey}:${focusVersion}`;
+
+    if (lastAutoScrollSignatureRef.current === signature) {
+      return;
+    }
+
+    let cancelled = false;
+    let frameHandle = 0;
+
+    const scrollToNow = () => {
+      if (cancelled) {
+        return;
+      }
+
+      if (!timelineScrollRef.current) {
+        frameHandle = requestAnimationFrame(scrollToNow);
+        return;
+      }
+
+      const currentMinutes = getMinutesSinceStartOfDay(new Date());
+      const offset = Math.max((currentMinutes / 60) * hourWidth - timelineViewportWidth * 0.5, 0);
+
+      timelineScrollRef.current.scrollTo({ x: offset, animated: false });
+      lastAutoScrollSignatureRef.current = signature;
+    };
+
+    frameHandle = requestAnimationFrame(scrollToNow);
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frameHandle);
+    };
+  }, [
+    authLoading,
+    focusVersion,
+    isFocused,
+    loading,
+    selectedWeekKey,
+    slotsLoading,
+    timelineReady,
+    timelineViewportWidth,
+  ]);
 
   const formatSlotStatus = (status: SlotStatus) => {
     switch (status) {
@@ -212,6 +273,13 @@ export default function CalendarWeekScreen() {
               ref={timelineScrollRef}
               horizontal
               showsHorizontalScrollIndicator={false}
+              onLayout={(event) => {
+                const nextWidth = event.nativeEvent.layout.width;
+                setTimelineViewportWidth((currentWidth) =>
+                  Math.abs(currentWidth - nextWidth) < 1 ? currentWidth : nextWidth
+                );
+              }}
+              onContentSizeChange={() => setTimelineReady(true)}
               contentContainerStyle={{ minWidth: timeRailWidth }}>
               <View style={{ width: timeRailWidth, backgroundColor: theme.colors.surface }}>
                 <View

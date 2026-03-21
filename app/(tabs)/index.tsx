@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Feather } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
-import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { logout } from '../../src/firebase/auth';
 import { DashboardAppointmentTimeline } from '../../src/features/dashboard/dashboard-appointment-timeline';
@@ -23,7 +23,6 @@ export default function HomeScreen() {
   const { user, loading } = useAuth();
   const { t } = useTranslation();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
-  const { width: screenWidth } = useWindowDimensions();
   const { data, loading: dashboardLoading, error } = useDashboardData(
     user ? { uid: user.uid, email: user.email } : null
   );
@@ -36,6 +35,7 @@ export default function HomeScreen() {
   const visibleJoinedCalendars = data.joinedCalendars.slice(0, 3);
   const hasMoreJoinedCalendars = data.joinedCalendars.length > 3;
   const [timelineNow, setTimelineNow] = useState(() => new Date());
+  const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
   const timelineWindow = useMemo(() => createRelativeTimelineWindow(timelineNow), [timelineNow]);
   const slotTimelineRef = useRef<ScrollView | null>(null);
   const appointmentTimelineRef = useRef<ScrollView | null>(null);
@@ -57,18 +57,60 @@ export default function HomeScreen() {
   }, [isFocused]);
 
   useEffect(() => {
-    if (!isFocused || loading || dashboardLoading) {
+    if (
+      !isFocused ||
+      loading ||
+      dashboardLoading ||
+      slotsLoading ||
+      appointmentsLoading ||
+      !timelineViewportWidth
+    ) {
       return;
     }
 
-    const initialOffset = getInitialTimelineOffset(timelineWindow, screenWidth);
-    const timeout = setTimeout(() => {
-      slotTimelineRef.current?.scrollTo({ x: initialOffset, animated: false });
-      appointmentTimelineRef.current?.scrollTo({ x: initialOffset, animated: false });
-    }, 0);
+    let cancelled = false;
+    let frameHandle = 0;
 
-    return () => clearTimeout(timeout);
-  }, [dashboardLoading, isFocused, loading, screenWidth, timelineWindow]);
+    const scrollToNow = () => {
+      if (cancelled) {
+        return;
+      }
+
+      if (!slotTimelineRef.current || !appointmentTimelineRef.current) {
+        frameHandle = requestAnimationFrame(scrollToNow);
+        return;
+      }
+
+      const initialOffset = getInitialTimelineOffset(timelineWindow, timelineViewportWidth);
+      slotTimelineRef.current.scrollTo({ x: initialOffset, animated: false });
+      appointmentTimelineRef.current.scrollTo({ x: initialOffset, animated: false });
+    };
+
+    frameHandle = requestAnimationFrame(scrollToNow);
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frameHandle);
+    };
+  }, [
+    appointmentsLoading,
+    dashboardLoading,
+    isFocused,
+    loading,
+    slotsLoading,
+    timelineViewportWidth,
+    timelineWindow,
+  ]);
+
+  const handleTimelineViewportLayout = (width: number) => {
+    setTimelineViewportWidth((currentWidth) => {
+      if (Math.abs(currentWidth - width) < 1) {
+        return currentWidth;
+      }
+
+      return width;
+    });
+  };
 
   const syncTimelineScroll = (source: 'slots' | 'appointments', x: number) => {
     if (ignoreNextScrollRef.current[source]) {
@@ -140,14 +182,16 @@ export default function HomeScreen() {
           <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>
             Slot-Kalender
           </Text>
-          <DashboardSlotTimeline
-            slots={slots}
-            loading={slotsLoading}
-            error={slotsError}
-            window={timelineWindow}
-            scrollRef={slotTimelineRef}
-            onScroll={(x) => syncTimelineScroll('slots', x)}
-          />
+          <View onLayout={(event) => handleTimelineViewportLayout(event.nativeEvent.layout.width)}>
+            <DashboardSlotTimeline
+              slots={slots}
+              loading={slotsLoading}
+              error={slotsError}
+              window={timelineWindow}
+              scrollRef={slotTimelineRef}
+              onScroll={(x) => syncTimelineScroll('slots', x)}
+            />
+          </View>
           <Link href="/my-calendar/access" asChild>
             <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
               <Text style={uiStyles.linkText}>
@@ -159,7 +203,9 @@ export default function HomeScreen() {
 
         <View style={uiStyles.panel}>
           <Text style={[uiStyles.sectionTitle, { marginBottom: 0 }]}>Termin-Kalender</Text>
-          <View style={{ marginTop: theme.spacing[12] }}>
+          <View
+            style={{ marginTop: theme.spacing[12] }}
+            onLayout={(event) => handleTimelineViewportLayout(event.nativeEvent.layout.width)}>
             <DashboardAppointmentTimeline
               appointments={appointments}
               loading={appointmentsLoading}

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocalSearchParams } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 import {
   Alert,
   Modal,
@@ -54,6 +55,7 @@ function shiftDay(date: Date, offset: number) {
 }
 
 export default function CalendarDayScreen() {
+  const isFocused = useIsFocused();
   const { t, language } = useTranslation();
   const contentContainerStyle = useBottomSafeContentStyle({
     padding: theme.spacing[16],
@@ -69,8 +71,8 @@ export default function CalendarDayScreen() {
   const previousRouteDayKeyRef = useRef<string | null>(routeDayKey);
   const previousVisibleDayKeyRef = useRef<string | null>(visibleDayKey);
   const timelineScrollRef = useRef<ScrollView>(null);
-  const initialScrollDayKeyRef = useRef<string | null>(null);
-  const { height: screenHeight, width: screenWidth } = useWindowDimensions();
+  const lastAutoScrollSignatureRef = useRef<string | null>(null);
+  const { height: screenHeight } = useWindowDimensions();
   const { user, loading: authLoading } = useAuth();
   const { calendar, loading, error } = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
@@ -84,6 +86,7 @@ export default function CalendarDayScreen() {
     calendar?.id ?? null,
     visibleDate
   );
+  const timelineLoading = slotsLoading || slotsRefreshing;
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(initialSlotId);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [deactivatingSlotId, setDeactivatingSlotId] = useState<string | null>(null);
@@ -99,6 +102,8 @@ export default function CalendarDayScreen() {
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const [timelineReadyDayKey, setTimelineReadyDayKey] = useState<string | null>(null);
+  const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
+  const [focusVersion, setFocusVersion] = useState(0);
 
   const daySlots = useMemo(
     () => (visibleDate ? getSlotsForDay(slots, visibleDate) : []),
@@ -161,25 +166,68 @@ export default function CalendarDayScreen() {
   }, [daySlots, initialSlotId, routeDayKey, selectedSlotId, visibleDayKey]);
 
   useEffect(() => {
-    if (timelineReadyDayKey !== visibleDayKey || !visibleDate || !visibleDayKey) {
+    if (!isFocused) {
       return;
     }
 
-    if (initialScrollDayKeyRef.current === visibleDayKey) {
+    setFocusVersion((currentValue) => currentValue + 1);
+  }, [isFocused]);
+
+  useEffect(() => {
+    if (
+      !isFocused ||
+      timelineReadyDayKey !== visibleDayKey ||
+      !visibleDate ||
+      !visibleDayKey ||
+      !timelineViewportWidth ||
+      timelineLoading
+    ) {
       return;
     }
 
-    const isTodayView = isSameDay(visibleDate, currentTime);
-    const focusMinutes = isTodayView ? getMinutesSinceStartOfDay(currentTime) : 12 * 60;
-    const defaultOffset = Math.max((focusMinutes / 60) * hourWidth - screenWidth * 0.35, 0);
+    const signature = `${visibleDayKey}:${focusVersion}`;
 
-    const animationFrame = requestAnimationFrame(() => {
-      timelineScrollRef.current?.scrollTo({ x: defaultOffset, animated: false });
-      initialScrollDayKeyRef.current = visibleDayKey;
-    });
+    if (lastAutoScrollSignatureRef.current === signature) {
+      return;
+    }
 
-    return () => cancelAnimationFrame(animationFrame);
-  }, [currentTime, screenWidth, timelineReadyDayKey, visibleDate, visibleDayKey]);
+    let cancelled = false;
+    let frameHandle = 0;
+
+    const scrollToNow = () => {
+      if (cancelled) {
+        return;
+      }
+
+      if (!timelineScrollRef.current) {
+        frameHandle = requestAnimationFrame(scrollToNow);
+        return;
+      }
+
+      const isTodayView = isSameDay(visibleDate, currentTime);
+      const focusMinutes = isTodayView ? getMinutesSinceStartOfDay(currentTime) : 12 * 60;
+      const defaultOffset = Math.max((focusMinutes / 60) * hourWidth - timelineViewportWidth * 0.5, 0);
+
+      timelineScrollRef.current.scrollTo({ x: defaultOffset, animated: false });
+      lastAutoScrollSignatureRef.current = signature;
+    };
+
+    frameHandle = requestAnimationFrame(scrollToNow);
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frameHandle);
+    };
+  }, [
+    currentTime,
+    focusVersion,
+    isFocused,
+    timelineLoading,
+    timelineReadyDayKey,
+    timelineViewportWidth,
+    visibleDate,
+    visibleDayKey,
+  ]);
 
   useEffect(() => {
     setTimelineReadyDayKey(null);
@@ -469,7 +517,6 @@ export default function CalendarDayScreen() {
   const gridLineColor = theme.colors.border;
   const isTodayView = isSameDay(visibleDate, currentTime);
   const nowMarkerLeft = (getMinutesSinceStartOfDay(currentTime) / 60) * hourWidth;
-  const timelineLoading = slotsLoading || slotsRefreshing;
 
   return (
     <View style={uiStyles.screen}>
@@ -493,6 +540,12 @@ export default function CalendarDayScreen() {
               ref={timelineScrollRef}
               horizontal
               showsHorizontalScrollIndicator={false}
+              onLayout={(event) => {
+                const nextWidth = event.nativeEvent.layout.width;
+                setTimelineViewportWidth((currentWidth) =>
+                  Math.abs(currentWidth - nextWidth) < 1 ? currentWidth : nextWidth
+                );
+              }}
               onContentSizeChange={() => {
                 setTimelineReadyDayKey((currentValue) =>
                   currentValue === visibleDayKey ? currentValue : visibleDayKey
