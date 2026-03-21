@@ -1,4 +1,6 @@
-import { StyleSheet } from 'react-native';
+import { useMemo } from 'react';
+import { StyleProp, StyleSheet, ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   colorTokens,
@@ -15,6 +17,18 @@ export const theme = {
   typography: typographyTokens,
   shadow: shadowTokens,
 } as const;
+
+export function useBottomSafeContentStyle(
+  baseStyle?: StyleProp<ViewStyle>,
+  designPaddingBottom = spacingTokens[16]
+) {
+  const insets = useSafeAreaInsets();
+
+  return useMemo(
+    () => [baseStyle, { paddingBottom: insets.bottom + designPaddingBottom }],
+    [baseStyle, designPaddingBottom, insets.bottom]
+  );
+}
 
 export const uiStyles = StyleSheet.create({
   screen: {

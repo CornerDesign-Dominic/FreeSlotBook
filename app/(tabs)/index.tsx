@@ -15,11 +15,12 @@ import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useParticipantAppointments } from '../../src/features/mvp/useParticipantAppointments';
 import { useAuth } from '../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
-import { theme, uiStyles } from '../../src/theme/ui';
+import { theme, uiStyles, useBottomSafeContentStyle } from '../../src/theme/ui';
 
 export default function HomeScreen() {
   const { user, loading } = useAuth();
   const { t } = useTranslation();
+  const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const { width: screenWidth } = useWindowDimensions();
   const { data, loading: dashboardLoading, error } = useDashboardData(
     user ? { uid: user.uid, email: user.email } : null
@@ -84,7 +85,7 @@ export default function HomeScreen() {
     return (
       <ScrollView
         style={uiStyles.screen}
-        contentContainerStyle={uiStyles.content}>
+        contentContainerStyle={contentContainerStyle}>
         <View
           style={{
             flexDirection: 'row',
@@ -121,13 +122,9 @@ export default function HomeScreen() {
         </View>
 
         <View style={uiStyles.panel}>
-          <Link href="/my-calendar" asChild>
-            <Pressable style={{ alignSelf: 'flex-start', marginBottom: theme.spacing[8] }}>
-              <Text style={[uiStyles.sectionTitle, uiStyles.linkText, { marginBottom: 0 }]}>
-                {t('dashboard.myCalendar')}
-              </Text>
-            </Pressable>
-          </Link>
+          <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>
+            Slot-Kalender
+          </Text>
           <DashboardSlotTimeline
             slots={slots}
             loading={slotsLoading}
@@ -146,13 +143,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={uiStyles.panel}>
-          <Link href="/my-appointments" asChild>
-            <Pressable style={{ alignSelf: 'flex-start' }}>
-              <Text style={[uiStyles.sectionTitle, uiStyles.linkText, { marginBottom: 0 }]}>
-                {t('dashboard.myAppointments')}
-              </Text>
-            </Pressable>
-          </Link>
+          <Text style={[uiStyles.sectionTitle, { marginBottom: 0 }]}>Termin-Kalender</Text>
           <View style={{ marginTop: theme.spacing[12] }}>
             <DashboardAppointmentTimeline
               appointments={appointments}

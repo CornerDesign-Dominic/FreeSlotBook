@@ -9,15 +9,15 @@ import {
   getMinutesSinceStartOfDay,
   parseDayKey,
   startOfWeek,
-} from '../../src/features/mvp/calendar-utils';
-import { AppScreenHeader } from '../../src/components/app-screen-header';
-import type { AppointmentRecord } from '../../src/features/mvp/types';
-import { useParticipantAppointments } from '../../src/features/mvp/useParticipantAppointments';
-import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
-import { useAuth } from '../../src/firebase/useAuth';
+} from '../../../src/features/mvp/calendar-utils';
+import { AppScreenHeader } from '../../../src/components/app-screen-header';
+import type { AppointmentRecord } from '../../../src/features/mvp/types';
+import { useParticipantAppointments } from '../../../src/features/mvp/useParticipantAppointments';
+import { CalendarNavigationHeader } from '../../../src/components/calendar-navigation-header';
+import { useAuth } from '../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';
-import { theme, uiStyles } from '../../src/theme/ui';
+import { theme, uiStyles, useBottomSafeContentStyle } from '../../../src/theme/ui';
 
 const hourWidth = 88;
 const rowHeight = 64;
@@ -69,6 +69,7 @@ function getAppointmentsForDay(appointments: AppointmentRecord[], date: Date) {
 export default function MyAppointmentsWeekScreen() {
   const router = useRouter();
   const { t, language } = useTranslation();
+  const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const { weekStartsOn } = useAppSettings();
   const locale = language === 'de' ? 'de-DE' : 'en-US';
   const params = useLocalSearchParams<{ date?: string | string[] }>();
@@ -127,8 +128,8 @@ export default function MyAppointmentsWeekScreen() {
   const gridLineColor = theme.colors.border;
 
   return (
-    <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
-      <AppScreenHeader title={t('appointments.weekTitle')} />
+    <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
+      <AppScreenHeader title="Termin-Kalender" />
 
       <View style={{ marginBottom: theme.spacing[8] }}>
         <CalendarNavigationHeader

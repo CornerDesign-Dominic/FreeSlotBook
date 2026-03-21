@@ -9,6 +9,7 @@ import { PRIVACY_VERSION, TERMS_VERSION } from './types';
 import { useCalendar } from './useCalendar';
 import { useOwnerSlots } from './useOwnerSlots';
 import { useTranslation } from '@/src/i18n/provider';
+import { useBottomSafeContentStyle } from '@/src/theme/ui';
 
 function formatDateTime(value: Date | null, locale: string, fallback: string) {
   if (!value) {
@@ -53,6 +54,7 @@ export function PublicCalendarScreenContent(props: {
   currentPublicPath: string;
 }) {
   const { t, language } = useTranslation();
+  const contentContainerStyle = useBottomSafeContentStyle({ padding: 16 });
   const locale = language === 'de' ? 'de-DE' : 'en-US';
   const { calendar, loading: calendarLoading, error: calendarError } = useCalendar(props.calendarId);
   const { slots, loading: slotsLoading, error: slotsError } = useOwnerSlots(props.calendarId);
@@ -185,7 +187,7 @@ export function PublicCalendarScreenContent(props: {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={contentContainerStyle}>
       <Text style={{ color: 'black', fontSize: 24, marginBottom: 16 }}>{t('public.title')}</Text>
 
       <View style={{ borderWidth: 1, borderColor: 'black', padding: 16, marginBottom: 16 }}>

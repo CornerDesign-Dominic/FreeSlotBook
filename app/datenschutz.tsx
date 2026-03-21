@@ -1,5 +1,7 @@
 import { ScrollView, Text, View } from 'react-native';
 
+import { useBottomSafeContentStyle } from '../src/theme/ui';
+
 const sections = [
   {
     title: '1. Verantwortlicher',
@@ -130,8 +132,10 @@ function Paragraph(props: { children: string }) {
 }
 
 export default function PrivacyScreen() {
+  const contentContainerStyle = useBottomSafeContentStyle({ padding: 16 });
+
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: 'white' }} contentContainerStyle={contentContainerStyle}>
       <Heading>Datenschutzerklärung</Heading>
 
       <Paragraph>

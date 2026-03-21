@@ -19,19 +19,19 @@ import {
   parseDayKey,
   parseGermanDateInput,
   parseTimeInput,
-} from '../../src/features/mvp/calendar-utils';
-import { AppScreenHeader } from '../../src/components/app-screen-header';
+} from '../../../src/features/mvp/calendar-utils';
+import { AppScreenHeader } from '../../../src/components/app-screen-header';
 import {
   createCalendarSlotWithOptionalAssignment,
   updateCalendarSlotTimes,
-} from '../../src/features/mvp/repository';
-import { useCalendarAccessList } from '../../src/features/mvp/useCalendarAccessList';
-import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
-import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
-import { useAuth } from '../../src/firebase/useAuth';
+} from '../../../src/features/mvp/repository';
+import { useCalendarAccessList } from '../../../src/features/mvp/useCalendarAccessList';
+import { useOwnerCalendar } from '../../../src/features/mvp/useOwnerCalendar';
+import { useOwnerSlots } from '../../../src/features/mvp/useOwnerSlots';
+import { useAuth } from '../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';
-import { theme, uiStyles } from '../../src/theme/ui';
+import { theme, uiStyles, useBottomSafeContentStyle } from '../../../src/theme/ui';
 
 function sanitizeDateInput(value: string) {
   const digitsOnly = value.replace(/\D/g, '').slice(0, 8);
@@ -55,6 +55,7 @@ type DateFieldKey = 'start' | 'end';
 export default function CreateSlotScreen() {
   const { t, language } = useTranslation();
   const { weekStartsOn } = useAppSettings();
+  const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const locale = language === 'de' ? 'de-DE' : 'en-US';
   const params = useLocalSearchParams<{ date?: string | string[]; slotId?: string | string[] }>();
   const preselectedDateParam = Array.isArray(params.date) ? params.date[0] : params.date ?? '';
@@ -259,7 +260,7 @@ export default function CreateSlotScreen() {
   return (
     <ScrollView
       style={uiStyles.screen}
-      contentContainerStyle={uiStyles.content}>
+      contentContainerStyle={contentContainerStyle}>
       <AppScreenHeader title={isEditing ? t('createSlot.editTitle') : t('createSlot.title')} />
 
       <View style={uiStyles.panel}>

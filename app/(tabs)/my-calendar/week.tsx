@@ -10,16 +10,16 @@ import {
   getSlotsForDay,
   parseDayKey,
   startOfWeek,
-} from '../../src/features/mvp/calendar-utils';
-import { AppScreenHeader } from '../../src/components/app-screen-header';
-import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
-import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
-import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
-import type { CalendarSlotRecord, SlotStatus } from '../../src/features/mvp/types';
-import { useAuth } from '../../src/firebase/useAuth';
+} from '../../../src/features/mvp/calendar-utils';
+import { AppScreenHeader } from '../../../src/components/app-screen-header';
+import { CalendarNavigationHeader } from '../../../src/components/calendar-navigation-header';
+import { useOwnerCalendar } from '../../../src/features/mvp/useOwnerCalendar';
+import { useOwnerSlots } from '../../../src/features/mvp/useOwnerSlots';
+import type { CalendarSlotRecord, SlotStatus } from '../../../src/features/mvp/types';
+import { useAuth } from '../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';
-import { theme, uiStyles } from '../../src/theme/ui';
+import { theme, uiStyles, useBottomSafeContentStyle } from '../../../src/theme/ui';
 
 const hourWidth = 88;
 const rowHeight = 64;
@@ -61,6 +61,7 @@ function formatSlotTimeRange(slot: CalendarSlotRecord, locale: string) {
 export default function CalendarWeekScreen() {
   const router = useRouter();
   const { t, language } = useTranslation();
+  const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const { weekStartsOn } = useAppSettings();
   const locale = language === 'de' ? 'de-DE' : 'en-US';
   const params = useLocalSearchParams<{ date?: string | string[] }>();
@@ -133,8 +134,8 @@ export default function CalendarWeekScreen() {
   const gridLineColor = theme.colors.border;
 
   return (
-    <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
-      <AppScreenHeader title={t('week.title')} />
+    <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
+      <AppScreenHeader title="Slot-Kalender" />
 
       <View style={uiStyles.panel}>
         <CalendarNavigationHeader
@@ -333,15 +334,9 @@ export default function CalendarWeekScreen() {
 
       <View style={uiStyles.panel}>
         <View style={{ gap: theme.spacing[12] }}>
-          <Link href="/my-calendar" asChild>
-            <Pressable style={uiStyles.button}>
-              <Text style={uiStyles.buttonText}>{t('week.backToMonth')}</Text>
-            </Pressable>
-          </Link>
-
           <Link href={`/my-calendar/create-slot?date=${getDayKey(baseDate)}`} asChild>
             <Pressable style={uiStyles.button}>
-              <Text style={uiStyles.buttonText}>{t('calendar.createSlots')}</Text>
+              <Text style={uiStyles.buttonText}>Neuer Slot</Text>
             </Pressable>
           </Link>
         </View>

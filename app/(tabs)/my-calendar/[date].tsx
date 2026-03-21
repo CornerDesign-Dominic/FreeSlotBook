@@ -18,22 +18,22 @@ import {
   getMinutesSinceStartOfDay,
   getSlotsForDay,
   parseDayKey,
-} from '../../src/features/mvp/calendar-utils';
-import { AppScreenHeader } from '../../src/components/app-screen-header';
-import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
+} from '../../../src/features/mvp/calendar-utils';
+import { AppScreenHeader } from '../../../src/components/app-screen-header';
+import { CalendarNavigationHeader } from '../../../src/components/calendar-navigation-header';
 import {
   assignCalendarSlotByOwner,
   cancelAppointmentByOwner,
   setCalendarSlotInactive,
   updateCalendarSlotAvailability,
-} from '../../src/features/mvp/repository';
-import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
-import { useOwnerDaySlots } from '../../src/features/mvp/useOwnerDaySlots';
-import { useOwnerSlotDetail } from '../../src/features/mvp/useOwnerSlotDetail';
-import type { CalendarSlotEventRecord, SlotStatus } from '../../src/features/mvp/types';
-import { useAuth } from '../../src/firebase/useAuth';
+} from '../../../src/features/mvp/repository';
+import { useOwnerCalendar } from '../../../src/features/mvp/useOwnerCalendar';
+import { useOwnerDaySlots } from '../../../src/features/mvp/useOwnerDaySlots';
+import { useOwnerSlotDetail } from '../../../src/features/mvp/useOwnerSlotDetail';
+import type { CalendarSlotEventRecord, SlotStatus } from '../../../src/features/mvp/types';
+import { useAuth } from '../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
-import { theme, uiStyles } from '../../src/theme/ui';
+import { theme, uiStyles, useBottomSafeContentStyle } from '../../../src/theme/ui';
 
 const hourWidth = 96;
 const timelineHeight = 164;
@@ -55,6 +55,9 @@ function shiftDay(date: Date, offset: number) {
 
 export default function CalendarDayScreen() {
   const { t, language } = useTranslation();
+  const contentContainerStyle = useBottomSafeContentStyle({
+    padding: theme.spacing[16],
+  });
   const locale = language === 'de' ? 'de-DE' : 'en-US';
   const params = useLocalSearchParams<{ date?: string | string[]; slotId?: string | string[] }>();
   const rawDate = Array.isArray(params.date) ? params.date[0] : params.date ?? '';
@@ -471,11 +474,8 @@ export default function CalendarDayScreen() {
   return (
     <View style={uiStyles.screen}>
       <ScrollView
-        contentContainerStyle={{
-          padding: theme.spacing[16],
-          paddingBottom: theme.spacing[32],
-        }}>
-        <AppScreenHeader title={t('calendar.title')} />
+        contentContainerStyle={contentContainerStyle}>
+        <AppScreenHeader title="Slot-Kalender" />
 
         <View style={uiStyles.panel}>
           <CalendarNavigationHeader

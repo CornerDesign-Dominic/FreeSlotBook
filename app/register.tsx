@@ -14,7 +14,7 @@ import { FirebaseError } from 'firebase/app';
 import { logout, registerWithEmail, sendVerificationEmail } from '../src/firebase/auth';
 import { ensureOwnerAccountSetup } from '../src/features/mvp/repository';
 import { useAuth } from '../src/firebase/useAuth';
-import { theme } from '../src/theme/ui';
+import { theme, useBottomSafeContentStyle } from '../src/theme/ui';
 import { authUiStyles } from '../src/theme/auth-ui';
 import { useTranslation } from '@/src/i18n/provider';
 
@@ -26,6 +26,7 @@ export default function RegisterScreen() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { t } = useTranslation();
+  const contentContainerStyle = useBottomSafeContentStyle(authUiStyles.scrollContent);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -104,7 +105,7 @@ export default function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
         style={authUiStyles.scroll}
-        contentContainerStyle={authUiStyles.scrollContent}
+        contentContainerStyle={contentContainerStyle}
         keyboardShouldPersistTaps="handled">
         <View style={authUiStyles.formWrap}>
           <View style={authUiStyles.card}>

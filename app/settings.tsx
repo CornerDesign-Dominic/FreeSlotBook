@@ -13,7 +13,7 @@ import { LanguageSwitcher } from '../src/i18n/language-switcher';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';
 import type { AppTheme, WeekStartsOn } from '../src/settings/types';
-import { theme as designTheme, uiStyles } from '../src/theme/ui';
+import { theme as designTheme, uiStyles, useBottomSafeContentStyle } from '../src/theme/ui';
 
 function ChoiceButton(props: {
   label: string;
@@ -31,6 +31,7 @@ function ChoiceButton(props: {
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
+  const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const { user, loading: authLoading } = useAuth();
   const { calendar, loading, error } = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
@@ -136,7 +137,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
+    <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
       <AppScreenHeader title={t('settings.title')} />
 
       <View style={uiStyles.panel}>

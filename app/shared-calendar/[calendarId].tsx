@@ -9,11 +9,12 @@ import { useCalendar } from '../../src/features/mvp/useCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useAuth } from '../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
-import { theme, uiStyles } from '../../src/theme/ui';
+import { theme, uiStyles, useBottomSafeContentStyle } from '../../src/theme/ui';
 
 export default function SharedCalendarScreen() {
   const params = useLocalSearchParams<{ calendarId?: string | string[] }>();
   const { t, language } = useTranslation();
+  const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const locale = language === 'de' ? 'de-DE' : 'en-US';
   const calendarId = Array.isArray(params.calendarId) ? params.calendarId[0] : params.calendarId ?? null;
   const { user, loading: authLoading } = useAuth();
@@ -93,7 +94,7 @@ export default function SharedCalendarScreen() {
   };
 
   return (
-    <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
+    <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
       <AppScreenHeader title={t('shared.title')} />
 
       <View style={uiStyles.panel}>

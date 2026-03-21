@@ -5,11 +5,12 @@ import { requestCalendarAccessByOwnerEmail } from '../src/features/mvp/repositor
 import { AppScreenHeader } from '../src/components/app-screen-header';
 import { useAuth } from '../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
-import { theme, uiStyles } from '../src/theme/ui';
+import { theme, uiStyles, useBottomSafeContentStyle } from '../src/theme/ui';
 
 export default function RequestCalendarAccessScreen() {
   const { user, loading } = useAuth();
   const { t } = useTranslation();
+  const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const [ownerEmailInput, setOwnerEmailInput] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -55,7 +56,7 @@ export default function RequestCalendarAccessScreen() {
   }
 
   return (
-    <ScrollView style={uiStyles.screen} contentContainerStyle={uiStyles.content}>
+    <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
       <AppScreenHeader title={t('requestAccess.title')} />
 
       <View style={uiStyles.panel}>

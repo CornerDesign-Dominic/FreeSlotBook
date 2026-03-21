@@ -1,71 +1,66 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'expo-router';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppScreenHeader } from '../../src/components/app-screen-header';
-import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
+import { AppScreenHeader } from '../../../src/components/app-screen-header';
+import { CalendarNavigationHeader } from '../../../src/components/calendar-navigation-header';
 import {
   buildMonthGrid,
   formatMonthTitle,
   getDayKey,
   getWeekdayLabels,
-} from '../../src/features/mvp/calendar-utils';
-import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
-import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
-import { useAuth } from '../../src/firebase/useAuth';
+} from '../../../src/features/mvp/calendar-utils';
+import type { AppointmentRecord } from '../../../src/features/mvp/types';
+import { useParticipantAppointments } from '../../../src/features/mvp/useParticipantAppointments';
+import { useAuth } from '../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';
-import { theme, uiStyles } from '../../src/theme/ui';
+import { theme, uiStyles, useBottomSafeContentStyle } from '../../../src/theme/ui';
 
-export default function MyCalendarScreen() {
+function getAppointmentCountsByDay(appointments: AppointmentRecord[]) {
+  return appointments.reduce<Record<string, number>>((accumulator, appointment) => {
+    if (!appointment.startsAt) {
+      return accumulator;
+    }
+
+    const dayKey = getDayKey(appointment.startsAt);
+    accumulator[dayKey] = (accumulator[dayKey] ?? 0) + 1;
+
+    return accumulator;
+  }, {});
+}
+
+export default function MyAppointmentsMonthScreen() {
   const { user, loading: authLoading } = useAuth();
   const { t, language } = useTranslation();
+  const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const { weekStartsOn } = useAppSettings();
   const { width: screenWidth } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
   const locale = language === 'de' ? 'de-DE' : 'en-US';
-  const { calendar, loading, error } = useOwnerCalendar(
-    user ? { uid: user.uid, email: user.email } : null
-  );
-  const { slots, loading: slotsLoading, error: slotsError } = useOwnerSlots(calendar?.id ?? null);
+  const { appointments, loading, error } = useParticipantAppointments(user?.email ?? null);
   const [visibleMonth, setVisibleMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
+
   const monthGrid = useMemo(
     () => buildMonthGrid(visibleMonth, weekStartsOn),
     [visibleMonth, weekStartsOn]
   );
-  const slotCountsByDay = useMemo(() => {
-    return slots.reduce<Record<string, { available: number; booked: number }>>((accumulator, slot) => {
-      if (!slot.startsAt) {
-        return accumulator;
-      }
-
-      const dayKey = getDayKey(slot.startsAt);
-      const currentDay = accumulator[dayKey] ?? { available: 0, booked: 0 };
-
-      if (slot.status === 'available') {
-        currentDay.available += 1;
-      } else if (slot.status === 'booked') {
-        currentDay.booked += 1;
-      }
-
-      accumulator[dayKey] = currentDay;
-      return accumulator;
-    }, {});
-  }, [slots]);
   const weekdayLabels = useMemo(
     () => getWeekdayLabels(language, weekStartsOn),
     [language, weekStartsOn]
+  );
+  const appointmentCountsByDay = useMemo(
+    () => getAppointmentCountsByDay(appointments),
+    [appointments]
   );
   const calendarCellGap = theme.spacing[4];
   const availableWidth = Math.max(screenWidth - theme.spacing[16] * 2 - theme.spacing[16] * 2, 280);
   const cellWidth = (availableWidth - calendarCellGap * 6) / 7;
   const cellHeight = Math.max(Math.min(cellWidth * 1.08, 74), 54);
 
-  if (authLoading || loading || slotsLoading) {
+  if (authLoading || loading) {
     return (
       <View style={uiStyles.centeredLoading}>
         <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
@@ -90,15 +85,8 @@ export default function MyCalendarScreen() {
   };
 
   return (
-    <ScrollView
-      style={uiStyles.screen}
-      contentContainerStyle={[
-        uiStyles.content,
-        {
-          paddingBottom: theme.spacing[12] + insets.bottom + theme.spacing[8],
-        },
-      ]}>
-      <AppScreenHeader title="Mein Slot-Kalender" />
+    <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
+      <AppScreenHeader title="Termin-Kalender" />
 
       <View style={uiStyles.panel}>
         <CalendarNavigationHeader
@@ -130,13 +118,12 @@ export default function MyCalendarScreen() {
               key={`week-${weekIndex}`}
               style={{ flexDirection: 'row', columnGap: calendarCellGap }}>
               {week.map((day) => {
-                const slotCounts = slotCountsByDay[day.key] ?? { available: 0, booked: 0 };
+                const appointmentCount = appointmentCountsByDay[day.key] ?? 0;
                 const isOutsideMonth = !day.isCurrentMonth;
-                const hasVisibleCounts = slotCounts.available > 0 || slotCounts.booked > 0;
 
                 return (
                   <View key={day.key} style={{ width: cellWidth }}>
-                    <Link href={`/my-calendar/${day.key}`} asChild>
+                    <Link href={`/my-appointments/${day.key}`} asChild>
                       <Pressable
                         style={{
                           borderWidth: 1,
@@ -146,19 +133,21 @@ export default function MyCalendarScreen() {
                           paddingHorizontal: theme.spacing[4],
                           paddingVertical: theme.spacing[8],
                           justifyContent: 'space-between',
-                          backgroundColor: day.isToday
-                            ? theme.colors.accentSoft
-                            : hasVisibleCounts
-                              ? theme.colors.surfaceSoft
-                              : isOutsideMonth
-                                ? theme.colors.background
-                                : theme.colors.surface,
+                          backgroundColor:
+                            day.isToday
+                              ? theme.colors.accentSoft
+                              : appointmentCount
+                                ? theme.colors.surfaceSoft
+                                : isOutsideMonth
+                                  ? theme.colors.background
+                                  : theme.colors.surface,
                           opacity: isOutsideMonth ? 0.55 : 1,
                         }}>
                         <Text
                           style={[
                             uiStyles.bodyText,
                             {
+                              marginBottom: appointmentCount ? 6 : 0,
                               color: isOutsideMonth
                                 ? theme.colors.textSecondary
                                 : theme.colors.textPrimary,
@@ -169,46 +158,19 @@ export default function MyCalendarScreen() {
                           ]}>
                           {day.date.getDate()}
                         </Text>
-                        {hasVisibleCounts ? (
-                          <View
-                            style={{
-                              flexDirection: 'row',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              minHeight: 18,
-                              gap: theme.spacing[8],
-                            }}>
-                            <View style={{ flex: 1, alignItems: 'center' }}>
-                              <Text
-                                style={[
-                                  uiStyles.metaText,
-                                  {
-                                    color: theme.colors.accent,
-                                    fontSize: 13,
-                                    fontWeight: '700',
-                                  },
-                                ]}>
-                                {formatCompactCount(slotCounts.available)}
-                              </Text>
-                            </View>
-
-                            <View
-                              style={{
-                                flex: 1,
-                                alignItems: 'center',
-                              }}>
-                              <Text
-                                style={[
-                                  uiStyles.metaText,
-                                  {
-                                    color: theme.colors.textSecondary,
-                                    fontSize: 13,
-                                    fontWeight: '700',
-                                  },
-                                ]}>
-                                {formatCompactCount(slotCounts.booked)}
-                              </Text>
-                            </View>
+                        {appointmentCount ? (
+                          <View style={{ alignItems: 'center', minHeight: 18 }}>
+                            <Text
+                              style={[
+                                uiStyles.metaText,
+                                {
+                                  color: theme.colors.accent,
+                                  fontSize: 13,
+                                  fontWeight: '700',
+                                },
+                              ]}>
+                              {formatCompactCount(appointmentCount)}
+                            </Text>
                           </View>
                         ) : null}
                       </Pressable>
@@ -220,21 +182,24 @@ export default function MyCalendarScreen() {
           ))}
         </View>
 
-        {slotsError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{slotsError}</Text> : null}
+        {!appointments.length ? (
+          <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>
+            {t('appointments.emptyMonth')}
+          </Text>
+        ) : (
+          <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>
+            {t('appointments.monthHint')}
+          </Text>
+        )}
+
         {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
       </View>
 
       <View style={uiStyles.panel}>
         <View style={{ gap: theme.spacing[12] }}>
-          <Link href="/my-calendar/create-slot" asChild>
+          <Link href={`/my-appointments/week?date=${getDayKey(visibleMonth)}`} asChild>
             <Pressable style={uiStyles.button}>
-              <Text style={uiStyles.buttonText}>{t('calendar.createSlots')}</Text>
-            </Pressable>
-          </Link>
-
-          <Link href={`/my-calendar/week?date=${getDayKey(visibleMonth)}`} asChild>
-            <Pressable style={uiStyles.button}>
-              <Text style={uiStyles.buttonText}>{t('calendar.openWeekView')}</Text>
+              <Text style={uiStyles.buttonText}>{t('appointments.openWeekView')}</Text>
             </Pressable>
           </Link>
         </View>
