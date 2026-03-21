@@ -50,6 +50,15 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="new-slot"
+        options={{
+          title: 'Neuer Slot',
+          tabBarIcon: ({ color, focused }) => (
+            <Feather name="plus-circle" size={22} color={color} style={{ opacity: focused ? 1 : 0.8 }} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

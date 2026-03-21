@@ -723,14 +723,14 @@ export default function CalendarDayScreen() {
 
         <View style={uiStyles.panel}>
           <View style={{ gap: theme.spacing[8] }}>
-            <Link href={`/my-calendar/create-slot?date=${visibleDayKey}`} asChild>
+            <Link href={`/new-slot?date=${visibleDayKey}`} asChild>
               <Pressable style={uiStyles.button}>
                 <Text style={uiStyles.buttonText}>{t('day.addSlot')}</Text>
               </Pressable>
             </Link>
 
             {selectedSlotCanEdit ? (
-              <Link href={`/my-calendar/create-slot?date=${visibleDayKey}&slotId=${selectedSlot?.id}`} asChild>
+              <Link href={`/new-slot?date=${visibleDayKey}&slotId=${selectedSlot?.id}`} asChild>
                 <Pressable style={uiStyles.button}>
                   <Text style={uiStyles.buttonText}>{t('day.editSlot')}</Text>
                 </Pressable>

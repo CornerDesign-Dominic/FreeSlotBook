@@ -3,6 +3,9 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
+      "@firebase/auth/dist/rn/index": [
+        "./node_modules/@firebase/auth/dist/rn/index.rn.d.ts"
+      ],
       "@/*": [
         "./*"
       ]

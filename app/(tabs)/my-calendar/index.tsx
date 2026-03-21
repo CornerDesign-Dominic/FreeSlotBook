@@ -220,9 +220,9 @@ export default function MyCalendarScreen() {
 
       <View style={uiStyles.panel}>
         <View style={{ gap: theme.spacing[12] }}>
-          <Link href="/my-calendar/create-slot" asChild>
+          <Link href="/my-calendar/week" asChild>
             <Pressable style={uiStyles.button}>
-              <Text style={uiStyles.buttonText}>Neuer Slot</Text>
+              <Text style={uiStyles.buttonText}>Wochenansicht</Text>
             </Pressable>
           </Link>
         </View>

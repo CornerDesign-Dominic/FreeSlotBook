@@ -334,9 +334,9 @@ export default function CalendarWeekScreen() {
 
       <View style={uiStyles.panel}>
         <View style={{ gap: theme.spacing[12] }}>
-          <Link href={`/my-calendar/create-slot?date=${getDayKey(baseDate)}`} asChild>
+          <Link href="/my-calendar" asChild>
             <Pressable style={uiStyles.button}>
-              <Text style={uiStyles.buttonText}>Neuer Slot</Text>
+              <Text style={uiStyles.buttonText}>Monatsansicht</Text>
             </Pressable>
           </Link>
         </View>
