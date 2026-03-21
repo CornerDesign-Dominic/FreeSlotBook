@@ -97,7 +97,13 @@ export function DashboardReadonlyTimeline(props: {
         onScroll={(event) => props.onScroll(event.nativeEvent.contentOffset.x)}
         contentContainerStyle={{ minWidth: contentWidth }}>
         <View style={{ width: contentWidth }}>
-          <View style={{ position: 'relative', height: 18, marginBottom: theme.spacing[8] }}>
+          <View
+            style={{
+              position: 'relative',
+              height: 10,
+              marginBottom: theme.spacing[8],
+              justifyContent: 'center',
+            }}>
             {hourMarkers.map((marker) => (
               <View
                 key={`hour-label-${marker.date.toISOString()}`}
@@ -105,8 +111,10 @@ export function DashboardReadonlyTimeline(props: {
                   position: 'absolute',
                   left: marker.left,
                   top: 0,
+                  bottom: 0,
                   width: hourWidth,
                   alignItems: 'center',
+                  justifyContent: 'center',
                 }}>
                 <Text
                   style={[
@@ -115,6 +123,7 @@ export function DashboardReadonlyTimeline(props: {
                       textAlign: 'center',
                       fontSize: 12,
                       color: theme.colors.textSecondary,
+                      lineHeight: 12,
                     },
                   ]}>
                   {marker.label}
@@ -124,17 +133,20 @@ export function DashboardReadonlyTimeline(props: {
 
             {props.window.midnight ? (
               <Text
-                style={{
-                  position: 'absolute',
-                  left: (midnightLeft ?? 0) - dividerLabelOffset,
-                  top: 0,
-                  color: theme.colors.textSecondary,
-                  fontSize: theme.typography.meta,
-                  fontWeight: '700',
-                  textAlign: 'center',
-                }}>
-                {dividerLabel}
-              </Text>
+              style={{
+                position: 'absolute',
+                left: (midnightLeft ?? 0) - dividerLabelOffset,
+                top: 0,
+                bottom: 0,
+                color: theme.colors.textSecondary,
+                fontSize: theme.typography.meta,
+                fontWeight: '700',
+                lineHeight: theme.typography.meta,
+                textAlign: 'center',
+                textAlignVertical: 'center',
+              }}>
+              {dividerLabel}
+            </Text>
             ) : null}
           </View>
 
