@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Feather } from '@expo/vector-icons';
+import { Text, View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -55,7 +56,26 @@ export default function TabLayout() {
         options={{
           title: 'Neuer Slot',
           tabBarIcon: ({ color, focused }) => (
-            <Feather name="plus-circle" size={22} color={color} style={{ opacity: focused ? 1 : 0.8 }} />
+            <View
+              style={{
+                width: 24,
+                height: 24,
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: focused ? 1 : 0.8,
+              }}>
+              <Text
+                style={{
+                  color,
+                  fontSize: 17,
+                  fontWeight: '700',
+                  letterSpacing: -0.4,
+                  lineHeight: 18,
+                  textAlign: 'center',
+                }}>
+                S+
+              </Text>
+            </View>
           ),
         }}
       />

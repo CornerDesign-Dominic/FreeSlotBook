@@ -6,8 +6,8 @@ import {
   assignTimelineLanes,
   buildTimelineHourMarkers,
   getDateDividerLabel,
-  getDateDividerWidth,
   getTimelineContentWidth,
+  getTimelineHourWidth,
   getTimelineItemHeight,
   getTimelineItemTop,
   getTimelinePosition,
@@ -47,6 +47,7 @@ export function DashboardReadonlyTimeline(props: {
     () => getTimelineContentWidth(props.window),
     [props.window]
   );
+  const hourWidth = getTimelineHourWidth();
   const { laneByItemId, laneCount } = useMemo(
     () => assignTimelineLanes(props.items),
     [props.items]
@@ -71,6 +72,10 @@ export function DashboardReadonlyTimeline(props: {
     () => getTimelinePosition(props.window.now, props.window),
     [props.window]
   );
+  const midnightLeft = props.window.midnight
+    ? getTimelinePosition(props.window.midnight, props.window)
+    : null;
+  const dividerLabelOffset = dividerLabel ? Math.max(dividerLabel.length * 3.4, 8) : 0;
 
   return (
     <ScrollView
@@ -81,32 +86,34 @@ export function DashboardReadonlyTimeline(props: {
       onScroll={(event) => props.onScroll(event.nativeEvent.contentOffset.x)}
       contentContainerStyle={{ minWidth: contentWidth }}>
       <View style={{ width: contentWidth }}>
-        <View style={{ position: 'relative', height: 28, marginBottom: theme.spacing[12] }}>
+        <View style={{ position: 'relative', height: 22, marginBottom: theme.spacing[8] }}>
           {hourMarkers.map((marker) => (
             <View
               key={`hour-label-${marker.date.toISOString()}`}
-              style={{ position: 'absolute', left: marker.left, top: 0 }}>
-              <Text style={uiStyles.metaText}>{marker.label}</Text>
+              style={{
+                position: 'absolute',
+                left: marker.left,
+                top: 0,
+                width: hourWidth,
+                alignItems: 'center',
+              }}>
+              <Text style={[uiStyles.metaText, { textAlign: 'center' }]}>{marker.label}</Text>
             </View>
           ))}
 
           {props.window.midnight ? (
-            <View
+            <Text
               style={{
                 position: 'absolute',
-                left: getTimelinePosition(props.window.midnight, props.window),
+                left: (midnightLeft ?? 0) - dividerLabelOffset,
                 top: 0,
-                bottom: 0,
-                width: getDateDividerWidth(),
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 1,
-                borderColor: theme.colors.border,
-                backgroundColor: theme.colors.surfaceSoft,
-                borderRadius: theme.radius.small,
+                color: theme.colors.textSecondary,
+                fontSize: theme.typography.meta,
+                fontWeight: '700',
+                textAlign: 'center',
               }}>
-              <Text style={uiStyles.metaText}>{dividerLabel}</Text>
-            </View>
+              {dividerLabel}
+            </Text>
           ) : null}
         </View>
 
@@ -137,14 +144,11 @@ export function DashboardReadonlyTimeline(props: {
             <View
               style={{
                 position: 'absolute',
-                left: getTimelinePosition(props.window.midnight, props.window),
+                left: midnightLeft ?? 0,
                 top: 0,
                 bottom: 0,
-                width: getDateDividerWidth(),
-                borderLeftWidth: 1,
-                borderRightWidth: 1,
-                borderColor: theme.colors.border,
-                backgroundColor: theme.colors.surfaceSoft,
+                width: 1,
+                backgroundColor: theme.colors.border,
               }}
             />
           ) : null}

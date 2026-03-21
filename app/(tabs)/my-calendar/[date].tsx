@@ -723,25 +723,21 @@ export default function CalendarDayScreen() {
 
         <View style={uiStyles.panel}>
           <View style={{ gap: theme.spacing[8] }}>
-            <Link href={`/new-slot?date=${visibleDayKey}`} asChild>
-              <Pressable style={uiStyles.button}>
-                <Text style={uiStyles.buttonText}>{t('day.addSlot')}</Text>
-              </Pressable>
-            </Link>
-
-            {selectedSlotCanEdit ? (
+            {selectedSlot ? (
+              <>
+                {selectedSlotCanEdit ? (
               <Link href={`/new-slot?date=${visibleDayKey}&slotId=${selectedSlot?.id}`} asChild>
                 <Pressable style={uiStyles.button}>
                   <Text style={uiStyles.buttonText}>{t('day.editSlot')}</Text>
                 </Pressable>
               </Link>
-            ) : null}
-            {selectedSlotCanAssign ? (
+                ) : null}
+                {selectedSlotCanAssign ? (
               <Pressable onPress={handleOpenAssignmentModal} style={uiStyles.button}>
                 <Text style={uiStyles.buttonText}>{t('day.assignSlot')}</Text>
               </Pressable>
-            ) : null}
-            {selectedSlotCanReactivate ? (
+                ) : null}
+                {selectedSlotCanReactivate ? (
               <Pressable
                 onPress={handleToggleHold}
                 disabled={updatingAvailabilitySlotId === selectedSlot?.id}
@@ -752,8 +748,8 @@ export default function CalendarDayScreen() {
                     : t('day.releaseSlot')}
                 </Text>
               </Pressable>
-            ) : null}
-            {selectedSlotCanDeactivate ? (
+                ) : null}
+                {selectedSlotCanDeactivate ? (
               <Pressable
                 onPress={handleDeactivateSlot}
                 disabled={deactivatingSlotId === selectedSlot?.id}
@@ -764,8 +760,8 @@ export default function CalendarDayScreen() {
                     : t('day.setInactive')}
                 </Text>
               </Pressable>
-            ) : null}
-            {selectedSlotCanCancelAppointment ? (
+                ) : null}
+                {selectedSlotCanCancelAppointment ? (
               <Pressable
                 onPress={handleCancelAppointment}
                 disabled={cancellingAppointmentId === selectedSlot?.appointmentId}
@@ -776,7 +772,11 @@ export default function CalendarDayScreen() {
                     : t('day.cancelAppointment')}
                 </Text>
               </Pressable>
-            ) : null}
+                ) : null}
+              </>
+            ) : (
+              <Text style={uiStyles.secondaryText}>Slot auswählen</Text>
+            )}
           </View>
         </View>
       </ScrollView>

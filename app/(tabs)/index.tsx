@@ -92,7 +92,7 @@ export default function HomeScreen() {
             justifyContent: 'space-between',
             alignItems: 'center',
             gap: theme.spacing[12],
-            marginBottom: theme.spacing[24],
+            marginBottom: theme.spacing[16],
           }}>
           <Text
             style={{

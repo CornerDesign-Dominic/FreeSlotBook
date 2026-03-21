@@ -1,12 +1,9 @@
 const HOUR_WIDTH = 96;
 const PIXELS_PER_MINUTE = HOUR_WIDTH / 60;
-const DATE_DIVIDER_WIDTH = 28;
 const ITEM_HEIGHT = 40;
 const LANE_GAP = 8;
 const TOP_PADDING = 16;
 const MIN_TRACK_HEIGHT = 84;
-const INITIAL_NOW_VIEWPORT_RATIO = 0.4;
-const MIN_VISIBLE_EDGE_PADDING = 72;
 
 export type TimelineWindow = {
   now: Date;
@@ -87,40 +84,20 @@ export function splitIntervalAtMidnight(
 
 export function getTimelineContentWidth(window: TimelineWindow) {
   const minutes = (window.end.getTime() - window.start.getTime()) / 60000;
-  return minutes * PIXELS_PER_MINUTE + (window.midnight ? DATE_DIVIDER_WIDTH : 0);
+  return minutes * PIXELS_PER_MINUTE;
 }
 
 export function getTimelinePosition(date: Date, window: TimelineWindow) {
   const baseMinutes = (date.getTime() - window.start.getTime()) / 60000;
-  const dividerOffset =
-    window.midnight && date >= window.midnight ? DATE_DIVIDER_WIDTH : 0;
-
-  return baseMinutes * PIXELS_PER_MINUTE + dividerOffset;
+  return baseMinutes * PIXELS_PER_MINUTE;
 }
 
 export function getInitialTimelineOffset(window: TimelineWindow, viewportWidth: number) {
   const contentWidth = getTimelineContentWidth(window);
   const nowPosition = getTimelinePosition(window.now, window);
-  const preferredOffset = nowPosition - viewportWidth * INITIAL_NOW_VIEWPORT_RATIO;
+  const preferredOffset = nowPosition - viewportWidth * 0.5;
   const maxOffset = Math.max(contentWidth - viewportWidth, 0);
-
-  const clampedOffset = Math.max(Math.min(preferredOffset, maxOffset), 0);
-  const visibleNowPosition = nowPosition - clampedOffset;
-  const minVisiblePosition = Math.min(MIN_VISIBLE_EDGE_PADDING, viewportWidth / 2);
-  const maxVisiblePosition = Math.max(
-    viewportWidth - MIN_VISIBLE_EDGE_PADDING,
-    viewportWidth / 2
-  );
-
-  if (visibleNowPosition < minVisiblePosition) {
-    return Math.max(nowPosition - minVisiblePosition, 0);
-  }
-
-  if (visibleNowPosition > maxVisiblePosition) {
-    return Math.min(nowPosition - maxVisiblePosition, maxOffset);
-  }
-
-  return clampedOffset;
+  return Math.max(Math.min(preferredOffset, maxOffset), 0);
 }
 
 export function buildTimelineHourMarkers(window: TimelineWindow, locale: string) {
@@ -139,10 +116,7 @@ export function buildTimelineHourMarkers(window: TimelineWindow, locale: string)
   ) {
     markers.push({
       date: new Date(cursor),
-      label: cursor.toLocaleTimeString(locale, {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
+      label: `${cursor.getHours()}`,
       left: getTimelinePosition(cursor, window),
     });
   }
@@ -150,16 +124,18 @@ export function buildTimelineHourMarkers(window: TimelineWindow, locale: string)
   return markers;
 }
 
+export function getTimelineHourWidth() {
+  return HOUR_WIDTH;
+}
+
 export function getDateDividerLabel(window: TimelineWindow, locale: string) {
   if (!window.midnight) {
     return null;
   }
 
-  return window.midnight.toLocaleDateString(locale, {
-    weekday: 'short',
-    day: '2-digit',
-    month: '2-digit',
-  });
+  const day = window.midnight.getDate();
+  const month = window.midnight.getMonth() + 1;
+  return `${day}.${month}`;
 }
 
 export function assignTimelineLanes<T extends { id: string; start: Date; end: Date }>(
@@ -203,8 +179,4 @@ export function getTimelineItemTop(laneIndex: number) {
 
 export function getTimelineItemHeight() {
   return ITEM_HEIGHT;
-}
-
-export function getDateDividerWidth() {
-  return DATE_DIVIDER_WIDTH;
 }
