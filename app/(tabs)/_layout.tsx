@@ -22,6 +22,8 @@ export default function TabLayout() {
         tabBarShowLabel: false,
         tabBarStyle: {
           minHeight: 56,
+          backgroundColor: theme.colors.surface,
+          borderTopColor: theme.colors.border,
         },
       }}>
       <Tabs.Screen

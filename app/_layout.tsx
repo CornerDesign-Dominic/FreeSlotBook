@@ -8,7 +8,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useNotificationSetup } from '@/src/features/mvp/useNotificationSetup';
 import { I18nProvider } from '@/src/i18n/provider';
 import { AppSettingsProvider, useAppSettings } from '@/src/settings/provider';
-import { theme as designTheme } from '@/src/theme/ui';
+import { getThemeColors, setActiveThemeMode, theme as designTheme } from '@/src/theme/ui';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -30,7 +30,22 @@ export default function RootLayout() {
 
 function RootLayoutContent() {
   const { theme } = useAppSettings();
-  const navigationTheme = theme === 'dark' ? DarkTheme : DefaultTheme;
+  setActiveThemeMode(theme);
+
+  const colors = getThemeColors(theme);
+  const baseNavigationTheme = theme === 'dark' ? DarkTheme : DefaultTheme;
+  const navigationTheme = {
+    ...baseNavigationTheme,
+    colors: {
+      ...baseNavigationTheme.colors,
+      background: colors.background,
+      card: colors.surface,
+      text: colors.textPrimary,
+      border: colors.border,
+      primary: colors.accent,
+      notification: colors.accent,
+    },
+  };
 
   return (
     <ThemeProvider value={navigationTheme}>

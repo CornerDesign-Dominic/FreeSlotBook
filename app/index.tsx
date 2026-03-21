@@ -11,8 +11,15 @@ export default function IndexScreen() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-        <Text>Laedt...</Text>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 16,
+          backgroundColor: theme.colors.background,
+        }}>
+        <Text style={{ color: theme.colors.textPrimary }}>Laedt...</Text>
       </View>
     );
   }
