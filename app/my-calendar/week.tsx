@@ -12,13 +12,13 @@ import {
   startOfWeek,
 } from '../../src/features/mvp/calendar-utils';
 import { AppScreenHeader } from '../../src/components/app-screen-header';
+import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
 import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import type { CalendarSlotRecord, SlotStatus } from '../../src/features/mvp/types';
 import { useAuth } from '../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';
-import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
 import { theme, uiStyles } from '../../src/theme/ui';
 
 const hourWidth = 88;
@@ -146,163 +146,185 @@ export default function CalendarWeekScreen() {
 
       <View style={uiStyles.panel}>
         <View
-          style={[
-            uiStyles.timelineShell,
-            { padding: theme.spacing[12], backgroundColor: theme.colors.background },
-          ]}>
+          style={{
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            borderRadius: theme.radius.large,
+            backgroundColor: theme.colors.surface,
+            overflow: 'hidden',
+          }}>
           <View style={{ flexDirection: 'row' }}>
-          <View style={{ width: dayLabelWidth, marginRight: 8 }}>
-            <View style={{ height: headerHeight, justifyContent: 'center' }}>
-              <Text style={uiStyles.secondaryText}>{t('week.days')}</Text>
-            </View>
-            {weekDays.map((day) => (
-              <Pressable
-                key={`label-${day.key}`}
-                onPress={() => openDay(day.key)}
+            <View
+              style={{
+                width: dayLabelWidth,
+                backgroundColor: theme.colors.surfaceSoft,
+                borderRightWidth: 1,
+                borderColor: theme.colors.border,
+              }}>
+              <View
                 style={{
-                  height: rowHeight,
-                  borderTopWidth: 1,
-                  borderColor: gridLineColor,
+                  height: headerHeight,
                   justifyContent: 'center',
-                  paddingRight: 8,
-                  paddingLeft: theme.spacing[8],
-                  backgroundColor: day.isToday ? theme.colors.surfaceSoft : 'transparent',
-                  borderTopLeftRadius: day.isToday ? theme.radius.small : 0,
-                  borderBottomLeftRadius: day.isToday ? theme.radius.small : 0,
+                  paddingHorizontal: theme.spacing[12],
+                  borderBottomWidth: 1,
+                  borderColor: theme.colors.border,
                 }}>
-                <View
+                <Text style={[uiStyles.secondaryText, { fontSize: 12 }]}>
+                  {t('week.days')}
+                </Text>
+              </View>
+
+              {weekDays.map((day) => (
+                <Pressable
+                  key={`label-${day.key}`}
+                  onPress={() => openDay(day.key)}
                   style={{
-                    borderLeftWidth: day.isToday ? 2 : 0,
-                    borderLeftColor: day.isToday ? theme.colors.accent : 'transparent',
-                    paddingLeft: day.isToday ? theme.spacing[8] : 0,
+                    height: rowHeight,
+                    borderTopWidth: 1,
+                    borderColor: theme.colors.border,
+                    justifyContent: 'center',
+                    paddingHorizontal: theme.spacing[12],
+                    backgroundColor: day.isToday ? theme.colors.accentSoft : theme.colors.surfaceSoft,
                   }}>
                   <Text
                     style={{
                       color: theme.colors.textPrimary,
                       fontSize: theme.typography.body,
-                      fontWeight: day.isToday ? '600' : '500',
+                      fontWeight: day.isToday ? '700' : '600',
+                      marginBottom: 2,
                     }}>
                     {formatDayLabel(day.date, locale).weekday}
                   </Text>
-                  <Text style={uiStyles.metaText}>
+                  <Text style={[uiStyles.metaText, { fontSize: 12 }]}>
                     {formatDayLabel(day.date, locale).date}
                   </Text>
-                </View>
-              </Pressable>
-            ))}
-          </View>
+                </Pressable>
+              ))}
+            </View>
 
-          <ScrollView
-            ref={timelineScrollRef}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ minWidth: timeRailWidth }}>
-            <View style={{ width: timeRailWidth }}>
-              <View style={{ height: headerHeight, flexDirection: 'row', position: 'relative' }}>
-                {hours.map((hour) => (
-                  <View
-                    key={`hour-${hour}`}
-                    style={{
-                      width: hourWidth,
-                      borderRightWidth: 1,
-                      borderColor: gridLineColor,
-                      justifyContent: 'center',
-                    }}>
-                    <Text
-                      style={[
-                        uiStyles.metaText,
-                        {
-                          fontSize: 12,
-                          textAlign: 'right',
-                          paddingRight: theme.spacing[8],
-                        },
-                      ]}>
-                      {`${hour + 1}`.padStart(2, '0')}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-
-              {weekDays.map((day) => (
+            <ScrollView
+              ref={timelineScrollRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ minWidth: timeRailWidth }}>
+              <View style={{ width: timeRailWidth, backgroundColor: theme.colors.surface }}>
                 <View
-                  key={`row-${day.key}`}
                   style={{
-                    height: rowHeight,
-                    borderTopWidth: 1,
-                    borderColor: gridLineColor,
-                    position: 'relative',
+                    height: headerHeight,
+                    flexDirection: 'row',
+                    borderBottomWidth: 1,
+                    borderColor: theme.colors.border,
                     backgroundColor: theme.colors.surface,
                   }}>
                   {hours.map((hour) => (
                     <View
-                      key={`grid-${day.key}-${hour}`}
+                      key={`hour-${hour}`}
                       style={{
-                        position: 'absolute',
-                        top: 0,
-                        bottom: 0,
-                        left: hour * hourWidth,
-                        width: 1,
-                        backgroundColor: gridLineColor,
-                        opacity: 0.7,
-                      }}
-                    />
+                        width: hourWidth,
+                        borderRightWidth: 1,
+                        borderColor: theme.colors.border,
+                        justifyContent: 'center',
+                      }}>
+                      <Text
+                        style={[
+                          uiStyles.metaText,
+                          {
+                            fontSize: 11,
+                            textAlign: 'center',
+                          },
+                        ]}>
+                        {`${hour + 1}`.padStart(2, '0')}
+                      </Text>
+                    </View>
                   ))}
+                </View>
 
-                  {slotsByDay[day.key]?.map((slot) => {
-                    if (!slot.startsAt || !slot.endsAt) {
-                      return null;
-                    }
-
-                    const left = (getMinutesSinceStartOfDay(slot.startsAt) / 60) * hourWidth;
-                    const durationMinutes = Math.max(
-                      (slot.endsAt.getTime() - slot.startsAt.getTime()) / 60000,
-                      30
-                    );
-                    const width = Math.max((durationMinutes / 60) * hourWidth, 52);
-
-                    return (
-                      <Pressable
-                        key={slot.id}
-                        onPress={() => openDay(day.key)}
+                {weekDays.map((day) => (
+                  <View
+                    key={`row-${day.key}`}
+                    style={{
+                      height: rowHeight,
+                      borderTopWidth: 1,
+                      borderColor: theme.colors.border,
+                      position: 'relative',
+                      backgroundColor: day.isToday ? theme.colors.surfaceSoft : theme.colors.surface,
+                    }}>
+                    {hours.map((hour) => (
+                      <View
+                        key={`grid-${day.key}-${hour}`}
                         style={{
                           position: 'absolute',
-                          left,
-                          top: 10,
-                          width,
-                          minHeight: rowHeight - 20,
-                          paddingHorizontal: 8,
-                          paddingVertical: 6,
-                          borderWidth: 1,
-                          borderColor: theme.colors.border,
-                          backgroundColor:
-                            slot.status === 'inactive'
-                              ? theme.colors.accentSoft
-                              : slot.status === 'booked'
+                          top: 0,
+                          bottom: 0,
+                          left: hour * hourWidth,
+                          width: 1,
+                          backgroundColor: gridLineColor,
+                          opacity: 0.28,
+                        }}
+                      />
+                    ))}
+
+                    {(slotsByDay[day.key] ?? []).map((slot) => {
+                      if (!slot.startsAt || !slot.endsAt) {
+                        return null;
+                      }
+
+                      const left = (getMinutesSinceStartOfDay(slot.startsAt) / 60) * hourWidth;
+                      const durationMinutes = Math.max(
+                        (slot.endsAt.getTime() - slot.startsAt.getTime()) / 60000,
+                        30
+                      );
+                      const width = Math.max((durationMinutes / 60) * hourWidth, 56);
+
+                      return (
+                        <Pressable
+                          key={slot.id}
+                          onPress={() => openDay(day.key)}
+                          style={{
+                            position: 'absolute',
+                            left,
+                            top: 9,
+                            width,
+                            minHeight: rowHeight - 18,
+                            paddingHorizontal: 8,
+                            paddingVertical: 6,
+                            borderWidth: 1,
+                            borderColor:
+                              slot.status === 'available'
+                                ? theme.colors.accent
+                                : theme.colors.border,
+                            backgroundColor:
+                              slot.status === 'inactive'
                                 ? theme.colors.surfaceSoft
-                                : theme.colors.surface,
-                          justifyContent: 'center',
-                          borderRadius: theme.radius.small,
-                        }}>
-                        <Text style={uiStyles.metaText} numberOfLines={1}>
-                          {formatSlotTimeRange(slot, locale)}
-                        </Text>
-                        <Text style={[uiStyles.metaText, { color: theme.colors.textPrimary }]} numberOfLines={1}>
-                          {formatSlotStatus(slot.status)}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
+                                : slot.status === 'booked'
+                                  ? theme.colors.surface
+                                  : theme.colors.accentSoft,
+                            justifyContent: 'center',
+                            borderRadius: theme.radius.small,
+                          }}>
+                          <Text
+                            style={[uiStyles.metaText, { color: theme.colors.textPrimary }]}
+                            numberOfLines={1}>
+                            {formatSlotTimeRange(slot, locale)}
+                          </Text>
+                          <Text
+                            style={[uiStyles.metaText, { color: theme.colors.textSecondary }]}
+                            numberOfLines={1}>
+                            {formatSlotStatus(slot.status)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
         </View>
 
         {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
         {slotsError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{slotsError}</Text> : null}
       </View>
-
     </ScrollView>
   );
 }

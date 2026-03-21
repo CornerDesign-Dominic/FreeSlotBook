@@ -143,7 +143,7 @@ export default function MyCalendarScreen() {
                           borderColor: day.isToday ? theme.colors.accent : theme.colors.border,
                           borderRadius: theme.radius.medium,
                           height: cellHeight,
-                          paddingHorizontal: theme.spacing[8],
+                          paddingHorizontal: theme.spacing[4],
                           paddingVertical: theme.spacing[8],
                           justifyContent: 'space-between',
                           backgroundColor: day.isToday
@@ -156,7 +156,6 @@ export default function MyCalendarScreen() {
                           opacity: isOutsideMonth ? 0.55 : 1,
                         }}>
                         <Text
-                          numberOfLines={1}
                           style={[
                             uiStyles.bodyText,
                             {
@@ -165,6 +164,7 @@ export default function MyCalendarScreen() {
                                 : theme.colors.textPrimary,
                               fontWeight: day.isToday ? '700' : '500',
                               fontSize: 14,
+                              textAlign: 'center',
                             },
                           ]}>
                           {day.date.getDate()}
@@ -178,7 +178,7 @@ export default function MyCalendarScreen() {
                               minHeight: 18,
                               gap: theme.spacing[8],
                             }}>
-                            <View style={{ flex: 1, alignItems: 'flex-start' }}>
+                            <View style={{ flex: 1, alignItems: 'center' }}>
                               <Text
                                 style={[
                                   uiStyles.metaText,
@@ -195,7 +195,7 @@ export default function MyCalendarScreen() {
                             <View
                               style={{
                                 flex: 1,
-                                alignItems: 'flex-end',
+                                alignItems: 'center',
                               }}>
                               <Text
                                 style={[
