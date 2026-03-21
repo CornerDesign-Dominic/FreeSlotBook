@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
+import * as NavigationBar from 'expo-navigation-bar';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import 'react-native-reanimated';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
@@ -52,6 +53,23 @@ function RootLayoutContent() {
   useEffect(() => {
     void SystemUI.setBackgroundColorAsync(colors.background);
   }, [colors.background]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+
+    const navigationBarStyle = theme === 'dark' ? 'dark' : 'light';
+    const buttonStyle = theme === 'dark' ? 'light' : 'dark';
+
+    NavigationBar.setStyle(navigationBarStyle);
+    void NavigationBar.setButtonStyleAsync(buttonStyle).catch(() => {
+      // `setStyle` is the preferred path in edge-to-edge mode. Keep the fallback silent.
+    });
+    void NavigationBar.setVisibilityAsync('visible').catch(() => {
+      // Ignore devices that don't expose the Android navigation bar API.
+    });
+  }, [theme]);
 
   return (
     <ThemeProvider value={navigationTheme}>
