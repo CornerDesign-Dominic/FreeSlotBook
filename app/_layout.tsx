@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SystemUI from 'expo-system-ui';
 import { View } from 'react-native';
 import 'react-native-reanimated';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -47,6 +49,10 @@ function RootLayoutContent() {
     },
   };
 
+  useEffect(() => {
+    void SystemUI.setBackgroundColorAsync(colors.background);
+  }, [colors.background]);
+
   return (
     <ThemeProvider value={navigationTheme}>
       <SafeAreaView
@@ -55,11 +61,15 @@ function RootLayoutContent() {
         <View
           style={{
             flex: 1,
+            backgroundColor: navigationTheme.colors.background,
             paddingTop: designTheme.spacing[8],
           }}>
           <Stack
             screenOptions={{
               headerShown: false,
+              contentStyle: {
+                backgroundColor: navigationTheme.colors.background,
+              },
             }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           </Stack>

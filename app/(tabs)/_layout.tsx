@@ -20,6 +20,9 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarShowLabel: false,
+        sceneStyle: {
+          backgroundColor: theme.colors.background,
+        },
         tabBarStyle: {
           minHeight: 56,
           backgroundColor: theme.colors.surface,

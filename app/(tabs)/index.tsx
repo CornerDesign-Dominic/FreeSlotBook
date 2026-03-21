@@ -220,7 +220,15 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <View style={[uiStyles.panel, { marginBottom: theme.spacing[24] }]}>
+      <View
+        style={[
+          uiStyles.panel,
+          {
+            backgroundColor: theme.colors.surface,
+            borderColor: theme.colors.border,
+            marginBottom: theme.spacing[24],
+          },
+        ]}>
         <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[4] }]}>
           {t('dashboard.sharedCalendars')}
         </Text>
