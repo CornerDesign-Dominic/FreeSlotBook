@@ -72,7 +72,12 @@ export default function CalendarDayScreen() {
   const { calendar, loading, error } = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
   );
-  const { slots, loading: slotsLoading, error: slotsError } = useOwnerDaySlots(
+  const {
+    slots,
+    loading: slotsLoading,
+    isRefreshing: slotsRefreshing,
+    error: slotsError,
+  } = useOwnerDaySlots(
     calendar?.id ?? null,
     visibleDate
   );
@@ -438,7 +443,7 @@ export default function CalendarDayScreen() {
     }
   };
 
-  if (authLoading || loading || slotsLoading) {
+  if (authLoading || loading) {
     return (
       <View style={uiStyles.centeredLoading}>
         <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
@@ -461,6 +466,7 @@ export default function CalendarDayScreen() {
   const gridLineColor = theme.colors.border;
   const isTodayView = isSameDay(visibleDate, currentTime);
   const nowMarkerLeft = (getMinutesSinceStartOfDay(currentTime) / 60) * hourWidth;
+  const timelineLoading = slotsLoading || slotsRefreshing;
 
   return (
     <View style={uiStyles.screen}>
@@ -542,7 +548,11 @@ export default function CalendarDayScreen() {
                     />
                   ) : null}
 
-                  {daySlots.length ? (
+                  {timelineLoading ? (
+                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                      <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
+                    </View>
+                  ) : daySlots.length ? (
                     daySlots.map((slot) => {
                       if (!slot.startsAt || !slot.endsAt) {
                         return null;
@@ -766,15 +776,6 @@ export default function CalendarDayScreen() {
                     : t('day.cancelAppointment')}
                 </Text>
               </Pressable>
-            ) : null}
-            {!selectedSlotCanEdit &&
-            !selectedSlotCanAssign &&
-            !selectedSlotCanReactivate &&
-            !selectedSlotCanDeactivate &&
-            !selectedSlotCanCancelAppointment ? (
-              <View style={{ paddingVertical: 10, opacity: 0.55 }}>
-                <Text style={uiStyles.secondaryText}>{t('day.noAction')}</Text>
-              </View>
             ) : null}
           </View>
         </View>
