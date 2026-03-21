@@ -78,133 +78,159 @@ export function DashboardReadonlyTimeline(props: {
   const dividerLabelOffset = dividerLabel ? Math.max(dividerLabel.length * 3.4, 8) : 0;
 
   return (
-    <ScrollView
-      ref={props.scrollRef}
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      scrollEventThrottle={16}
-      onScroll={(event) => props.onScroll(event.nativeEvent.contentOffset.x)}
-      contentContainerStyle={{ minWidth: contentWidth }}>
-      <View style={{ width: contentWidth }}>
-        <View style={{ position: 'relative', height: 22, marginBottom: theme.spacing[8] }}>
-          {hourMarkers.map((marker) => (
-            <View
-              key={`hour-label-${marker.date.toISOString()}`}
-              style={{
-                position: 'absolute',
-                left: marker.left,
-                top: 0,
-                width: hourWidth,
-                alignItems: 'center',
-              }}>
-              <Text style={[uiStyles.metaText, { textAlign: 'center' }]}>{marker.label}</Text>
-            </View>
-          ))}
+    <View
+      style={{
+        backgroundColor: theme.colors.surface,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        borderRadius: theme.radius.large,
+        paddingTop: theme.spacing[8],
+        paddingBottom: theme.spacing[12],
+        paddingHorizontal: 0,
+        ...theme.shadow.soft,
+      }}>
+      <ScrollView
+        ref={props.scrollRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={(event) => props.onScroll(event.nativeEvent.contentOffset.x)}
+        contentContainerStyle={{ minWidth: contentWidth }}>
+        <View style={{ width: contentWidth }}>
+          <View style={{ position: 'relative', height: 18, marginBottom: theme.spacing[8] }}>
+            {hourMarkers.map((marker) => (
+              <View
+                key={`hour-label-${marker.date.toISOString()}`}
+                style={{
+                  position: 'absolute',
+                  left: marker.left,
+                  top: 0,
+                  width: hourWidth,
+                  alignItems: 'center',
+                }}>
+                <Text
+                  style={[
+                    uiStyles.metaText,
+                    {
+                      textAlign: 'center',
+                      fontSize: 12,
+                      color: theme.colors.textSecondary,
+                    },
+                  ]}>
+                  {marker.label}
+                </Text>
+              </View>
+            ))}
 
-          {props.window.midnight ? (
-            <Text
-              style={{
-                position: 'absolute',
-                left: (midnightLeft ?? 0) - dividerLabelOffset,
-                top: 0,
-                color: theme.colors.textSecondary,
-                fontSize: theme.typography.meta,
-                fontWeight: '700',
-                textAlign: 'center',
-              }}>
-              {dividerLabel}
-            </Text>
-          ) : null}
-        </View>
-
-        <View
-          style={{
-            position: 'relative',
-            height: trackHeight,
-            borderWidth: 1,
-            borderColor: theme.colors.border,
-            backgroundColor: theme.colors.surface,
-            borderRadius: theme.radius.medium,
-          }}>
-          {hourMarkers.map((marker) => (
-            <View
-              key={`hour-grid-${marker.date.toISOString()}`}
-              style={{
-                position: 'absolute',
-                left: marker.left,
-                top: 0,
-                bottom: 0,
-                width: 1,
-                backgroundColor: theme.colors.border,
-              }}
-            />
-          ))}
-
-          {props.window.midnight ? (
-            <View
-              style={{
-                position: 'absolute',
-                left: midnightLeft ?? 0,
-                top: 0,
-                bottom: 0,
-                width: 1,
-                backgroundColor: theme.colors.border,
-              }}
-            />
-          ) : null}
+            {props.window.midnight ? (
+              <Text
+                style={{
+                  position: 'absolute',
+                  left: (midnightLeft ?? 0) - dividerLabelOffset,
+                  top: 0,
+                  color: theme.colors.textSecondary,
+                  fontSize: theme.typography.meta,
+                  fontWeight: '700',
+                  textAlign: 'center',
+                }}>
+                {dividerLabel}
+              </Text>
+            ) : null}
+          </View>
 
           <View
             style={{
-              position: 'absolute',
-              left: currentTimeLeft,
-              top: 0,
-              bottom: 0,
-              width: 2,
-              backgroundColor: theme.colors.accent,
-            }}
-          />
+              position: 'relative',
+              height: trackHeight,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+              backgroundColor: theme.colors.surface,
+              borderRadius: theme.radius.medium,
+              overflow: 'hidden',
+            }}>
+            {hourMarkers.map((marker) => (
+              <View
+                key={`hour-grid-${marker.date.toISOString()}`}
+                style={{
+                  position: 'absolute',
+                  left: marker.left,
+                  top: 0,
+                  bottom: 0,
+                  width: 1,
+                  backgroundColor: theme.colors.border,
+                  opacity: 0.3,
+                }}
+              />
+            ))}
 
-          {renderedSegments.length ? (
-            renderedSegments.map(({ item, segment, segmentIndex, lane }) => {
-              const left = getTimelinePosition(segment.start, props.window);
-              const right = getTimelinePosition(segment.end, props.window);
-              const width = Math.max(right - left, 18);
+            {props.window.midnight ? (
+              <View
+                style={{
+                  position: 'absolute',
+                  left: midnightLeft ?? 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 1,
+                  backgroundColor: theme.colors.border,
+                  opacity: 0.5,
+                }}
+              />
+            ) : null}
 
-              return (
-                <View
-                  key={`${item.id}-${segmentIndex}`}
-                  style={{
-                    position: 'absolute',
-                    left,
-                    top: getTimelineItemTop(lane),
-                    width,
-                    minHeight: itemHeight,
-                    paddingHorizontal: theme.spacing[8],
-                    paddingVertical: theme.spacing[8],
-                    borderWidth: 1,
-                    borderColor: item.borderColor,
-                    backgroundColor: item.backgroundColor,
-                    justifyContent: 'center',
-                    borderRadius: theme.radius.small,
-                  }}>
-                  <Text style={uiStyles.metaText} numberOfLines={1}>
-                    {item.primaryLabel}
-                  </Text>
-                  {item.secondaryLabel && width >= 96 ? (
-                    <Text style={[uiStyles.metaText, { color: theme.colors.textPrimary }]} numberOfLines={1}>
-                      {item.secondaryLabel}
+            <View
+              style={{
+                position: 'absolute',
+                left: currentTimeLeft,
+                top: 0,
+                bottom: 0,
+                width: 1,
+                backgroundColor: theme.colors.accent,
+                opacity: 0.72,
+              }}
+            />
+
+            {renderedSegments.length ? (
+              renderedSegments.map(({ item, segment, segmentIndex, lane }) => {
+                const left = getTimelinePosition(segment.start, props.window);
+                const right = getTimelinePosition(segment.end, props.window);
+                const width = Math.max(right - left, 18);
+
+                return (
+                  <View
+                    key={`${item.id}-${segmentIndex}`}
+                    style={{
+                      position: 'absolute',
+                      left,
+                      top: getTimelineItemTop(lane),
+                      width,
+                      minHeight: itemHeight,
+                      paddingHorizontal: theme.spacing[8],
+                      paddingVertical: theme.spacing[8],
+                      borderWidth: 1,
+                      borderColor: item.borderColor,
+                      backgroundColor: item.backgroundColor,
+                      justifyContent: 'center',
+                      borderRadius: theme.radius.small,
+                    }}>
+                    <Text style={uiStyles.metaText} numberOfLines={1}>
+                      {item.primaryLabel}
                     </Text>
-                  ) : null}
-                </View>
-              );
-            })
-          ) : (
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={uiStyles.secondaryText}>{props.emptyLabel}</Text>
-            </View>
-          )}
+                    {item.secondaryLabel && width >= 96 ? (
+                      <Text style={[uiStyles.metaText, { color: theme.colors.textPrimary }]} numberOfLines={1}>
+                        {item.secondaryLabel}
+                      </Text>
+                    ) : null}
+                  </View>
+                );
+              })
+            ) : (
+              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={uiStyles.secondaryText}>{props.emptyLabel}</Text>
+              </View>
+            )}
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
