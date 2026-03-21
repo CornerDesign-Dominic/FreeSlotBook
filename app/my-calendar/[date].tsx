@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState, useEffect } from 'react';
-import { Link, useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocalSearchParams } from 'expo-router';
 import {
   Alert,
   Modal,
@@ -20,6 +20,7 @@ import {
   parseDayKey,
 } from '../../src/features/mvp/calendar-utils';
 import { AppScreenHeader } from '../../src/components/app-screen-header';
+import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
 import {
   assignCalendarSlotByOwner,
   cancelAppointmentByOwner,
@@ -27,10 +28,9 @@ import {
   updateCalendarSlotAvailability,
 } from '../../src/features/mvp/repository';
 import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
+import { useOwnerDaySlots } from '../../src/features/mvp/useOwnerDaySlots';
 import { useOwnerSlotDetail } from '../../src/features/mvp/useOwnerSlotDetail';
-import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import type { CalendarSlotEventRecord, SlotStatus } from '../../src/features/mvp/types';
-import { CalendarNavigationHeader } from '../../src/components/calendar-navigation-header';
 import { useAuth } from '../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { theme, uiStyles } from '../../src/theme/ui';
@@ -47,22 +47,35 @@ function isSameDay(left: Date, right: Date) {
   );
 }
 
+function shiftDay(date: Date, offset: number) {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + offset);
+  return nextDate;
+}
+
 export default function CalendarDayScreen() {
-  const router = useRouter();
   const { t, language } = useTranslation();
   const locale = language === 'de' ? 'de-DE' : 'en-US';
   const params = useLocalSearchParams<{ date?: string | string[]; slotId?: string | string[] }>();
   const rawDate = Array.isArray(params.date) ? params.date[0] : params.date ?? '';
+  const routeDate = useMemo(() => parseDayKey(rawDate), [rawDate]);
+  const routeDayKey = routeDate ? getDayKey(routeDate) : null;
   const initialSlotId = Array.isArray(params.slotId) ? params.slotId[0] : params.slotId ?? null;
-  const selectedDate = useMemo(() => parseDayKey(rawDate), [rawDate]);
-  const selectedDayKey = selectedDate ? getDayKey(selectedDate) : null;
-  const { height: screenHeight, width: screenWidth } = useWindowDimensions();
+  const [visibleDate, setVisibleDate] = useState<Date | null>(() => routeDate);
+  const visibleDayKey = visibleDate ? getDayKey(visibleDate) : null;
+  const previousRouteDayKeyRef = useRef<string | null>(routeDayKey);
+  const previousVisibleDayKeyRef = useRef<string | null>(visibleDayKey);
   const timelineScrollRef = useRef<ScrollView>(null);
+  const initialScrollDayKeyRef = useRef<string | null>(null);
+  const { height: screenHeight, width: screenWidth } = useWindowDimensions();
   const { user, loading: authLoading } = useAuth();
   const { calendar, loading, error } = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
   );
-  const { slots, loading: slotsLoading, error: slotsError } = useOwnerSlots(calendar?.id ?? null);
+  const { slots, loading: slotsLoading, error: slotsError } = useOwnerDaySlots(
+    calendar?.id ?? null,
+    visibleDate
+  );
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(initialSlotId);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [deactivatingSlotId, setDeactivatingSlotId] = useState<string | null>(null);
@@ -77,36 +90,12 @@ export default function CalendarDayScreen() {
   const [assigneePhone, setAssigneePhone] = useState('');
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const [currentTime, setCurrentTime] = useState(() => new Date());
-  const initialScrollDayKeyRef = useRef<string | null>(null);
   const [timelineReadyDayKey, setTimelineReadyDayKey] = useState<string | null>(null);
 
   const daySlots = useMemo(
-    () => (selectedDate ? getSlotsForDay(slots, selectedDate) : []),
-    [selectedDate, slots]
+    () => (visibleDate ? getSlotsForDay(slots, visibleDate) : []),
+    [slots, visibleDate]
   );
-
-  useEffect(() => {
-    if (!daySlots.length) {
-      setSelectedSlotId(null);
-      return;
-    }
-
-    if (!selectedSlotId) {
-      if (!initialSlotId) {
-        return;
-      }
-
-      const slotFromRoute = daySlots.find((slot) => slot.id === initialSlotId)?.id ?? null;
-      setSelectedSlotId(slotFromRoute);
-      return;
-    }
-
-    const hasSelectedSlot = daySlots.some((slot) => slot.id === selectedSlotId);
-
-    if (!hasSelectedSlot) {
-      setSelectedSlotId(null);
-    }
-  }, [daySlots, initialSlotId, selectedSlotId]);
 
   const {
     slot: selectedSlot,
@@ -116,41 +105,77 @@ export default function CalendarDayScreen() {
   } = useOwnerSlotDetail(calendar?.id ?? null, selectedSlotId);
 
   useEffect(() => {
-    if (!selectedDate) {
+    if (!routeDate || !routeDayKey) {
       return;
     }
 
-    if (!selectedDayKey || timelineReadyDayKey !== selectedDayKey) {
+    if (previousRouteDayKeyRef.current === routeDayKey) {
       return;
     }
 
-    if (initialScrollDayKeyRef.current === selectedDayKey) {
+    previousRouteDayKeyRef.current = routeDayKey;
+    setVisibleDate(routeDate);
+    setSelectedSlotId(initialSlotId);
+    setActionMessage(null);
+    setHistoryExpanded(false);
+  }, [initialSlotId, routeDate, routeDayKey]);
+
+  useEffect(() => {
+    if (previousVisibleDayKeyRef.current !== visibleDayKey) {
+      setSelectedSlotId(null);
+      setActionMessage(null);
+      setHistoryExpanded(false);
+      previousVisibleDayKeyRef.current = visibleDayKey;
+    }
+  }, [visibleDayKey]);
+
+  useEffect(() => {
+    if (!daySlots.length) {
+      setSelectedSlotId(null);
       return;
     }
 
-    const isTodayView = isSameDay(selectedDate, currentTime);
+    if (selectedSlotId && daySlots.some((slot) => slot.id === selectedSlotId)) {
+      return;
+    }
+
+    if (!selectedSlotId && initialSlotId && routeDayKey === visibleDayKey) {
+      const slotFromRoute = daySlots.find((slot) => slot.id === initialSlotId)?.id ?? null;
+
+      if (slotFromRoute) {
+        setSelectedSlotId(slotFromRoute);
+      }
+
+      return;
+    }
+
+    setSelectedSlotId(null);
+  }, [daySlots, initialSlotId, routeDayKey, selectedSlotId, visibleDayKey]);
+
+  useEffect(() => {
+    if (timelineReadyDayKey !== visibleDayKey || !visibleDate || !visibleDayKey) {
+      return;
+    }
+
+    if (initialScrollDayKeyRef.current === visibleDayKey) {
+      return;
+    }
+
+    const isTodayView = isSameDay(visibleDate, currentTime);
     const focusMinutes = isTodayView ? getMinutesSinceStartOfDay(currentTime) : 12 * 60;
     const defaultOffset = Math.max((focusMinutes / 60) * hourWidth - screenWidth * 0.35, 0);
 
     const animationFrame = requestAnimationFrame(() => {
       timelineScrollRef.current?.scrollTo({ x: defaultOffset, animated: false });
-      initialScrollDayKeyRef.current = selectedDayKey;
+      initialScrollDayKeyRef.current = visibleDayKey;
     });
 
     return () => cancelAnimationFrame(animationFrame);
-  }, [currentTime, screenWidth, selectedDate, selectedDayKey, timelineReadyDayKey]);
+  }, [currentTime, screenWidth, timelineReadyDayKey, visibleDate, visibleDayKey]);
 
   useEffect(() => {
     setTimelineReadyDayKey(null);
-  }, [selectedDayKey]);
-
-  useEffect(() => {
-    setActionMessage(null);
-  }, [rawDate]);
-
-  useEffect(() => {
-    setHistoryExpanded(false);
-  }, [selectedSlotId]);
+  }, [visibleDayKey]);
 
   useEffect(() => {
     if (!assignmentModalVisible) {
@@ -169,7 +194,7 @@ export default function CalendarDayScreen() {
   useEffect(() => {
     setCurrentTime(new Date());
 
-    if (!selectedDate || !isSameDay(selectedDate, new Date())) {
+    if (!visibleDate || !isSameDay(visibleDate, new Date())) {
       return;
     }
 
@@ -178,7 +203,7 @@ export default function CalendarDayScreen() {
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [selectedDate]);
+  }, [visibleDate]);
 
   const formatTime = (value: Date | null) => {
     if (!value) {
@@ -237,7 +262,7 @@ export default function CalendarDayScreen() {
     }
   };
 
-  if (!selectedDate) {
+  if (!routeDate || !visibleDate || !visibleDayKey) {
     return (
       <View style={uiStyles.centeredLoading}>
         <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[16] }]}>{t('day.invalidDate')}</Text>
@@ -422,33 +447,35 @@ export default function CalendarDayScreen() {
   }
 
   const historyPanelMaxHeight = Math.max(Math.min(screenHeight * 0.33, 260), 180);
-  const selectedSlotCanDeactivate = selectedSlot?.status === 'available' && !selectedSlot.appointmentId;
-  const selectedSlotCanReactivate = selectedSlot?.status === 'inactive' && !selectedSlot.appointmentId;
+  const selectedSlotCanDeactivate =
+    selectedSlot?.status === 'available' && !selectedSlot.appointmentId;
+  const selectedSlotCanReactivate =
+    selectedSlot?.status === 'inactive' && !selectedSlot.appointmentId;
   const selectedSlotCanEdit =
     Boolean(selectedSlot) && selectedSlot?.status !== 'booked' && !selectedSlot?.appointmentId;
-  const selectedSlotCanAssign = selectedSlot?.status === 'available' && !selectedSlot?.appointmentId;
+  const selectedSlotCanAssign =
+    selectedSlot?.status === 'available' && !selectedSlot?.appointmentId;
   const selectedSlotCanCancelAppointment =
     selectedSlot?.status === 'booked' && Boolean(selectedSlot?.appointmentId);
   const timeRailWidth = hourWidth * 24;
   const gridLineColor = theme.colors.border;
-  const isTodayView = isSameDay(selectedDate, currentTime);
+  const isTodayView = isSameDay(visibleDate, currentTime);
   const nowMarkerLeft = (getMinutesSinceStartOfDay(currentTime) / 60) * hourWidth;
-  const navigateToRelativeDay = (offset: number) => {
-    const nextDate = new Date(selectedDate);
-    nextDate.setDate(selectedDate.getDate() + offset);
-    router.replace(`/my-calendar/${getDayKey(nextDate)}`);
-  };
 
   return (
     <View style={uiStyles.screen}>
-      <ScrollView contentContainerStyle={{ padding: theme.spacing[16], paddingBottom: theme.spacing[32] }}>
+      <ScrollView
+        contentContainerStyle={{
+          padding: theme.spacing[16],
+          paddingBottom: theme.spacing[32],
+        }}>
         <AppScreenHeader title={t('calendar.title')} />
 
         <View style={uiStyles.panel}>
           <CalendarNavigationHeader
-            title={formatDayTitle(selectedDate, locale)}
-            onPrevious={() => navigateToRelativeDay(-1)}
-            onNext={() => navigateToRelativeDay(1)}
+            title={formatDayTitle(visibleDate, locale)}
+            onPrevious={() => setVisibleDate((currentValue) => shiftDay(currentValue ?? visibleDate, -1))}
+            onNext={() => setVisibleDate((currentValue) => shiftDay(currentValue ?? visibleDate, 1))}
           />
 
           <View
@@ -461,12 +488,8 @@ export default function CalendarDayScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               onContentSizeChange={() => {
-                if (!selectedDayKey) {
-                  return;
-                }
-
                 setTimelineReadyDayKey((currentValue) =>
-                  currentValue === selectedDayKey ? currentValue : selectedDayKey
+                  currentValue === visibleDayKey ? currentValue : visibleDayKey
                 );
               }}
               contentContainerStyle={{ minWidth: timeRailWidth }}>
@@ -589,14 +612,16 @@ export default function CalendarDayScreen() {
             </ScrollView>
           </View>
 
-          {slotsError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{slotsError}</Text> : null}
-          {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
+          {slotsError ? (
+            <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{slotsError}</Text>
+          ) : null}
+          {error ? (
+            <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text>
+          ) : null}
         </View>
 
         <View style={uiStyles.panel}>
-          <Text style={uiStyles.sectionTitle}>
-            {t('day.activity')}
-          </Text>
+          <Text style={uiStyles.sectionTitle}>{t('day.activity')}</Text>
 
           {selectedSlot ? (
             <View
@@ -654,7 +679,9 @@ export default function CalendarDayScreen() {
                       </Text>
                       {event.statusAfter ? (
                         <Text style={[uiStyles.secondaryText, { marginBottom: 4 }]}>
-                          {t('day.eventStatusAfter', { status: formatSlotStatus(event.statusAfter) })}
+                          {t('day.eventStatusAfter', {
+                            status: formatSlotStatus(event.statusAfter),
+                          })}
                         </Text>
                       ) : null}
                       {event.targetEmail ? (
@@ -676,20 +703,24 @@ export default function CalendarDayScreen() {
             </ScrollView>
           ) : null}
 
-          {slotDetailError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{slotDetailError}</Text> : null}
-          {actionMessage ? <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>{actionMessage}</Text> : null}
+          {slotDetailError ? (
+            <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{slotDetailError}</Text>
+          ) : null}
+          {actionMessage ? (
+            <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>{actionMessage}</Text>
+          ) : null}
         </View>
 
         <View style={uiStyles.panel}>
           <View style={{ gap: theme.spacing[8] }}>
-            <Link href={`/my-calendar/create-slot?date=${rawDate}`} asChild>
+            <Link href={`/my-calendar/create-slot?date=${visibleDayKey}`} asChild>
               <Pressable style={uiStyles.button}>
                 <Text style={uiStyles.buttonText}>{t('day.addSlot')}</Text>
               </Pressable>
             </Link>
 
             {selectedSlotCanEdit ? (
-              <Link href={`/my-calendar/create-slot?date=${rawDate}&slotId=${selectedSlot?.id}`} asChild>
+              <Link href={`/my-calendar/create-slot?date=${visibleDayKey}&slotId=${selectedSlot?.id}`} asChild>
                 <Pressable style={uiStyles.button}>
                   <Text style={uiStyles.buttonText}>{t('day.editSlot')}</Text>
                 </Pressable>
@@ -718,7 +749,9 @@ export default function CalendarDayScreen() {
                 disabled={deactivatingSlotId === selectedSlot?.id}
                 style={uiStyles.button}>
                 <Text style={uiStyles.buttonText}>
-                  {deactivatingSlotId === selectedSlot?.id ? t('day.processing') : t('day.setInactive')}
+                  {deactivatingSlotId === selectedSlot?.id
+                    ? t('day.processing')
+                    : t('day.setInactive')}
                 </Text>
               </Pressable>
             ) : null}
@@ -745,7 +778,6 @@ export default function CalendarDayScreen() {
             ) : null}
           </View>
         </View>
-
       </ScrollView>
 
       <Modal
@@ -770,7 +802,10 @@ export default function CalendarDayScreen() {
               multiline
               numberOfLines={4}
               placeholderTextColor={theme.colors.textSecondary}
-              style={[uiStyles.input, { marginBottom: theme.spacing[16], minHeight: 96, textAlignVertical: 'top' }]}
+              style={[
+                uiStyles.input,
+                { marginBottom: theme.spacing[16], minHeight: 96, textAlignVertical: 'top' },
+              ]}
             />
 
             <Pressable
@@ -795,9 +830,7 @@ export default function CalendarDayScreen() {
             </Pressable>
 
             <Pressable onPress={() => setCancellationModalVisible(false)}>
-              <Text style={uiStyles.linkText}>
-                {t('common.cancel')}
-              </Text>
+              <Text style={uiStyles.linkText}>{t('common.cancel')}</Text>
             </Pressable>
           </View>
         </View>
@@ -813,14 +846,18 @@ export default function CalendarDayScreen() {
             <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[12] }]}>
               {t('day.assignTitle')}
             </Text>
-            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>{t('day.assignNameLabel')}</Text>
+            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>
+              {t('day.assignNameLabel')}
+            </Text>
             <TextInput
               value={assigneeName}
               onChangeText={setAssigneeName}
               placeholderTextColor={theme.colors.textSecondary}
               style={[uiStyles.input, { marginBottom: theme.spacing[12] }]}
             />
-            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>{t('day.assignEmailLabel')}</Text>
+            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>
+              {t('day.assignEmailLabel')}
+            </Text>
             <TextInput
               value={assigneeEmail}
               onChangeText={setAssigneeEmail}
@@ -829,7 +866,9 @@ export default function CalendarDayScreen() {
               placeholderTextColor={theme.colors.textSecondary}
               style={[uiStyles.input, { marginBottom: theme.spacing[12] }]}
             />
-            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>{t('day.assignPhoneLabel')}</Text>
+            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>
+              {t('day.assignPhoneLabel')}
+            </Text>
             <TextInput
               value={assigneePhone}
               onChangeText={setAssigneePhone}
@@ -839,16 +878,16 @@ export default function CalendarDayScreen() {
             />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Pressable onPress={() => setAssignmentModalVisible(false)}>
-                <Text style={uiStyles.linkText}>
-                  {t('common.cancel')}
-                </Text>
+                <Text style={uiStyles.linkText}>{t('common.cancel')}</Text>
               </Pressable>
               <Pressable
                 onPress={handleAssignSlot}
                 disabled={assigningSlotId === selectedSlot?.id}
                 style={uiStyles.button}>
                 <Text style={uiStyles.buttonText}>
-                  {assigningSlotId === selectedSlot?.id ? t('day.processing') : t('day.assignConfirm')}
+                  {assigningSlotId === selectedSlot?.id
+                    ? t('day.processing')
+                    : t('day.assignConfirm')}
                 </Text>
               </Pressable>
             </View>

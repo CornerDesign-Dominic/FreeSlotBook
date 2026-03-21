@@ -1405,6 +1405,34 @@ export function subscribeToOwnerSlots(
   );
 }
 
+export function subscribeToOwnerSlotsInRange(
+  calendarId: string,
+  rangeStart: Date,
+  rangeEnd: Date,
+  onData: (slots: CalendarSlotRecord[]) => void,
+  onError: (error: Error) => void
+) {
+  const slotsQuery = query(
+    calendarSlotsCollection(calendarId),
+    where('startsAt', '<', Timestamp.fromDate(rangeEnd)),
+    where('endsAt', '>', Timestamp.fromDate(rangeStart)),
+    orderBy('startsAt', 'asc'),
+    orderBy('endsAt', 'asc')
+  );
+
+  return onSnapshot(
+    slotsQuery,
+    (snapshot) => {
+      onData(
+        snapshot.docs.map((documentSnapshot) =>
+          mapSlot(documentSnapshot.id, documentSnapshot.data() as Record<string, unknown>)
+        )
+      );
+    },
+    onError
+  );
+}
+
 export async function setCalendarSlotInactive(params: {
   calendarId: string;
   slotId: string;
