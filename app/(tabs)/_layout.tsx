@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import React from 'react';
 import { Feather } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
@@ -11,6 +11,7 @@ import { getThemeColors } from '@/src/theme/ui';
 
 export default function TabLayout() {
   useColorScheme();
+  const router = useRouter();
   const { theme: themeMode } = useAppSettings();
   const { t } = useTranslation();
   const colors = getThemeColors(themeMode);
@@ -49,6 +50,15 @@ export default function TabLayout() {
             <Feather name="calendar" size={22} color={color} style={{ opacity: focused ? 1 : 0.8 }} />
           ),
         }}
+        listeners={{
+          tabPress: (event) => {
+            event.preventDefault();
+            router.replace({
+              pathname: '/my-appointments',
+              params: { resetMonth: `${Date.now()}` },
+            });
+          },
+        }}
       />
       <Tabs.Screen
         name="my-calendar"
@@ -57,6 +67,15 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Feather name="grid" size={22} color={color} style={{ opacity: focused ? 1 : 0.8 }} />
           ),
+        }}
+        listeners={{
+          tabPress: (event) => {
+            event.preventDefault();
+            router.replace({
+              pathname: '/my-calendar',
+              params: { resetMonth: `${Date.now()}` },
+            });
+          },
         }}
       />
       <Tabs.Screen
@@ -85,6 +104,12 @@ export default function TabLayout() {
               </Text>
             </View>
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="calendar-access"
+        options={{
+          href: null,
         }}
       />
     </Tabs>
