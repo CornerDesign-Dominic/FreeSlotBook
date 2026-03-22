@@ -1,4 +1,4 @@
-import { Tabs, useRouter } from 'expo-router';
+import { Tabs, usePathname, useRouter } from 'expo-router';
 import React from 'react';
 import { Feather } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
@@ -6,12 +6,14 @@ import { Text, View } from 'react-native';
 import { HapticTab } from '@/components/haptic-tab';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTranslation } from '@/src/i18n/provider';
+import { emitSlotCalendarMonthReset } from '@/src/navigation/slot-calendar-month-reset';
 import { useAppSettings } from '@/src/settings/provider';
 import { getThemeColors } from '@/src/theme/ui';
 
 export default function TabLayout() {
   useColorScheme();
   const router = useRouter();
+  const pathname = usePathname();
   const { theme: themeMode } = useAppSettings();
   const { t } = useTranslation();
   const colors = getThemeColors(themeMode);
@@ -71,10 +73,13 @@ export default function TabLayout() {
         listeners={{
           tabPress: (event) => {
             event.preventDefault();
-            router.replace({
-              pathname: '/my-calendar',
-              params: { resetMonth: `${Date.now()}` },
-            });
+
+            if (pathname === '/my-calendar') {
+              emitSlotCalendarMonthReset();
+              return;
+            }
+
+            router.replace('/my-calendar');
           },
         }}
       />

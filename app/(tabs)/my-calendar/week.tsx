@@ -69,8 +69,12 @@ export default function CalendarWeekScreen() {
   const locale = language === 'de' ? 'de-DE' : 'en-US';
   const params = useLocalSearchParams<{ date?: string | string[] }>();
   const rawDate = Array.isArray(params.date) ? params.date[0] : params.date ?? '';
-  const baseDate = useMemo(() => parseDayKey(rawDate) ?? new Date(), [rawDate]);
-  const selectedWeekStart = startOfWeek(baseDate, weekStartsOn);
+  const routeDate = useMemo(() => parseDayKey(rawDate) ?? new Date(), [rawDate]);
+  const routeWeekStart = useMemo(() => startOfWeek(routeDate, weekStartsOn), [routeDate, weekStartsOn]);
+  const routeWeekKey = useMemo(() => getDayKey(routeWeekStart), [routeWeekStart]);
+  const [visibleWeekStart, setVisibleWeekStart] = useState(routeWeekStart);
+  const visibleWeekKey = getDayKey(visibleWeekStart);
+  const previousRouteWeekKeyRef = useRef<string | null>(routeWeekKey);
   const timelineScrollRef = useRef<ScrollView>(null);
   const lastAutoScrollSignatureRef = useRef<string | null>(null);
   const { user, loading: authLoading } = useAuth();
@@ -81,11 +85,10 @@ export default function CalendarWeekScreen() {
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
   const [timelineReady, setTimelineReady] = useState(false);
   const [focusVersion, setFocusVersion] = useState(0);
-  const selectedWeekKey = getDayKey(selectedWeekStart);
 
   const weekDays = useMemo(
-    () => buildWeekDays(baseDate, weekStartsOn),
-    [baseDate, weekStartsOn]
+    () => buildWeekDays(visibleWeekStart, weekStartsOn),
+    [visibleWeekStart, weekStartsOn]
   );
   const slotsByDay = useMemo(
     () =>
@@ -97,6 +100,15 @@ export default function CalendarWeekScreen() {
   );
 
   useEffect(() => {
+    if (previousRouteWeekKeyRef.current === routeWeekKey) {
+      return;
+    }
+
+    previousRouteWeekKeyRef.current = routeWeekKey;
+    setVisibleWeekStart(routeWeekStart);
+  }, [routeWeekKey, routeWeekStart]);
+
+  useEffect(() => {
     if (!isFocused) {
       return;
     }
@@ -106,7 +118,7 @@ export default function CalendarWeekScreen() {
 
   useEffect(() => {
     setTimelineReady(false);
-  }, [selectedWeekKey]);
+  }, [visibleWeekKey]);
 
   useEffect(() => {
     if (
@@ -120,7 +132,7 @@ export default function CalendarWeekScreen() {
       return;
     }
 
-    const signature = `${selectedWeekKey}:${focusVersion}`;
+    const signature = `${visibleWeekKey}:${focusVersion}`;
 
     if (lastAutoScrollSignatureRef.current === signature) {
       return;
@@ -157,10 +169,10 @@ export default function CalendarWeekScreen() {
     focusVersion,
     isFocused,
     loading,
-    selectedWeekKey,
     slotsLoading,
     timelineReady,
     timelineViewportWidth,
+    visibleWeekKey,
   ]);
 
   const formatSlotStatus = (status: SlotStatus) => {
@@ -175,9 +187,11 @@ export default function CalendarWeekScreen() {
   };
 
   const navigateToRelativeWeek = (offset: number) => {
-    const nextDate = new Date(selectedWeekStart);
-    nextDate.setDate(selectedWeekStart.getDate() + offset * 7);
-    router.replace(`/my-calendar/week?date=${getDayKey(nextDate)}`);
+    setVisibleWeekStart((currentWeekStart) => {
+      const nextDate = new Date(currentWeekStart);
+      nextDate.setDate(currentWeekStart.getDate() + offset * 7);
+      return nextDate;
+    });
   };
 
   const openDay = (dayKey: string) => {
@@ -201,7 +215,7 @@ export default function CalendarWeekScreen() {
 
       <View style={uiStyles.panel}>
         <CalendarNavigationHeader
-          title={formatWeekRange(baseDate, locale, weekStartsOn)}
+          title={formatWeekRange(visibleWeekStart, locale, weekStartsOn)}
           onPrevious={() => navigateToRelativeWeek(-1)}
           onNext={() => navigateToRelativeWeek(1)}
         />

@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import {
   buildWeekDays,
@@ -67,6 +68,7 @@ function getAppointmentsForDay(appointments: AppointmentRecord[], date: Date) {
 }
 
 export default function MyAppointmentsWeekScreen() {
+  const isFocused = useIsFocused();
   const router = useRouter();
   const { t, language } = useTranslation();
   const { theme, uiStyles } = useAppTheme();
@@ -75,16 +77,23 @@ export default function MyAppointmentsWeekScreen() {
   const locale = language === 'de' ? 'de-DE' : 'en-US';
   const params = useLocalSearchParams<{ date?: string | string[] }>();
   const rawDate = Array.isArray(params.date) ? params.date[0] : params.date ?? '';
-  const baseDate = useMemo(() => parseDayKey(rawDate) ?? new Date(), [rawDate]);
-  const selectedWeekStart = startOfWeek(baseDate, weekStartsOn);
+  const routeDate = useMemo(() => parseDayKey(rawDate) ?? new Date(), [rawDate]);
+  const routeWeekStart = useMemo(() => startOfWeek(routeDate, weekStartsOn), [routeDate, weekStartsOn]);
+  const routeWeekKey = useMemo(() => getDayKey(routeWeekStart), [routeWeekStart]);
+  const [visibleWeekStart, setVisibleWeekStart] = useState(routeWeekStart);
+  const visibleWeekKey = getDayKey(visibleWeekStart);
+  const previousRouteWeekKeyRef = useRef<string | null>(routeWeekKey);
   const timelineScrollRef = useRef<ScrollView>(null);
-  const { width: screenWidth } = useWindowDimensions();
+  const lastAutoScrollSignatureRef = useRef<string | null>(null);
   const { user, loading: authLoading } = useAuth();
   const { appointments, loading, error } = useParticipantAppointments(user?.email ?? null);
+  const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
+  const [timelineReady, setTimelineReady] = useState(false);
+  const [focusVersion, setFocusVersion] = useState(0);
 
   const weekDays = useMemo(
-    () => buildWeekDays(baseDate, weekStartsOn),
-    [baseDate, weekStartsOn]
+    () => buildWeekDays(visibleWeekStart, weekStartsOn),
+    [visibleWeekStart, weekStartsOn]
   );
   const appointmentsByDay = useMemo(
     () =>
@@ -96,21 +105,85 @@ export default function MyAppointmentsWeekScreen() {
   );
 
   useEffect(() => {
-    const viewportWidth = Math.max(screenWidth - dayLabelWidth - 32, 120);
-    const currentMinutes = getMinutesSinceStartOfDay(new Date());
-    const offset = Math.max((currentMinutes / 60) * hourWidth - viewportWidth * 0.5, 0);
+    if (previousRouteWeekKeyRef.current === routeWeekKey) {
+      return;
+    }
 
-    const timeout = setTimeout(() => {
-      timelineScrollRef.current?.scrollTo({ x: offset, animated: false });
-    }, 0);
+    previousRouteWeekKeyRef.current = routeWeekKey;
+    setVisibleWeekStart(routeWeekStart);
+  }, [routeWeekKey, routeWeekStart]);
 
-    return () => clearTimeout(timeout);
-  }, [screenWidth]);
+  useEffect(() => {
+    if (!isFocused) {
+      return;
+    }
+
+    setFocusVersion((currentValue) => currentValue + 1);
+  }, [isFocused]);
+
+  useEffect(() => {
+    setTimelineReady(false);
+  }, [visibleWeekKey]);
+
+  useEffect(() => {
+    if (
+      !isFocused ||
+      authLoading ||
+      loading ||
+      !timelineReady ||
+      !timelineViewportWidth
+    ) {
+      return;
+    }
+
+    const signature = `${visibleWeekKey}:${focusVersion}`;
+
+    if (lastAutoScrollSignatureRef.current === signature) {
+      return;
+    }
+
+    let cancelled = false;
+    let frameHandle = 0;
+
+    const scrollToNow = () => {
+      if (cancelled) {
+        return;
+      }
+
+      if (!timelineScrollRef.current) {
+        frameHandle = requestAnimationFrame(scrollToNow);
+        return;
+      }
+
+      const currentMinutes = getMinutesSinceStartOfDay(new Date());
+      const offset = Math.max((currentMinutes / 60) * hourWidth - timelineViewportWidth * 0.5, 0);
+
+      timelineScrollRef.current.scrollTo({ x: offset, animated: false });
+      lastAutoScrollSignatureRef.current = signature;
+    };
+
+    frameHandle = requestAnimationFrame(scrollToNow);
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frameHandle);
+    };
+  }, [
+    authLoading,
+    focusVersion,
+    isFocused,
+    loading,
+    timelineReady,
+    timelineViewportWidth,
+    visibleWeekKey,
+  ]);
 
   const navigateToRelativeWeek = (offset: number) => {
-    const nextDate = new Date(selectedWeekStart);
-    nextDate.setDate(selectedWeekStart.getDate() + offset * 7);
-    router.replace(`/my-appointments/week?date=${getDayKey(nextDate)}`);
+    setVisibleWeekStart((currentWeekStart) => {
+      const nextDate = new Date(currentWeekStart);
+      nextDate.setDate(currentWeekStart.getDate() + offset * 7);
+      return nextDate;
+    });
   };
 
   const openDay = (dayKey: string) => {
@@ -134,7 +207,7 @@ export default function MyAppointmentsWeekScreen() {
 
       <View style={{ marginBottom: theme.spacing[8] }}>
         <CalendarNavigationHeader
-          title={formatWeekRange(baseDate, locale, weekStartsOn)}
+          title={formatWeekRange(visibleWeekStart, locale, weekStartsOn)}
           onPrevious={() => navigateToRelativeWeek(-1)}
           onNext={() => navigateToRelativeWeek(1)}
         />
@@ -173,6 +246,15 @@ export default function MyAppointmentsWeekScreen() {
             ref={timelineScrollRef}
             horizontal
             showsHorizontalScrollIndicator={false}
+            onLayout={(event) => {
+              const nextWidth = event.nativeEvent.layout.width;
+              setTimelineViewportWidth((currentWidth) =>
+                Math.abs(currentWidth - nextWidth) < 1 ? currentWidth : nextWidth
+              );
+            }}
+            onContentSizeChange={() => {
+              setTimelineReady(true);
+            }}
             contentContainerStyle={{ minWidth: timeRailWidth }}>
             <View style={{ width: timeRailWidth }}>
               <View style={{ height: headerHeight, flexDirection: 'row', position: 'relative' }}>

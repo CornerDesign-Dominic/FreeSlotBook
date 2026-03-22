@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocalSearchParams } from 'expo-router';
+import { Link } from 'expo-router';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
 import { AppScreenHeader } from '../../../src/components/app-screen-header';
 import { CalendarNavigationHeader } from '../../../src/components/calendar-navigation-header';
+import { subscribeToSlotCalendarMonthReset } from '../../../src/navigation/slot-calendar-month-reset';
 import {
   buildMonthGrid,
   formatMonthTitle,
@@ -18,7 +19,6 @@ import { useAppSettings } from '@/src/settings/provider';
 import { useAppTheme, useBottomSafeContentStyle } from '../../../src/theme/ui';
 
 export default function MyCalendarScreen() {
-  const { resetMonth } = useLocalSearchParams<{ resetMonth?: string }>();
   const { user, loading: authLoading } = useAuth();
   const { t, language } = useTranslation();
   const { weekStartsOn } = useAppSettings();
@@ -36,13 +36,11 @@ export default function MyCalendarScreen() {
   });
 
   useEffect(() => {
-    if (!resetMonth) {
-      return;
-    }
-
-    const now = new Date();
-    setVisibleMonth(new Date(now.getFullYear(), now.getMonth(), 1));
-  }, [resetMonth]);
+    return subscribeToSlotCalendarMonthReset(() => {
+      const now = new Date();
+      setVisibleMonth(new Date(now.getFullYear(), now.getMonth(), 1));
+    });
+  }, []);
 
   const monthGrid = useMemo(
     () => buildMonthGrid(visibleMonth, weekStartsOn),
