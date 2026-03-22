@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 
 import { useTranslation } from '@/src/i18n/provider';
+import { useAppTheme } from '@/src/theme/ui';
 import type { Language } from './types';
 
 function LanguageButton(props: {
@@ -10,34 +11,28 @@ function LanguageButton(props: {
   label: string;
 }) {
   const isActive = props.language === props.currentLanguage;
+  const { uiStyles } = useAppTheme();
 
   return (
     <Pressable
       onPress={() => props.onPress(props.language)}
-      style={{
-        borderWidth: 1,
-        borderColor: 'black',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        backgroundColor: isActive ? '#f1f1f1' : 'white',
-      }}>
-      <Text style={{ color: 'black' }}>{props.label}</Text>
+      style={[uiStyles.button, isActive ? uiStyles.buttonActive : null]}>
+      <Text style={uiStyles.buttonText}>{props.label}</Text>
     </Pressable>
   );
 }
 
 export function LanguageSwitcher() {
-  const { language, setLanguage, t } = useTranslation();
+  const { language, setLanguage } = useTranslation();
 
   return (
     <View
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'flex-end',
+        justifyContent: 'flex-start',
         gap: 8,
       }}>
-      <Text style={{ color: 'black' }}>{t('common.language')}</Text>
       <LanguageButton language="de" currentLanguage={language} onPress={setLanguage} label="DE" />
       <LanguageButton language="en" currentLanguage={language} onPress={setLanguage} label="EN" />
     </View>

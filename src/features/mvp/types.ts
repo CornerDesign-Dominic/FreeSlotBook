@@ -59,6 +59,7 @@ export interface CalendarRecord {
   ownerEmailKey: string;
   visibility: CalendarVisibility;
   publicSlug: string | null;
+  description: string | null;
   notifyOnNewSlotsAvailable: boolean;
   createdAt: Date | null;
   updatedAt: Date | null;

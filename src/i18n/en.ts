@@ -143,13 +143,11 @@ export const en = {
   'settings.title': 'Settings',
   'settings.language': 'Language',
   'settings.weekStart': 'Week starts on',
-  'settings.weekStartHelp':
-    'This setting is stored locally and controls the month and calendar layout.',
+  'settings.weekStartHelp': 'Start of the calendar week',
   'settings.weekStartMonday': 'Monday',
   'settings.weekStartSunday': 'Sunday',
   'settings.theme': 'Theme',
-  'settings.themeHelp':
-    'Light and Dark are stored for navigation and the prepared theme foundation.',
+  'settings.themeHelp': '',
   'settings.themeLight': 'Light',
   'settings.themeDark': 'Dark',
   'settings.publicCalendar': 'Public calendar',

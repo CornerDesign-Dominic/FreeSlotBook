@@ -191,6 +191,10 @@ function mapCalendar(id: string, data: Record<string, unknown>): CalendarRecord 
       typeof data.publicSlug === 'string' && data.publicSlug.trim().length
         ? data.publicSlug.trim()
         : null,
+    description:
+      typeof data.description === 'string' && data.description.trim().length
+        ? data.description.trim()
+        : null,
     notifyOnNewSlotsAvailable: Boolean(data.notifyOnNewSlotsAvailable),
     createdAt: asDate(data.createdAt),
     updatedAt: asDate(data.updatedAt),
@@ -238,6 +242,10 @@ function validatePublicSlug(slug: string) {
   }
 
   return normalizedSlug;
+}
+
+export function validateCalendarPublicSlugInput(slug: string) {
+  return validatePublicSlug(slug);
 }
 
 function mapAccess(id: string, data: Record<string, unknown>): CalendarAccessRecord {
@@ -614,6 +622,28 @@ export async function getPublicCalendarIdBySlug(slug: string) {
   }
 
   return calendar.id;
+}
+
+export async function isCalendarPublicSlugAvailable(
+  slug: string,
+  currentCalendarId?: string | null
+) {
+  const normalizedSlug = validatePublicSlug(slug);
+
+  if (!normalizedSlug) {
+    return false;
+  }
+
+  const slugSnapshot = await getDoc(publicCalendarSlugDoc(normalizedSlug));
+
+  if (!slugSnapshot.exists()) {
+    return true;
+  }
+
+  const claimedCalendarId =
+    typeof slugSnapshot.data().calendarId === 'string' ? slugSnapshot.data().calendarId : null;
+
+  return claimedCalendarId === currentCalendarId;
 }
 
 async function getCalendarBySlug(slug: string) {
@@ -1333,6 +1363,22 @@ export async function updateCalendarNotificationSettings(params: {
   });
 }
 
+export async function updateCalendarDescription(params: {
+  calendarId: string;
+  description: string;
+}) {
+  const trimmedDescription = params.description.trim();
+
+  if (trimmedDescription.length > 120) {
+    throw new Error('Die Beschreibung darf maximal 120 Zeichen lang sein.');
+  }
+
+  await updateDoc(calendarDoc(params.calendarId), {
+    description: trimmedDescription || null,
+    updatedAt: serverTimestamp(),
+  });
+}
+
 export async function updateCalendarVisibility(params: {
   calendarId: string;
   ownerId: string;
@@ -1395,6 +1441,15 @@ export async function updateCalendarVisibility(params: {
       updatedAt: serverTimestamp(),
     });
   });
+}
+
+export async function saveCalendarPublicSlug(params: {
+  calendarId: string;
+  ownerId: string;
+  visibility: CalendarRecord['visibility'];
+  publicSlug: string;
+}) {
+  await updateCalendarVisibility(params);
 }
 
 async function queueNewSlotsAvailableNotifications(params: {

@@ -251,13 +251,6 @@ export default function HomeScreen() {
             onScroll={(x) => syncTimelineScroll('slots', x)}
           />
         </View>
-        <Link href="/calendar-access" asChild>
-          <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
-            <Text style={uiStyles.linkText}>
-              {t('dashboard.manageAccess')}
-            </Text>
-          </Pressable>
-        </Link>
         <Link href="/calendar-settings" asChild>
           <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
             <Text style={uiStyles.linkText}>

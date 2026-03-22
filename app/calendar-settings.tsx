@@ -1,22 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { AppScreenHeader } from '@/src/components/app-screen-header';
 import { useOwnerCalendar } from '@/src/features/mvp/useOwnerCalendar';
 import {
+  updateCalendarDescription,
   updateCalendarNotificationSettings,
   updateCalendarVisibility,
 } from '@/src/features/mvp/repository';
 import { useAuth } from '@/src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppTheme, useBottomSafeContentStyle } from '@/src/theme/ui';
-
-const sections = [
-  'Buchungsregeln',
-  'Beschreibung',
-  'Benachrichtigungen',
-] as const;
 
 export default function CalendarSettingsScreen() {
   const { user, loading: authLoading } = useAuth();
@@ -27,15 +23,30 @@ export default function CalendarSettingsScreen() {
     user ? { uid: user.uid, email: user.email } : null
   );
   const activeCalendarId = calendar?.id ?? null;
-  const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
-  const [publicSlug, setPublicSlug] = useState('');
-  const [savingSlug, setSavingSlug] = useState(false);
+  const [visibilityMessage, setVisibilityMessage] = useState<string | null>(null);
+  const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
+  const [descriptionValue, setDescriptionValue] = useState('');
+  const [descriptionMessage, setDescriptionMessage] = useState<string | null>(null);
   const [togglingVisibility, setTogglingVisibility] = useState(false);
   const [togglingNotifications, setTogglingNotifications] = useState(false);
+  const [savingDescription, setSavingDescription] = useState(false);
+  const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
 
   useEffect(() => {
-    setPublicSlug(calendar?.publicSlug ?? '');
-  }, [calendar?.publicSlug]);
+    setDescriptionValue(calendar?.description ?? '');
+  }, [calendar?.description]);
+
+  useEffect(() => {
+    if (!copyFeedbackVisible) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setCopyFeedbackVisible(false);
+    }, 1800);
+
+    return () => clearTimeout(timeout);
+  }, [copyFeedbackVisible]);
 
   if (authLoading || loading) {
     return (
@@ -45,49 +56,24 @@ export default function CalendarSettingsScreen() {
     );
   }
 
-  const handleSavePublicSlug = async () => {
-    if (!calendar || !activeCalendarId) {
-      return;
-    }
-
-    setSavingSlug(true);
-    setSettingsMessage(null);
-
-    try {
-      await updateCalendarVisibility({
-        calendarId: activeCalendarId,
-        ownerId: calendar.ownerId,
-        visibility: calendar.visibility,
-        publicSlug,
-      });
-      setSettingsMessage(t('settings.slugSaved'));
-    } catch (nextError) {
-      setSettingsMessage(
-        nextError instanceof Error ? nextError.message : t('settings.slugSaveError')
-      );
-    } finally {
-      setSavingSlug(false);
-    }
-  };
-
   const handleToggleVisibility = async () => {
     if (!calendar || !activeCalendarId) {
       return;
     }
 
     setTogglingVisibility(true);
-    setSettingsMessage(null);
+    setVisibilityMessage(null);
 
     try {
       await updateCalendarVisibility({
         calendarId: activeCalendarId,
         ownerId: calendar.ownerId,
         visibility: calendar.visibility === 'public' ? 'restricted' : 'public',
-        publicSlug,
+        publicSlug: calendar.publicSlug ?? '',
       });
-      setSettingsMessage(t('settings.visibilitySaved'));
+      setVisibilityMessage(t('settings.visibilitySaved'));
     } catch (nextError) {
-      setSettingsMessage(
+      setVisibilityMessage(
         nextError instanceof Error ? nextError.message : t('settings.visibilitySaveError')
       );
     } finally {
@@ -101,16 +87,16 @@ export default function CalendarSettingsScreen() {
     }
 
     setTogglingNotifications(true);
-    setSettingsMessage(null);
+    setNotificationMessage(null);
 
     try {
       await updateCalendarNotificationSettings({
         calendarId: activeCalendarId,
         notifyOnNewSlotsAvailable: !calendar.notifyOnNewSlotsAvailable,
       });
-      setSettingsMessage(t('settings.notificationsSaved'));
+      setNotificationMessage(t('settings.notificationsSaved'));
     } catch (nextError) {
-      setSettingsMessage(
+      setNotificationMessage(
         nextError instanceof Error ? nextError.message : t('settings.notificationsSaveError')
       );
     } finally {
@@ -118,82 +104,89 @@ export default function CalendarSettingsScreen() {
     }
   };
 
+  const handleCopyCalendarId = async () => {
+    if (!calendar?.publicSlug) {
+      return;
+    }
+
+    await Clipboard.setStringAsync(`https://slotlyme.app/${calendar.publicSlug}`);
+    setCopyFeedbackVisible(true);
+  };
+
+  const handleSaveDescription = async () => {
+    if (!activeCalendarId || savingDescription) {
+      return;
+    }
+
+    setSavingDescription(true);
+    setDescriptionMessage(null);
+
+    try {
+      await updateCalendarDescription({
+        calendarId: activeCalendarId,
+        description: descriptionValue,
+      });
+      setDescriptionMessage('Beschreibung gespeichert');
+    } catch (nextError) {
+      setDescriptionMessage(
+        nextError instanceof Error
+          ? nextError.message
+          : 'Die Beschreibung konnte nicht gespeichert werden.'
+      );
+    } finally {
+      setSavingDescription(false);
+    }
+  };
+
+  const isDescriptionValid = descriptionValue.length <= 120;
+  const canSaveDescription =
+    Boolean(activeCalendarId) &&
+    isDescriptionValid &&
+    !savingDescription &&
+    descriptionValue !== (calendar?.description ?? '');
+
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
       <AppScreenHeader title="Kalender-Einstellungen" />
 
-      <View style={{ gap: theme.spacing[16] }}>
+        <View style={{ gap: theme.spacing[16] }}>
+        {!calendar?.publicSlug ? (
+          <View
+            style={[
+              uiStyles.panel,
+              {
+                backgroundColor: theme.colors.accentSoft,
+                borderColor: theme.colors.accent,
+              },
+            ]}>
+            <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>
+              Kalender-ID fehlt
+            </Text>
+            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[12] }]}>
+              Erstelle jetzt deine Kalender-ID, damit du deinen Kalender teilen kannst und andere ihn
+              leichter finden.
+            </Text>
+            <Link href="/calendar-id-create" asChild>
+              <Pressable style={[uiStyles.button, uiStyles.buttonActive]}>
+                <Text style={[uiStyles.buttonText, { color: theme.colors.textPrimary, fontWeight: '600' }]}>
+                  Kalender-ID erstellen
+                </Text>
+              </Pressable>
+            </Link>
+          </View>
+        ) : null}
+
         <View style={uiStyles.panel}>
-          <Text style={uiStyles.sectionTitle}>{t('settings.publicCalendar')}</Text>
+          <Text style={uiStyles.sectionTitle}>Kalenderdetails</Text>
           {calendar ? (
             <>
               <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>
                 {t('settings.ownerEmail', { email: calendar.ownerEmail })}
               </Text>
               <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[8] }]}>
-                {t('dashboard.visibilityValue', { visibility: calendar.visibility })}
+                Art des Kalenders
               </Text>
-              <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>
-                {t('settings.publicSlug')}
-              </Text>
-              <TextInput
-                value={publicSlug}
-                onChangeText={setPublicSlug}
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholder={t('calendar.publicSlugPlaceholder')}
-                placeholderTextColor={theme.colors.textSecondary}
-                style={[uiStyles.input, { marginBottom: theme.spacing[8] }]}
-              />
-              <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[8] }]}>
-                {t('calendar.publicSlugHelp')}
-              </Text>
-              <Pressable onPress={handleSavePublicSlug} disabled={savingSlug}>
-                <Text style={[uiStyles.linkText, { marginBottom: theme.spacing[12] }]}>
-                  {savingSlug ? t('settings.savingSlug') : t('settings.saveSlug')}
-                </Text>
-              </Pressable>
-              {calendar.publicSlug ? (
-                <>
-                  <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[8] }]}>
-                    {t('settings.publicLinkValue', { slug: calendar.publicSlug })}
-                  </Text>
-                  <Link href={`/${calendar.publicSlug}`} asChild>
-                    <Pressable style={{ alignSelf: 'flex-start', marginBottom: theme.spacing[12] }}>
-                      <Text style={uiStyles.linkText}>{t('settings.openPublicPage')}</Text>
-                    </Pressable>
-                  </Link>
-                </>
-              ) : (
-                <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
-                  {t('settings.publicLinkEmpty')}
-                </Text>
-              )}
-              <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>
-                {t('settings.newSlotsNotifications', {
-                  status: calendar.notifyOnNewSlotsAvailable
-                    ? t('calendar.notificationActive')
-                    : t('calendar.notificationInactive'),
-                })}
-              </Text>
-              <Pressable onPress={handleToggleVisibility} disabled={togglingVisibility}>
-                <Text style={[uiStyles.linkText, { marginBottom: theme.spacing[12] }]}>
-                  {togglingVisibility
-                    ? t('settings.updatingVisibility')
-                    : calendar.visibility === 'public'
-                      ? t('settings.makeRestricted')
-                      : t('settings.makePublic')}
-                </Text>
-              </Pressable>
-              <Pressable onPress={handleToggleNotifications} disabled={togglingNotifications}>
-                <Text style={uiStyles.linkText}>
-                  {togglingNotifications
-                    ? t('settings.updatingNotifications')
-                    : calendar.notifyOnNewSlotsAvailable
-                      ? t('settings.disableNotifications')
-                      : t('settings.enableNotifications')}
-                </Text>
-              </Pressable>
+              <Text style={uiStyles.bodyText}>Standard</Text>
             </>
           ) : (
             <Text style={uiStyles.secondaryText}>{t('calendar.notAvailable')}</Text>
@@ -202,17 +195,149 @@ export default function CalendarSettingsScreen() {
           {error ? (
             <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text>
           ) : null}
-          {settingsMessage ? (
-            <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>{settingsMessage}</Text>
-          ) : null}
         </View>
 
-        {sections.map((sectionTitle) => (
-          <View key={sectionTitle} style={uiStyles.panel}>
-            <Text style={uiStyles.sectionTitle}>{sectionTitle}</Text>
-            <Text style={uiStyles.secondaryText}>Einstellungen folgen</Text>
+        {calendar?.publicSlug ? (
+          <View style={uiStyles.panel}>
+            <Text style={uiStyles.sectionTitle}>Slotlyme.ID</Text>
+            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>Kalender-ID</Text>
+            <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
+              {calendar.publicSlug}
+            </Text>
+            <Pressable
+              onPress={() => void handleCopyCalendarId()}
+              style={{ alignSelf: 'flex-start' }}>
+              <Text style={uiStyles.linkText}>
+                {copyFeedbackVisible ? 'Kopiert' : 'Kopieren'}
+              </Text>
+            </Pressable>
           </View>
-        ))}
+        ) : null}
+
+        <View style={uiStyles.panel}>
+          <Text style={uiStyles.sectionTitle}>Sichtbarkeit</Text>
+          {calendar ? (
+            <>
+              <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
+                {t('dashboard.visibilityValue', { visibility: calendar.visibility })}
+              </Text>
+              <Pressable
+                onPress={handleToggleVisibility}
+                disabled={togglingVisibility}
+                style={[
+                  uiStyles.button,
+                  togglingVisibility ? { opacity: 0.6 } : null,
+                ]}>
+                <Text style={uiStyles.buttonText}>
+                  {togglingVisibility
+                    ? t('settings.updatingVisibility')
+                    : calendar.visibility === 'public'
+                      ? t('settings.makeRestricted')
+                      : t('settings.makePublic')}
+                </Text>
+              </Pressable>
+              {visibilityMessage ? (
+                <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>
+                  {visibilityMessage}
+                </Text>
+              ) : null}
+            </>
+          ) : (
+            <Text style={uiStyles.secondaryText}>{t('calendar.notAvailable')}</Text>
+          )}
+        </View>
+
+        <View style={uiStyles.panel}>
+          <Text style={uiStyles.sectionTitle}>Benachrichtigungen</Text>
+          {calendar ? (
+            <>
+              <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
+                {t('settings.newSlotsNotifications', {
+                  status: calendar.notifyOnNewSlotsAvailable
+                    ? t('calendar.notificationActive')
+                    : t('calendar.notificationInactive'),
+                })}
+              </Text>
+              <Pressable
+                onPress={handleToggleNotifications}
+                disabled={togglingNotifications}
+                style={[
+                  uiStyles.button,
+                  togglingNotifications ? { opacity: 0.6 } : null,
+                ]}>
+                <Text style={uiStyles.buttonText}>
+                  {togglingNotifications
+                    ? t('settings.updatingNotifications')
+                    : calendar.notifyOnNewSlotsAvailable
+                      ? t('settings.disableNotifications')
+                      : t('settings.enableNotifications')}
+                </Text>
+              </Pressable>
+              {notificationMessage ? (
+                <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>
+                  {notificationMessage}
+                </Text>
+              ) : null}
+            </>
+          ) : (
+            <Text style={uiStyles.secondaryText}>{t('calendar.notAvailable')}</Text>
+          )}
+        </View>
+
+        <View style={uiStyles.panel}>
+          <Text style={uiStyles.sectionTitle}>Freigaben</Text>
+          <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
+            Teile deinen Kalender mit anderen Personen und verwalte bestehende Zugriffe an einer Stelle.
+          </Text>
+          <Link href="/calendar-access" asChild>
+            <Pressable style={uiStyles.button}>
+              <Text style={uiStyles.buttonText}>Freigaben verwalten</Text>
+            </Pressable>
+          </Link>
+        </View>
+
+        <View style={uiStyles.panel}>
+          <Text style={uiStyles.sectionTitle}>Beschreibung</Text>
+          <TextInput
+            value={descriptionValue}
+            onChangeText={(nextValue) => {
+              setDescriptionValue(nextValue.slice(0, 120));
+              setDescriptionMessage(null);
+            }}
+            multiline
+            maxLength={120}
+            placeholder="Kurzbeschreibung für deinen Kalender"
+            placeholderTextColor={theme.colors.textSecondary}
+            style={[
+              uiStyles.input,
+              {
+                minHeight: 108,
+                textAlignVertical: 'top',
+                marginBottom: theme.spacing[8],
+              },
+            ]}
+          />
+          <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
+            {descriptionValue.length} / 120
+          </Text>
+          <Pressable
+            onPress={() => void handleSaveDescription()}
+            disabled={!canSaveDescription}
+            style={[
+              uiStyles.button,
+              uiStyles.buttonActive,
+              !canSaveDescription ? { opacity: 0.6 } : null,
+            ]}>
+            <Text style={[uiStyles.buttonText, { color: theme.colors.textPrimary, fontWeight: '600' }]}>
+              {savingDescription ? 'Speichern ...' : 'Speichern'}
+            </Text>
+          </Pressable>
+          {descriptionMessage ? (
+            <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>
+              {descriptionMessage}
+            </Text>
+          ) : null}
+        </View>
       </View>
     </ScrollView>
   );
