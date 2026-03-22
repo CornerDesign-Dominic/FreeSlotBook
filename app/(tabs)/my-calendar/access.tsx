@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Feather } from '@expo/vector-icons';
-import * as Clipboard from 'expo-clipboard';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import {
@@ -30,30 +29,13 @@ export default function CalendarAccessScreen() {
   const { records: requestRecords, loading: requestsLoading, error: requestsError } =
     useCalendarAccessRequests(calendar?.id ?? null);
   const [emailInput, setEmailInput] = useState('');
-  const [phoneInput, setPhoneInput] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [processingEmail, setProcessingEmail] = useState<string | null>(null);
-  const [connectionMethod, setConnectionMethod] = useState<'email' | 'link'>('email');
   const [sharedPeopleExpanded, setSharedPeopleExpanded] = useState(true);
   const [requestsExpanded, setRequestsExpanded] = useState(true);
-  const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
 
   const pendingRequests = requestRecords.filter((record) => record.status === 'pending');
-  const publicSlug = calendar?.publicSlug ?? null;
-  const publicCalendarUrl = publicSlug ? `https://slotlyme.app/${publicSlug}` : null;
-
-  useEffect(() => {
-    if (!copyFeedbackVisible) {
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      setCopyFeedbackVisible(false);
-    }, 3000);
-
-    return () => clearTimeout(timeout);
-  }, [copyFeedbackVisible]);
 
   const formatRequestStatus = (status: 'pending' | 'approved' | 'rejected') => {
     if (status === 'approved') {
@@ -88,11 +70,9 @@ export default function CalendarAccessScreen() {
         calendarId: calendar.id,
         ownerId: user.uid,
         granteeEmail: trimmedEmail,
-        phoneNumber: phoneInput,
         status: 'approved',
       });
       setEmailInput('');
-      setPhoneInput('');
       setMessage(t('access.saved'));
     } catch (nextError) {
       setMessage(nextError instanceof Error ? nextError.message : t('access.error'));
@@ -165,15 +145,6 @@ export default function CalendarAccessScreen() {
     }
   };
 
-  const handleCopyPublicLink = async () => {
-    if (!publicCalendarUrl) {
-      return;
-    }
-
-    await Clipboard.setStringAsync(publicCalendarUrl);
-    setCopyFeedbackVisible(true);
-  };
-
   if (authLoading || loading || accessLoading || requestsLoading) {
     return (
       <View style={uiStyles.centeredLoading}>
@@ -187,85 +158,24 @@ export default function CalendarAccessScreen() {
       <AppScreenHeader title={t('access.title')} />
 
       <View style={uiStyles.panel}>
-        <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>{t('access.newGrant')}</Text>
-        <View style={{ flexDirection: 'row', gap: theme.spacing[8], marginBottom: theme.spacing[12] }}>
-          <Pressable
-            onPress={() => setConnectionMethod('email')}
-            style={[
-              uiStyles.button,
-              connectionMethod === 'email' ? uiStyles.buttonActive : null,
-              { flex: 1 },
-            ]}>
-            <Text style={uiStyles.buttonText}>E-Mail</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setConnectionMethod('link')}
-            style={[
-              uiStyles.button,
-              connectionMethod === 'link' ? uiStyles.buttonActive : null,
-              { flex: 1 },
-            ]}>
-            <Text style={uiStyles.buttonText}>Link</Text>
-          </Pressable>
-        </View>
-
-        {connectionMethod === 'email' ? (
-          <>
-            <TextInput
-              placeholder={t('access.placeholder')}
-              value={emailInput}
-              onChangeText={setEmailInput}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              placeholderTextColor={theme.colors.textSecondary}
-              style={[uiStyles.input, { marginBottom: theme.spacing[12] }]}
-            />
-            <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[8] }]}>{t('access.phoneOptional')}</Text>
-            <TextInput
-              placeholder={t('access.phonePlaceholder')}
-              value={phoneInput}
-              onChangeText={setPhoneInput}
-              keyboardType="phone-pad"
-              placeholderTextColor={theme.colors.textSecondary}
-              style={[uiStyles.input, { marginBottom: theme.spacing[12] }]}
-            />
-            <Pressable
-              onPress={handleGrantAccess}
-              disabled={submitting || !calendar}
-              style={[uiStyles.outlineAction, { opacity: submitting ? 0.6 : 1 }]}>
-              <Text style={uiStyles.buttonText}>
-                {submitting ? t('access.adding') : t('access.add')}
-              </Text>
-            </Pressable>
-          </>
-        ) : (
-          <View>
-            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>Link teilen</Text>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: theme.spacing[12],
-              }}>
-              <Text style={[uiStyles.secondaryText, { flex: 1 }]}>
-                {publicSlug ?? '-'}
-              </Text>
-              <Pressable
-                onPress={() => void handleCopyPublicLink()}
-                disabled={!publicCalendarUrl}
-                accessibilityRole="button"
-                accessibilityLabel="Link kopieren"
-                style={{ opacity: publicCalendarUrl ? 1 : 0.45 }}>
-                <Feather
-                  name={copyFeedbackVisible ? 'check' : 'copy'}
-                  size={16}
-                  color={theme.colors.textSecondary}
-                />
-              </Pressable>
-            </View>
-          </View>
-        )}
+        <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>Neue Freigabe</Text>
+        <TextInput
+          placeholder={t('access.placeholder')}
+          value={emailInput}
+          onChangeText={setEmailInput}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          placeholderTextColor={theme.colors.textSecondary}
+          style={[uiStyles.input, { marginBottom: theme.spacing[12] }]}
+        />
+        <Pressable
+          onPress={handleGrantAccess}
+          disabled={submitting || !calendar}
+          style={[uiStyles.outlineAction, { opacity: submitting ? 0.6 : 1 }]}>
+          <Text style={uiStyles.buttonText}>
+            {submitting ? t('access.adding') : t('access.add')}
+          </Text>
+        </Pressable>
         {message ? <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>{message}</Text> : null}
         {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
         {accessError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{accessError}</Text> : null}
