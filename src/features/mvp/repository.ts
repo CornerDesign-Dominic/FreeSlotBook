@@ -118,6 +118,14 @@ function ownerDoc(uid: string) {
   return doc(db, 'owners', uid);
 }
 
+function userDoc(uid: string) {
+  return doc(db, 'users', uid);
+}
+
+function usernameDoc(slotlymeId: string) {
+  return doc(db, 'usernames', slotlymeId);
+}
+
 function calendarDoc(calendarId: string) {
   return doc(db, 'calendars', calendarId);
 }
@@ -174,6 +182,11 @@ function mapOwnerProfile(id: string, data: Record<string, unknown>): OwnerProfil
     email: String(data.email ?? ''),
     emailKey: String(data.emailKey ?? ''),
     calendarId: String(data.calendarId ?? id),
+    slotlymeId:
+      typeof data.slotlymeId === 'string' && data.slotlymeId.trim().length
+        ? data.slotlymeId.trim()
+        : null,
+    subscriptionTier: data.subscriptionTier === 'pro' ? 'pro' : 'free',
     primaryIdentityType: 'email',
     createdAt: asDate(data.createdAt),
     updatedAt: asDate(data.updatedAt),
@@ -218,6 +231,30 @@ const reservedPublicSlugs = new Set([
   'admin',
 ]);
 
+function normalizeSlotlymeUserId(slotlymeId: string) {
+  return slotlymeId.trim().toLowerCase();
+}
+
+function validateSlotlymeUserId(slotlymeId: string) {
+  const normalizedSlotlymeId = normalizeSlotlymeUserId(slotlymeId);
+
+  if (!normalizedSlotlymeId) {
+    return '';
+  }
+
+  if (normalizedSlotlymeId.length < 3 || normalizedSlotlymeId.length > 30) {
+    throw new Error('Die Slotlyme ID muss zwischen 3 und 30 Zeichen lang sein.');
+  }
+
+  if (!/^[a-z0-9-]+$/.test(normalizedSlotlymeId)) {
+    throw new Error(
+      'Die Slotlyme ID darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten.'
+    );
+  }
+
+  return normalizedSlotlymeId;
+}
+
 function normalizePublicSlug(slug: string) {
   return slug.trim().toLowerCase();
 }
@@ -246,6 +283,32 @@ function validatePublicSlug(slug: string) {
 
 export function validateCalendarPublicSlugInput(slug: string) {
   return validatePublicSlug(slug);
+}
+
+export function validateSlotlymeUserIdInput(slotlymeId: string) {
+  return validateSlotlymeUserId(slotlymeId);
+}
+
+export async function isSlotlymeUserIdAvailable(
+  slotlymeId: string,
+  currentUid?: string | null
+) {
+  const normalizedSlotlymeId = validateSlotlymeUserId(slotlymeId);
+
+  if (!normalizedSlotlymeId) {
+    return false;
+  }
+
+  const usernameSnapshot = await getDoc(usernameDoc(normalizedSlotlymeId));
+
+  if (!usernameSnapshot.exists()) {
+    return true;
+  }
+
+  const claimedUid =
+    typeof usernameSnapshot.data().uid === 'string' ? usernameSnapshot.data().uid : null;
+
+  return claimedUid === currentUid;
 }
 
 function mapAccess(id: string, data: Record<string, unknown>): CalendarAccessRecord {
@@ -498,7 +561,11 @@ function buildNotificationContent(params: {
   }
 }
 
-export async function ensureOwnerAccountSetup(params: { uid: string; email: string }) {
+export async function ensureOwnerAccountSetup(params: {
+  uid: string;
+  email: string;
+  slotlymeId?: string | null;
+}) {
   const trimmedEmail = params.email.trim();
 
   if (!trimmedEmail) {
@@ -506,10 +573,14 @@ export async function ensureOwnerAccountSetup(params: { uid: string; email: stri
   }
 
   const emailKey = normalizeEmail(trimmedEmail);
+  const normalizedSlotlymeId = params.slotlymeId
+    ? validateSlotlymeUserId(params.slotlymeId)
+    : '';
   const calendarId = params.uid;
   const ownerRef = ownerDoc(params.uid);
+  const userRef = userDoc(params.uid);
   const ownCalendarRef = calendarDoc(calendarId);
-  const setupKey = `${params.uid}:${emailKey}`;
+  const setupKey = `${params.uid}:${emailKey}:${normalizedSlotlymeId}`;
   const existingSetupPromise = ownerSetupInFlight.get(setupKey);
 
   if (existingSetupPromise) {
@@ -517,26 +588,72 @@ export async function ensureOwnerAccountSetup(params: { uid: string; email: stri
   }
 
   const setupPromise = (async () => {
-    const [ownerSnapshot, calendarSnapshot] = await Promise.all([
-      getDoc(ownerRef),
-      getDoc(ownCalendarRef),
-    ]);
+    await runTransaction(db, async (transaction) => {
+      const ownerSnapshot = await transaction.get(ownerRef);
+      const userSnapshot = await transaction.get(userRef);
+      const calendarSnapshot = await transaction.get(ownCalendarRef);
 
-    await Promise.all([
-      setDoc(
+      if (normalizedSlotlymeId) {
+        const usernameRef = usernameDoc(normalizedSlotlymeId);
+        const usernameSnapshot = await transaction.get(usernameRef);
+        const claimedUid =
+          usernameSnapshot.exists() && typeof usernameSnapshot.data().uid === 'string'
+            ? usernameSnapshot.data().uid
+            : null;
+
+        if (claimedUid && claimedUid !== params.uid) {
+          throw new Error('Diese Slotlyme ID ist bereits vergeben.');
+        }
+
+        transaction.set(
+          usernameRef,
+          {
+            uid: params.uid,
+            email: trimmedEmail,
+            ...(usernameSnapshot.exists() ? {} : { createdAt: serverTimestamp() }),
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      }
+
+      transaction.set(
         ownerRef,
         {
           uid: params.uid,
           email: trimmedEmail,
           emailKey,
           calendarId,
+          subscriptionTier:
+            ownerSnapshot.exists() && ownerSnapshot.data().subscriptionTier === 'pro'
+              ? 'pro'
+              : 'free',
           primaryIdentityType: 'email',
+          ...(normalizedSlotlymeId ? { slotlymeId: normalizedSlotlymeId } : {}),
           ...(ownerSnapshot.exists() ? {} : { createdAt: serverTimestamp() }),
           updatedAt: serverTimestamp(),
         },
         { merge: true }
-      ),
-      setDoc(
+      );
+
+      transaction.set(
+        userRef,
+        {
+          uid: params.uid,
+          email: trimmedEmail,
+          emailKey,
+          subscriptionTier:
+            userSnapshot.exists() && userSnapshot.data().subscriptionTier === 'pro'
+              ? 'pro'
+              : 'free',
+          ...(normalizedSlotlymeId ? { slotlymeId: normalizedSlotlymeId } : {}),
+          ...(userSnapshot.exists() ? {} : { createdAt: serverTimestamp() }),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      transaction.set(
         ownCalendarRef,
         {
           ownerId: params.uid,
@@ -552,8 +669,8 @@ export async function ensureOwnerAccountSetup(params: { uid: string; email: stri
           updatedAt: serverTimestamp(),
         },
         { merge: true }
-      ),
-    ]);
+      );
+    });
     return { calendarId };
   })();
 

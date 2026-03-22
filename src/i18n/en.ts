@@ -54,6 +54,9 @@ export const en = {
   'register.submitting': 'Creating account...',
   'register.validationEmailRequired': 'Please enter your email address.',
   'register.validationEmailInvalid': 'Please enter a valid email address.',
+  'register.validationSlotlymeIdRequired': 'Please enter a Slotlyme ID.',
+  'register.validationSlotlymeIdChecking': 'The Slotlyme ID is still being checked.',
+  'register.validationSlotlymeIdTaken': 'This Slotlyme ID is already taken.',
   'register.validationPasswordRequired': 'Please enter a password.',
   'register.validationPasswordWeak': 'The password must be at least 6 characters long.',
   'register.messageVerification':

@@ -12,7 +12,11 @@ import { useRouter } from 'expo-router';
 import { FirebaseError } from 'firebase/app';
 
 import { logout, registerWithEmail, sendVerificationEmail } from '../src/firebase/auth';
-import { ensureOwnerAccountSetup } from '../src/features/mvp/repository';
+import {
+  ensureOwnerAccountSetup,
+  isSlotlymeUserIdAvailable,
+} from '../src/features/mvp/repository';
+import { useSlotlymeIdAvailability } from '../src/features/mvp/useSlotlymeIdAvailability';
 import { useAuth } from '../src/firebase/useAuth';
 import { useAuthUiStyles } from '../src/theme/auth-ui';
 import { useAppTheme, useBottomSafeContentStyle } from '../src/theme/ui';
@@ -30,10 +34,12 @@ export default function RegisterScreen() {
   const authUiStyles = useAuthUiStyles();
   const contentContainerStyle = useBottomSafeContentStyle(authUiStyles.scrollContent);
   const [email, setEmail] = useState('');
+  const [slotlymeId, setSlotlymeId] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [awaitingVerification, setAwaitingVerification] = useState(false);
+  const slotlymeIdAvailability = useSlotlymeIdAvailability(slotlymeId);
 
   useEffect(() => {
     if (!loading && user && user.emailVerified && !awaitingVerification) {
@@ -55,6 +61,10 @@ export default function RegisterScreen() {
       }
     }
 
+    if (error instanceof Error && error.message) {
+      return error.message;
+    }
+
     return t('register.errorGeneric');
   };
 
@@ -68,6 +78,26 @@ export default function RegisterScreen() {
 
     if (!isValidEmail(trimmedEmail)) {
       setMessage(t('register.validationEmailInvalid'));
+      return;
+    }
+
+    if (!slotlymeIdAvailability.normalizedValue) {
+      setMessage(t('register.validationSlotlymeIdRequired'));
+      return;
+    }
+
+    if (slotlymeIdAvailability.formatError) {
+      setMessage(slotlymeIdAvailability.formatError);
+      return;
+    }
+
+    if (slotlymeIdAvailability.isChecking) {
+      setMessage(t('register.validationSlotlymeIdChecking'));
+      return;
+    }
+
+    if (!slotlymeIdAvailability.isAvailable) {
+      setMessage(t('register.validationSlotlymeIdTaken'));
       return;
     }
 
@@ -86,11 +116,32 @@ export default function RegisterScreen() {
 
     try {
       const credential = await registerWithEmail(trimmedEmail, password);
+
+      try {
+        const isStillAvailable = await isSlotlymeUserIdAvailable(
+          slotlymeIdAvailability.normalizedValue
+        );
+
+        if (!isStillAvailable) {
+          throw new Error(t('register.validationSlotlymeIdTaken'));
+        }
+
+        await ensureOwnerAccountSetup({
+          uid: credential.user.uid,
+          email: credential.user.email ?? trimmedEmail,
+          slotlymeId: slotlymeIdAvailability.normalizedValue,
+        });
+      } catch (profileError) {
+        try {
+          await credential.user.delete();
+        } catch {
+          // Best effort cleanup to avoid half-created accounts.
+        }
+
+        throw profileError;
+      }
+
       await sendVerificationEmail(credential.user);
-      await ensureOwnerAccountSetup({
-        uid: credential.user.uid,
-        email: credential.user.email ?? trimmedEmail,
-      });
       await logout();
       setAwaitingVerification(true);
       setMessage(t('register.messageVerification'));
@@ -126,6 +177,31 @@ export default function RegisterScreen() {
                 keyboardType="email-address"
                 style={authUiStyles.input}
               />
+            </View>
+
+            <View style={authUiStyles.fieldGroup}>
+              <Text style={authUiStyles.label}>Slotlyme ID</Text>
+              <TextInput
+                placeholder="deine-id"
+                placeholderTextColor={theme.colors.textSecondary}
+                value={slotlymeId}
+                onChangeText={(nextValue) => {
+                  setSlotlymeId(nextValue.toLowerCase());
+                  setMessage('');
+                }}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={authUiStyles.input}
+              />
+              {slotlymeIdAvailability.formatError ? (
+                <Text style={[authUiStyles.helperText, { marginTop: theme.spacing[8] }]}>
+                  {slotlymeIdAvailability.formatError}
+                </Text>
+              ) : slotlymeIdAvailability.availabilityMessage ? (
+                <Text style={[authUiStyles.helperText, { marginTop: theme.spacing[8] }]}>
+                  {slotlymeIdAvailability.availabilityMessage}
+                </Text>
+              ) : null}
             </View>
 
             <View style={authUiStyles.fieldGroup}>

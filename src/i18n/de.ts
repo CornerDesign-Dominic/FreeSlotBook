@@ -54,6 +54,9 @@ export const de = {
   'register.submitting': 'Erstelle Konto...',
   'register.validationEmailRequired': 'Bitte gib deine E-Mail-Adresse ein.',
   'register.validationEmailInvalid': 'Bitte gib eine gueltige E-Mail-Adresse ein.',
+  'register.validationSlotlymeIdRequired': 'Bitte gib eine Slotlyme ID ein.',
+  'register.validationSlotlymeIdChecking': 'Die Slotlyme ID wird noch geprüft.',
+  'register.validationSlotlymeIdTaken': 'Diese Slotlyme ID ist bereits vergeben.',
   'register.validationPasswordRequired': 'Bitte gib ein Passwort ein.',
   'register.validationPasswordWeak': 'Das Passwort muss mindestens 6 Zeichen lang sein.',
   'register.messageVerification':

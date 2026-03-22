@@ -1,4 +1,5 @@
 export type IdentityType = 'email';
+export type SubscriptionTier = 'free' | 'pro';
 
 export type CalendarVisibility = 'restricted' | 'public';
 
@@ -47,6 +48,8 @@ export interface OwnerProfile {
   email: string;
   emailKey: string;
   calendarId: string;
+  slotlymeId: string | null;
+  subscriptionTier: SubscriptionTier;
   primaryIdentityType: IdentityType;
   createdAt: Date | null;
   updatedAt: Date | null;

@@ -5,6 +5,7 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { AppScreenHeader } from '@/src/components/app-screen-header';
 import { useOwnerCalendar } from '@/src/features/mvp/useOwnerCalendar';
+import { useOwnerProfile } from '@/src/features/mvp/useOwnerProfile';
 import {
   updateCalendarDescription,
   updateCalendarNotificationSettings,
@@ -19,6 +20,9 @@ export default function CalendarSettingsScreen() {
   const { t } = useTranslation();
   const { theme, uiStyles } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
+  const { profile, loading: profileLoading, error: profileError } = useOwnerProfile(
+    user ? { uid: user.uid, email: user.email } : null
+  );
   const { calendar, loading, error } = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
   );
@@ -48,7 +52,7 @@ export default function CalendarSettingsScreen() {
     return () => clearTimeout(timeout);
   }, [copyFeedbackVisible]);
 
-  if (authLoading || loading) {
+  if (authLoading || loading || profileLoading) {
     return (
       <View style={uiStyles.centeredLoading}>
         <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
@@ -144,13 +148,15 @@ export default function CalendarSettingsScreen() {
     isDescriptionValid &&
     !savingDescription &&
     descriptionValue !== (calendar?.description ?? '');
+  const subscriptionTier = profile?.subscriptionTier ?? 'free';
+  const canManagePublicCalendar = subscriptionTier !== 'free';
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
       <AppScreenHeader title="Kalender-Einstellungen" />
 
         <View style={{ gap: theme.spacing[16] }}>
-        {!calendar?.publicSlug ? (
+        {canManagePublicCalendar && !calendar?.publicSlug ? (
           <View
             style={[
               uiStyles.panel,
@@ -192,12 +198,14 @@ export default function CalendarSettingsScreen() {
             <Text style={uiStyles.secondaryText}>{t('calendar.notAvailable')}</Text>
           )}
 
-          {error ? (
-            <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text>
+          {error || profileError ? (
+            <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>
+              {error ?? profileError}
+            </Text>
           ) : null}
         </View>
 
-        {calendar?.publicSlug ? (
+        {canManagePublicCalendar && calendar?.publicSlug ? (
           <View style={uiStyles.panel}>
             <Text style={uiStyles.sectionTitle}>Slotlyme.ID</Text>
             <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>Kalender-ID</Text>
@@ -214,38 +222,40 @@ export default function CalendarSettingsScreen() {
           </View>
         ) : null}
 
-        <View style={uiStyles.panel}>
-          <Text style={uiStyles.sectionTitle}>Sichtbarkeit</Text>
-          {calendar ? (
-            <>
-              <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
-                {t('dashboard.visibilityValue', { visibility: calendar.visibility })}
-              </Text>
-              <Pressable
-                onPress={handleToggleVisibility}
-                disabled={togglingVisibility}
-                style={[
-                  uiStyles.button,
-                  togglingVisibility ? { opacity: 0.6 } : null,
-                ]}>
-                <Text style={uiStyles.buttonText}>
-                  {togglingVisibility
-                    ? t('settings.updatingVisibility')
-                    : calendar.visibility === 'public'
-                      ? t('settings.makeRestricted')
-                      : t('settings.makePublic')}
+        {canManagePublicCalendar ? (
+          <View style={uiStyles.panel}>
+            <Text style={uiStyles.sectionTitle}>Sichtbarkeit</Text>
+            {calendar ? (
+              <>
+                <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
+                  {t('dashboard.visibilityValue', { visibility: calendar.visibility })}
                 </Text>
-              </Pressable>
-              {visibilityMessage ? (
-                <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>
-                  {visibilityMessage}
-                </Text>
-              ) : null}
-            </>
-          ) : (
-            <Text style={uiStyles.secondaryText}>{t('calendar.notAvailable')}</Text>
-          )}
-        </View>
+                <Pressable
+                  onPress={handleToggleVisibility}
+                  disabled={togglingVisibility}
+                  style={[
+                    uiStyles.button,
+                    togglingVisibility ? { opacity: 0.6 } : null,
+                  ]}>
+                  <Text style={uiStyles.buttonText}>
+                    {togglingVisibility
+                      ? t('settings.updatingVisibility')
+                      : calendar.visibility === 'public'
+                        ? t('settings.makeRestricted')
+                        : t('settings.makePublic')}
+                  </Text>
+                </Pressable>
+                {visibilityMessage ? (
+                  <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>
+                    {visibilityMessage}
+                  </Text>
+                ) : null}
+              </>
+            ) : (
+              <Text style={uiStyles.secondaryText}>{t('calendar.notAvailable')}</Text>
+            )}
+          </View>
+        ) : null}
 
         <View style={uiStyles.panel}>
           <Text style={uiStyles.sectionTitle}>Benachrichtigungen</Text>
