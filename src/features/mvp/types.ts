@@ -4,7 +4,7 @@ export type CalendarVisibility = 'restricted' | 'public';
 
 export type AccessStatus = 'approved' | 'revoked';
 
-export type AccessRequestStatus = 'pending' | 'approved' | 'rejected';
+export type AccessRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 export type SlotStatus = 'available' | 'inactive' | 'booked';
 
@@ -80,6 +80,7 @@ export interface CalendarAccessRecord {
 export interface CalendarAccessRequestRecord {
   id: string;
   calendarId: string;
+  calendarSlug: string | null;
   requesterUserId: string | null;
   requesterEmail: string;
   requesterEmailKey: string;

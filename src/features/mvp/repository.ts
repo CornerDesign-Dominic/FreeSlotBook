@@ -267,6 +267,7 @@ function mapAccessRequest(
   return {
     id,
     calendarId: String(data.calendarId ?? ''),
+    calendarSlug: typeof data.calendarSlug === 'string' ? data.calendarSlug : null,
     requesterUserId: typeof data.requesterUserId === 'string' ? data.requesterUserId : null,
     requesterEmail: String(data.requesterEmail ?? ''),
     requesterEmailKey: String(data.requesterEmailKey ?? ''),
@@ -275,6 +276,8 @@ function mapAccessRequest(
         ? 'approved'
         : data.status === 'rejected'
           ? 'rejected'
+          : data.status === 'cancelled'
+            ? 'cancelled'
           : 'pending',
     createdAt: asDate(data.createdAt),
     updatedAt: asDate(data.updatedAt),
@@ -643,6 +646,45 @@ async function getCalendarBySlug(slug: string) {
   return calendar;
 }
 
+async function findCalendarAccessRequestByRequester(params: {
+  calendarId: string;
+  requesterUserId?: string | null;
+  requesterEmail?: string | null;
+}) {
+  if (params.requesterUserId) {
+    const userQuery = query(
+      calendarRequestsCollection(params.calendarId),
+      where('requesterUserId', '==', params.requesterUserId),
+      limit(1)
+    );
+    const userSnapshots = await getDocs(userQuery);
+
+    if (userSnapshots.docs.length) {
+      return userSnapshots.docs[0];
+    }
+  }
+
+  const trimmedRequesterEmail = params.requesterEmail?.trim() ?? '';
+
+  if (!trimmedRequesterEmail) {
+    return null;
+  }
+
+  const emailKey = normalizeEmail(trimmedRequesterEmail);
+  const emailQuery = query(
+    calendarRequestsCollection(params.calendarId),
+    where('requesterEmailKey', '==', emailKey),
+    limit(1)
+  );
+  const emailSnapshots = await getDocs(emailQuery);
+
+  if (emailSnapshots.docs.length) {
+    return emailSnapshots.docs[0];
+  }
+
+  return null;
+}
+
 export function subscribeToOwnerCalendar(
   ownerId: string,
   onData: (calendar: CalendarRecord | null) => void,
@@ -857,6 +899,8 @@ export async function removeCalendarAccess(params: {
 
 export async function upsertCalendarAccessRequest(params: {
   calendarId: string;
+  calendarSlug?: string | null;
+  requestId?: string | null;
   requesterUserId?: string | null;
   requesterEmail: string;
   status?: CalendarAccessRequestRecord['status'];
@@ -868,12 +912,16 @@ export async function upsertCalendarAccessRequest(params: {
   }
 
   const emailKey = normalizeEmail(trimmedEmail);
-  const requestRef = doc(calendarRequestsCollection(params.calendarId), emailKey);
+  const requestRef = doc(
+    calendarRequestsCollection(params.calendarId),
+    params.requestId ?? params.requesterUserId ?? emailKey
+  );
 
   await setDoc(
     requestRef,
     {
       calendarId: params.calendarId,
+      calendarSlug: params.calendarSlug ?? null,
       requesterUserId: params.requesterUserId ?? null,
       requesterEmail: trimmedEmail,
       requesterEmailKey: emailKey,
@@ -976,6 +1024,9 @@ export async function requestCalendarAccessBySlug(params: {
 
   const calendar = await getCalendarBySlug(trimmedSlug);
   if (calendar?.ownerId === params.requesterUserId) {
+    throw new Error('Dies ist dein eigener Kalender');
+  }
+  if (calendar?.ownerId === params.requesterUserId) {
     throw new Error('Für den eigenen Kalender musst du keine Anfrage stellen.');
   }
 
@@ -991,6 +1042,13 @@ export async function requestCalendarAccessBySlug(params: {
     existingAccessSnapshot.exists() &&
     existingAccessSnapshot.data().status === 'approved'
   ) {
+    throw new Error('Bereits freigegeben');
+  }
+
+  if (
+    existingAccessSnapshot.exists() &&
+    existingAccessSnapshot.data().status === 'approved'
+  ) {
     throw new Error('Du hast bereits Zugriff auf diesen Kalender.');
   }
 
@@ -998,8 +1056,27 @@ export async function requestCalendarAccessBySlug(params: {
     throw new Error('Anfragen sind aktuell nur für eingeschränkte Kalender verfügbar.');
   }
 
+  const existingRequestSnapshot = await findCalendarAccessRequestByRequester({
+    calendarId: calendar.id,
+    requesterUserId: params.requesterUserId,
+    requesterEmail: trimmedRequesterEmail,
+  });
+
+  const existingRequest = existingRequestSnapshot
+    ? mapAccessRequest(
+        existingRequestSnapshot.id,
+        existingRequestSnapshot.data() as Record<string, unknown>
+      )
+    : null;
+
+  if (existingRequest?.status === 'pending') {
+    throw new Error('Anfrage bereits gestellt');
+  }
+
   await upsertCalendarAccessRequest({
     calendarId: calendar.id,
+    calendarSlug: calendar.publicSlug,
+    requestId: existingRequestSnapshot?.id ?? params.requesterUserId,
     requesterUserId: params.requesterUserId,
     requesterEmail: trimmedRequesterEmail,
     status: 'pending',
@@ -1021,12 +1098,19 @@ export async function approveCalendarAccessRequest(params: {
 
   const requesterEmailKey = normalizeEmail(trimmedRequesterEmail);
   const accessRef = doc(calendarAccessCollection(params.calendarId), requesterEmailKey);
-  const requestRef = doc(calendarRequestsCollection(params.calendarId), requesterEmailKey);
+  const requestSnapshot = await findCalendarAccessRequestByRequester({
+    calendarId: params.calendarId,
+    requesterEmail: trimmedRequesterEmail,
+  });
+
+  if (!requestSnapshot) {
+    throw new Error('Die ausgewählte Anfrage existiert nicht mehr.');
+  }
 
   await runTransaction(db, async (transaction) => {
-    const requestSnapshot = await transaction.get(requestRef);
+    const freshRequestSnapshot = await transaction.get(requestSnapshot.ref);
 
-    if (!requestSnapshot.exists()) {
+    if (!freshRequestSnapshot.exists()) {
     throw new Error('Die ausgewählte Anfrage existiert nicht mehr.');
     }
 
@@ -1045,7 +1129,7 @@ export async function approveCalendarAccessRequest(params: {
     );
 
     transaction.set(
-      requestRef,
+      requestSnapshot.ref,
       {
         status: 'approved',
         updatedAt: serverTimestamp(),
@@ -1065,11 +1149,17 @@ export async function rejectCalendarAccessRequest(params: {
     throw new Error('Für die Anfrage ist eine E-Mail-Adresse erforderlich.');
   }
 
-  const requesterEmailKey = normalizeEmail(trimmedRequesterEmail);
-  const requestRef = doc(calendarRequestsCollection(params.calendarId), requesterEmailKey);
+  const requestSnapshot = await findCalendarAccessRequestByRequester({
+    calendarId: params.calendarId,
+    requesterEmail: trimmedRequesterEmail,
+  });
+
+  if (!requestSnapshot) {
+    throw new Error('Die ausgewählte Anfrage existiert nicht mehr.');
+  }
 
   await setDoc(
-    requestRef,
+    requestSnapshot.ref,
     {
       status: 'rejected',
       updatedAt: serverTimestamp(),
@@ -1088,10 +1178,23 @@ export async function cancelCalendarAccessRequest(params: {
     throw new Error('FÃ¼r die Anfrage ist eine E-Mail-Adresse erforderlich.');
   }
 
-  const requesterEmailKey = normalizeEmail(trimmedRequesterEmail);
-  const requestRef = doc(calendarRequestsCollection(params.calendarId), requesterEmailKey);
+  const requestSnapshot = await findCalendarAccessRequestByRequester({
+    calendarId: params.calendarId,
+    requesterEmail: trimmedRequesterEmail,
+  });
 
-  await deleteDoc(requestRef);
+  if (!requestSnapshot) {
+    throw new Error('Die ausgewählte Anfrage existiert nicht mehr.');
+  }
+
+  await setDoc(
+    requestSnapshot.ref,
+    {
+      status: 'cancelled',
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
 }
 
 export async function updateCalendarNotificationSettings(params: {

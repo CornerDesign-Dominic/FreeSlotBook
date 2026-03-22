@@ -15,6 +15,7 @@ import {
 import { useCalendarAccessList } from '@/src/features/mvp/useCalendarAccessList';
 import { useCalendarAccessRequests } from '@/src/features/mvp/useCalendarAccessRequests';
 import { useOwnerCalendar } from '@/src/features/mvp/useOwnerCalendar';
+import type { AccessRequestStatus } from '@/src/features/mvp/types';
 
 export default function CalendarAccessScreen() {
   const { user, loading: authLoading } = useAuth();
@@ -37,7 +38,7 @@ export default function CalendarAccessScreen() {
 
   const pendingRequests = requestRecords.filter((record) => record.status === 'pending');
 
-  const formatRequestStatus = (status: 'pending' | 'approved' | 'rejected') => {
+  const formatRequestStatus = (status: AccessRequestStatus) => {
     if (status === 'approved') {
       return t('access.statusApproved');
     }

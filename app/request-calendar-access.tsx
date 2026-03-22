@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Feather } from '@expo/vector-icons';
 import { Link } from 'expo-router';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { cancelCalendarAccessRequest, requestCalendarAccessBySlug } from '../src/features/mvp/repository';
 import { usePendingCalendarAccessRequests } from '../src/features/mvp/usePendingCalendarAccessRequests';
@@ -40,6 +40,22 @@ function extractCalendarSlug(value: string) {
   }
 }
 
+function getFirestoreIndexErrorDetails(error: string | null) {
+  if (!error || !error.toLowerCase().includes('requires an index')) {
+    return null;
+  }
+
+  const match = error.match(/https:\/\/console\.firebase\.google\.com\/\S+/);
+
+  return {
+    title: 'Firestore Index erforderlich',
+    message: match
+      ? 'Fuer diese Abfrage wird ein Firestore-Index benoetigt.'
+      : 'Firestore Index erforderlich. Bitte im Firebase Console Index erstellen.',
+    indexUrl: match?.[0] ?? null,
+  };
+}
+
 export default function RequestCalendarAccessScreen() {
   const { user, loading } = useAuth();
   const { t } = useTranslation();
@@ -57,6 +73,7 @@ export default function RequestCalendarAccessScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [cancellingRequestKey, setCancellingRequestKey] = useState<string | null>(null);
+  const pendingRequestsIndexError = getFirestoreIndexErrorDetails(pendingRequestsError);
 
   const handleRequestAccess = async () => {
     if (!user?.email || !user.uid) {
@@ -153,10 +170,27 @@ export default function RequestCalendarAccessScreen() {
 
         {pendingRequestsLoading ? (
           <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
+        ) : pendingRequestsIndexError ? (
+          <View style={{ marginTop: theme.spacing[4] }}>
+            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4], fontWeight: '600' }]}>
+              {pendingRequestsIndexError.title}
+            </Text>
+            <Text style={uiStyles.secondaryText}>
+              {pendingRequestsIndexError.message}
+            </Text>
+            {__DEV__ && pendingRequestsIndexError.indexUrl ? (
+              <Pressable
+                onPress={() => void Linking.openURL(pendingRequestsIndexError.indexUrl)}
+                style={[uiStyles.outlineAction, { marginTop: theme.spacing[12], alignSelf: 'flex-start' }]}>
+                <Text style={uiStyles.buttonText}>Index in Firebase oeffnen</Text>
+              </Pressable>
+            ) : null}
+          </View>
         ) : pendingRequests.length ? (
           pendingRequests.map(({ request, calendar }) => {
             const requestKey = `${request.calendarId}:${request.requesterEmail}`;
-            const calendarLabel = calendar?.publicSlug || calendar?.ownerEmail || request.calendarId;
+            const calendarLabel =
+              request.calendarSlug || calendar?.publicSlug || calendar?.ownerEmail || request.calendarId;
 
             return (
               <View key={requestKey} style={uiStyles.listItem}>
@@ -190,7 +224,7 @@ export default function RequestCalendarAccessScreen() {
           <Text style={uiStyles.secondaryText}>Keine offenen Anfragen</Text>
         )}
 
-        {pendingRequestsError ? (
+        {pendingRequestsError && !pendingRequestsIndexError ? (
           <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>
             {pendingRequestsError}
           </Text>
