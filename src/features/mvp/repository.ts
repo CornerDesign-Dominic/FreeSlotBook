@@ -158,6 +158,14 @@ function ownerDevicesCollection(ownerUid: string) {
   return collection(db, 'owners', ownerUid, 'devices');
 }
 
+function ownerConnectedCalendarPreferencesCollection(ownerUid: string) {
+  return collection(db, 'owners', ownerUid, 'connectedCalendarPreferences');
+}
+
+function ownerConnectedCalendarPreferenceDoc(ownerUid: string, calendarId: string) {
+  return doc(db, 'owners', ownerUid, 'connectedCalendarPreferences', calendarId);
+}
+
 const ownerSetupInFlight = new Map<string, Promise<{ calendarId: string }>>();
 
 function mapOwnerProfile(id: string, data: Record<string, unknown>): OwnerProfile {
@@ -786,6 +794,124 @@ async function getJoinedCalendars(email: string) {
 export async function listJoinedCalendars(email: string) {
   const result = await getJoinedCalendars(email);
   return result.joinedCalendars;
+}
+
+export function subscribeToJoinedCalendars(
+  email: string,
+  onData: (calendars: CalendarRecord[]) => void,
+  onError: (error: Error) => void
+) {
+  const accessQuery = query(
+    collectionGroup(db, 'access'),
+    where('granteeEmailKey', '==', normalizeEmail(email)),
+    where('status', '==', 'approved')
+  );
+
+  return onSnapshot(
+    accessQuery,
+    (snapshot) => {
+      void (async () => {
+        try {
+          const accessRecords = snapshot.docs.map((documentSnapshot) =>
+            mapAccess(documentSnapshot.id, documentSnapshot.data() as Record<string, unknown>)
+          );
+          const uniqueCalendarIds = Array.from(
+            new Set(accessRecords.map((record) => record.calendarId).filter(Boolean))
+          );
+
+          const calendarSnapshots = await Promise.all(
+            uniqueCalendarIds.map(async (calendarId) => {
+              const calendarSnapshot = await getDoc(calendarDoc(calendarId));
+
+              if (!calendarSnapshot.exists()) {
+                return null;
+              }
+
+              return mapCalendar(
+                calendarSnapshot.id,
+                calendarSnapshot.data() as Record<string, unknown>
+              );
+            })
+          );
+
+          onData(calendarSnapshots.filter((calendar): calendar is CalendarRecord => calendar !== null));
+        } catch (nextError) {
+          onError(
+            nextError instanceof Error
+              ? nextError
+              : new Error('Verbundene Kalender konnten nicht geladen werden.')
+          );
+        }
+      })();
+    },
+    onError
+  );
+}
+
+export function subscribeToConnectedCalendarFavorites(
+  ownerUid: string,
+  onData: (favoriteCalendarIds: string[]) => void,
+  onError: (error: Error) => void
+) {
+  return onSnapshot(
+    ownerConnectedCalendarPreferencesCollection(ownerUid),
+    (snapshot) => {
+      onData(
+        snapshot.docs
+          .filter((documentSnapshot) => documentSnapshot.data().isFavorite === true)
+          .map((documentSnapshot) => documentSnapshot.id)
+      );
+    },
+    onError
+  );
+}
+
+export async function setConnectedCalendarFavorite(params: {
+  ownerUid: string;
+  calendarId: string;
+  isFavorite: boolean;
+}) {
+  const preferenceRef = ownerConnectedCalendarPreferenceDoc(params.ownerUid, params.calendarId);
+
+  if (!params.isFavorite) {
+    await deleteDoc(preferenceRef);
+    return;
+  }
+
+  const preferenceSnapshots = await getDocs(ownerConnectedCalendarPreferencesCollection(params.ownerUid));
+  const favoriteIds = new Set(
+    preferenceSnapshots.docs
+      .filter((documentSnapshot) => documentSnapshot.data().isFavorite === true)
+      .map((documentSnapshot) => documentSnapshot.id)
+  );
+
+  if (!favoriteIds.has(params.calendarId) && favoriteIds.size >= 5) {
+    throw new Error('Maximal 5 Favoriten');
+  }
+
+  await setDoc(
+    preferenceRef,
+    {
+      ownerUid: params.ownerUid,
+      calendarId: params.calendarId,
+      isFavorite: true,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
+export async function removeConnectedCalendar(params: {
+  ownerUid: string;
+  calendarId: string;
+  granteeEmail: string;
+}) {
+  await removeCalendarAccess({
+    calendarId: params.calendarId,
+    granteeEmail: params.granteeEmail,
+  });
+
+  await deleteDoc(ownerConnectedCalendarPreferenceDoc(params.ownerUid, params.calendarId));
 }
 
 export async function listUpcomingAppointmentsForParticipant(email: string) {

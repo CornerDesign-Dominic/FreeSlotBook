@@ -35,7 +35,6 @@ export default function HomeScreen() {
     error: appointmentsError,
   } = useParticipantAppointments(user?.email ?? null);
   const visibleJoinedCalendars = data.joinedCalendars.slice(0, 3);
-  const hasMoreJoinedCalendars = data.joinedCalendars.length > 3;
   const publicSlug = data.ownerCalendar?.publicSlug ?? null;
   const publicCalendarUrl = publicSlug ? `https://slotlyme.app/${publicSlug}` : null;
   const [timelineNow, setTimelineNow] = useState(() => new Date());
@@ -259,6 +258,13 @@ export default function HomeScreen() {
             </Text>
           </Pressable>
         </Link>
+        <Link href="/calendar-settings" asChild>
+          <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
+            <Text style={uiStyles.linkText}>
+              Kalender-Einstellungen
+            </Text>
+          </Pressable>
+        </Link>
       </View>
 
       <View style={uiStyles.panel}>
@@ -294,13 +300,13 @@ export default function HomeScreen() {
         ) : (
           <Text style={uiStyles.secondaryText}>{t('dashboard.noJoinedCalendars')}</Text>
         )}
-        {hasMoreJoinedCalendars ? (
-          <Pressable disabled style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12], opacity: 0.7 }}>
+        <Link href="/connected-calendars" asChild>
+          <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
             <Text style={uiStyles.linkText}>
               Alle anzeigen
             </Text>
           </Pressable>
-        ) : null}
+        </Link>
         <Link href="/request-calendar-access" asChild>
           <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
             <Text style={uiStyles.linkText}>

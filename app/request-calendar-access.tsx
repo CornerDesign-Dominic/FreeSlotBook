@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { Feather } from '@expo/vector-icons';
-import { Link } from 'expo-router';
 import { Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { cancelCalendarAccessRequest, requestCalendarAccessBySlug } from '../src/features/mvp/repository';
 import { usePendingCalendarAccessRequests } from '../src/features/mvp/usePendingCalendarAccessRequests';
-import { useDashboardData } from '../src/features/mvp/useDashboardData';
 import { AppScreenHeader } from '../src/components/app-screen-header';
 import { useAuth } from '../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
@@ -61,9 +59,6 @@ export default function RequestCalendarAccessScreen() {
   const { t } = useTranslation();
   const { theme, uiStyles } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
-  const { data, loading: dashboardLoading, error: dashboardError } = useDashboardData(
-    user ? { uid: user.uid, email: user.email } : null
-  );
   const {
     records: pendingRequests,
     loading: pendingRequestsLoading,
@@ -126,7 +121,7 @@ export default function RequestCalendarAccessScreen() {
     }
   };
 
-  if (loading || dashboardLoading) {
+  if (loading) {
     return (
       <View style={uiStyles.centeredLoading}>
         <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
@@ -153,15 +148,21 @@ export default function RequestCalendarAccessScreen() {
         <Pressable
           onPress={handleRequestAccess}
           disabled={submitting || !user?.email}
-          style={[uiStyles.outlineAction, { opacity: submitting ? 0.6 : 1 }]}>
-          <Text style={uiStyles.buttonText}>
+          style={[
+            uiStyles.button,
+            uiStyles.buttonActive,
+            { opacity: submitting ? 0.6 : 1 },
+          ]}>
+          <Text style={[uiStyles.buttonText, { color: theme.colors.textPrimary, fontWeight: '600' }]}>
             {submitting ? t('requestAccess.submitting') : t('requestAccess.submit')}
           </Text>
         </Pressable>
-
-        <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{t('requestAccess.hint')}</Text>
         {message ? <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>{message}</Text> : null}
       </View>
+
+      <Text style={[uiStyles.secondaryText, { marginTop: -theme.spacing[4], marginBottom: theme.spacing[16] }]}>
+        {t('requestAccess.hint')}
+      </Text>
 
       <View style={uiStyles.panel}>
         <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[12] }]}>
@@ -180,7 +181,11 @@ export default function RequestCalendarAccessScreen() {
             </Text>
             {__DEV__ && pendingRequestsIndexError.indexUrl ? (
               <Pressable
-                onPress={() => void Linking.openURL(pendingRequestsIndexError.indexUrl)}
+                onPress={() => {
+                  if (pendingRequestsIndexError.indexUrl) {
+                    void Linking.openURL(pendingRequestsIndexError.indexUrl);
+                  }
+                }}
                 style={[uiStyles.outlineAction, { marginTop: theme.spacing[12], alignSelf: 'flex-start' }]}>
                 <Text style={uiStyles.buttonText}>Index in Firebase oeffnen</Text>
               </Pressable>
@@ -227,30 +232,6 @@ export default function RequestCalendarAccessScreen() {
         {pendingRequestsError && !pendingRequestsIndexError ? (
           <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>
             {pendingRequestsError}
-          </Text>
-        ) : null}
-      </View>
-
-      <View style={uiStyles.panel}>
-        <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[4] }]}>
-          {t('dashboard.sharedCalendars')}
-        </Text>
-        {data.joinedCalendars.length ? (
-          data.joinedCalendars.map((calendar) => (
-            <Link key={calendar.id} href={`/shared-calendar/${calendar.id}`} asChild>
-              <Pressable style={{ marginTop: theme.spacing[12] }}>
-                <Text style={uiStyles.linkText}>
-                  {calendar.ownerEmail || t('dashboard.noOwnerEmail')}
-                </Text>
-              </Pressable>
-            </Link>
-          ))
-        ) : (
-          <Text style={uiStyles.secondaryText}>{t('dashboard.noJoinedCalendars')}</Text>
-        )}
-        {dashboardError ? (
-          <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>
-            {dashboardError}
           </Text>
         ) : null}
       </View>

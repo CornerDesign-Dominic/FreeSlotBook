@@ -397,9 +397,9 @@ export const de = {
   'shared.notLoaded': 'Dieser Kalender konnte nicht geladen werden.',
   'shared.backToDashboard': 'Zurueck zum Dashboard',
 
-  'requestAccess.title': 'Zugriff anfragen',
-  'requestAccess.ownerEmail': 'Kalender-Link oder Kalender-ID',
-  'requestAccess.placeholder': 'https://app-domain.com/c/john-coaching',
+  'requestAccess.title': 'Freigabe anfragen',
+  'requestAccess.ownerEmail': 'Slotlyme.ID',
+  'requestAccess.placeholder': 'slotlyme.app/ID',
   'requestAccess.submit': 'Anfrage senden',
   'requestAccess.submitting': 'Sende Anfrage...',
   'requestAccess.loginRequired': 'Du musst eingeloggt sein, um eine Zugriffsanfrage zu stellen.',
@@ -408,7 +408,7 @@ export const de = {
   'requestAccess.success': 'Zugriff angefragt',
   'requestAccess.error': 'Anfrage konnte nicht gespeichert werden.',
   'requestAccess.hint':
-    'Deine Anfrage wird gespeichert und kann vom Kalenderinhaber angenommen oder abgelehnt werden.',
+    'Du erhältst eine Benachrichtigung, sobald deine Anfrage bestätigt wurde.',
 
   'access.title': 'Freigaben verwalten',
   'access.newGrant': 'Neue Freigabe per E-Mail',

@@ -396,8 +396,8 @@ export const en = {
   'shared.backToDashboard': 'Back to dashboard',
 
   'requestAccess.title': 'Request access',
-  'requestAccess.ownerEmail': 'Calendar link or calendar ID',
-  'requestAccess.placeholder': 'https://app-domain.com/c/john-coaching',
+  'requestAccess.ownerEmail': 'Slotlyme.ID',
+  'requestAccess.placeholder': 'slotlyme.app/ID',
   'requestAccess.submit': 'Send request',
   'requestAccess.submitting': 'Sending request...',
   'requestAccess.loginRequired': 'You must be signed in to request access.',
@@ -406,7 +406,7 @@ export const en = {
   'requestAccess.success': 'Access requested',
   'requestAccess.error': 'The request could not be saved.',
   'requestAccess.hint':
-    'Your request is stored and can be approved or rejected by the calendar owner.',
+    'You will receive a notification as soon as your request is confirmed.',
 
   'access.title': 'Manage access',
   'access.newGrant': 'Grant access by email',
