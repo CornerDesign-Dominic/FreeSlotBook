@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Feather } from '@expo/vector-icons';
 import { Link, Redirect } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
+import * as Clipboard from 'expo-clipboard';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { logout } from '../../src/firebase/auth';
@@ -35,8 +36,11 @@ export default function HomeScreen() {
   } = useParticipantAppointments(user?.email ?? null);
   const visibleJoinedCalendars = data.joinedCalendars.slice(0, 3);
   const hasMoreJoinedCalendars = data.joinedCalendars.length > 3;
+  const publicSlug = data.ownerCalendar?.publicSlug ?? null;
+  const publicCalendarUrl = publicSlug ? `https://slotlyme.app/${publicSlug}` : null;
   const [timelineNow, setTimelineNow] = useState(() => new Date());
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
+  const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
   const timelineWindow = useMemo(() => createRelativeTimelineWindow(timelineNow), [timelineNow]);
   const slotTimelineRef = useRef<ScrollView | null>(null);
   const appointmentTimelineRef = useRef<ScrollView | null>(null);
@@ -56,6 +60,18 @@ export default function HomeScreen() {
 
     setTimelineNow(new Date());
   }, [isFocused]);
+
+  useEffect(() => {
+    if (!copyFeedbackVisible) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setCopyFeedbackVisible(false);
+    }, 1800);
+
+    return () => clearTimeout(timeout);
+  }, [copyFeedbackVisible]);
 
   useEffect(() => {
     if (
@@ -131,6 +147,15 @@ export default function HomeScreen() {
     targetRef.scrollTo({ x, animated: false });
   };
 
+  const handleCopyPublicLink = async () => {
+    if (!publicCalendarUrl) {
+      return;
+    }
+
+    await Clipboard.setStringAsync(publicCalendarUrl);
+    setCopyFeedbackVisible(true);
+  };
+
   if (loading || dashboardLoading) {
     return (
       <View style={[uiStyles.centeredLoading, { alignItems: 'center' }]}>
@@ -186,6 +211,37 @@ export default function HomeScreen() {
         <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>
           Slot-Kalender
         </Text>
+        {publicSlug ? (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: theme.spacing[12],
+              marginBottom: theme.spacing[8],
+            }}>
+            <Text
+              style={[
+                uiStyles.secondaryText,
+                {
+                  flex: 1,
+                  fontSize: 14,
+                },
+              ]}>
+              {`Link: ${publicSlug}`}
+            </Text>
+            <Pressable
+              onPress={() => void handleCopyPublicLink()}
+              accessibilityRole="button"
+              accessibilityLabel="Link kopieren">
+              <Feather
+                name={copyFeedbackVisible ? 'check' : 'copy'}
+                size={16}
+                color={theme.colors.textSecondary}
+              />
+            </Pressable>
+          </View>
+        ) : null}
         <View onLayout={(event) => handleTimelineViewportLayout(event.nativeEvent.layout.width)}>
           <DashboardSlotTimeline
             slots={slots}

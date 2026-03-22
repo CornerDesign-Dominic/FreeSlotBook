@@ -430,6 +430,28 @@ export function CreateSlotScreen() {
       <View style={uiStyles.panel}>
         <View style={{ gap: theme.spacing[12] }}>
           <Pressable
+            onPress={handleCreateSlot}
+            disabled={
+              submitting ||
+              !calendar ||
+              (isEditing && (!editingSlot || editingSlot.status === 'booked' || Boolean(editingSlot.appointmentId)))
+            }
+            style={[
+              uiStyles.button,
+              uiStyles.buttonActive,
+              {
+                opacity:
+                  submitting ||
+                  !calendar ||
+                  (isEditing && (!editingSlot || editingSlot.status === 'booked' || Boolean(editingSlot.appointmentId)))
+                    ? 0.6
+                    : 1,
+              },
+            ]}>
+            <Text style={uiStyles.buttonText}>Speichern</Text>
+          </Pressable>
+
+          <Pressable
             onPress={handleCreateSlotAndContinue}
             disabled={
               submitting ||
@@ -449,27 +471,6 @@ export function CreateSlotScreen() {
               },
             ]}>
             <Text style={uiStyles.buttonText}>Speichern & S+</Text>
-          </Pressable>
-
-          <Pressable
-            onPress={handleCreateSlot}
-            disabled={
-              submitting ||
-              !calendar ||
-              (isEditing && (!editingSlot || editingSlot.status === 'booked' || Boolean(editingSlot.appointmentId)))
-            }
-            style={[
-              uiStyles.outlineAction,
-              {
-                opacity:
-                  submitting ||
-                  !calendar ||
-                  (isEditing && (!editingSlot || editingSlot.status === 'booked' || Boolean(editingSlot.appointmentId)))
-                    ? 0.6
-                    : 1,
-              },
-            ]}>
-            <Text style={uiStyles.buttonText}>Speichern</Text>
           </Pressable>
 
           <Pressable onPress={() => router.back()} style={uiStyles.outlineAction}>
