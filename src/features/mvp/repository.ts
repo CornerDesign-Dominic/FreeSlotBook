@@ -267,6 +267,7 @@ function mapAccessRequest(
   return {
     id,
     calendarId: String(data.calendarId ?? ''),
+    requesterUserId: typeof data.requesterUserId === 'string' ? data.requesterUserId : null,
     requesterEmail: String(data.requesterEmail ?? ''),
     requesterEmailKey: String(data.requesterEmailKey ?? ''),
     status:
@@ -604,6 +605,44 @@ export async function getPublicCalendarIdBySlug(slug: string) {
   return calendar.id;
 }
 
+async function getCalendarBySlug(slug: string) {
+  const normalizedSlug = validatePublicSlug(slug);
+
+  if (!normalizedSlug) {
+    return null;
+  }
+
+  const slugSnapshot = await getDoc(publicCalendarSlugDoc(normalizedSlug));
+
+  if (!slugSnapshot.exists()) {
+    return null;
+  }
+
+  const calendarId =
+    typeof slugSnapshot.data().calendarId === 'string' ? slugSnapshot.data().calendarId : null;
+
+  if (!calendarId) {
+    return null;
+  }
+
+  const calendarSnapshot = await getDoc(calendarDoc(calendarId));
+
+  if (!calendarSnapshot.exists()) {
+    return null;
+  }
+
+  const calendar = mapCalendar(
+    calendarSnapshot.id,
+    calendarSnapshot.data() as Record<string, unknown>
+  );
+
+  if (calendar.publicSlug !== normalizedSlug) {
+    return null;
+  }
+
+  return calendar;
+}
+
 export function subscribeToOwnerCalendar(
   ownerId: string,
   onData: (calendar: CalendarRecord | null) => void,
@@ -818,6 +857,7 @@ export async function removeCalendarAccess(params: {
 
 export async function upsertCalendarAccessRequest(params: {
   calendarId: string;
+  requesterUserId?: string | null;
   requesterEmail: string;
   status?: CalendarAccessRequestRecord['status'];
 }) {
@@ -834,6 +874,7 @@ export async function upsertCalendarAccessRequest(params: {
     requestRef,
     {
       calendarId: params.calendarId,
+      requesterUserId: params.requesterUserId ?? null,
       requesterEmail: trimmedEmail,
       requesterEmailKey: emailKey,
       status: params.status ?? 'pending',
@@ -884,44 +925,63 @@ export function subscribeToCalendarAccessRequests(
   );
 }
 
-export async function requestCalendarAccessByOwnerEmail(params: {
-  ownerEmail: string;
+export function subscribeToPendingCalendarAccessRequestsByRequester(
+  requesterUserId: string,
+  onData: (records: CalendarAccessRequestRecord[]) => void,
+  onError: (error: Error) => void
+) {
+  const requestsQuery = query(
+    collectionGroup(db, 'requests'),
+    where('requesterUserId', '==', requesterUserId),
+    where('status', '==', 'pending')
+  );
+
+  return onSnapshot(
+    requestsQuery,
+    (snapshot) => {
+      const nextRecords = snapshot.docs
+        .map((documentSnapshot) =>
+          mapAccessRequest(documentSnapshot.id, documentSnapshot.data() as Record<string, unknown>)
+        )
+        .filter((record) => record.status === 'pending')
+        .sort((left, right) => {
+          const leftTime = left.createdAt?.getTime() ?? 0;
+          const rightTime = right.createdAt?.getTime() ?? 0;
+          return rightTime - leftTime;
+        });
+
+      onData(nextRecords);
+    },
+    onError
+  );
+}
+
+export async function requestCalendarAccessBySlug(params: {
+  slug: string;
+  requesterUserId: string;
   requesterEmail: string;
 }) {
-  const trimmedOwnerEmail = params.ownerEmail.trim();
+  const trimmedSlug = params.slug.trim();
   const trimmedRequesterEmail = params.requesterEmail.trim();
 
-  if (!trimmedOwnerEmail) {
-    throw new Error('Eine Inhaber-E-Mail ist erforderlich.');
+  if (!trimmedSlug) {
+    throw new Error('Ein Kalender-Link oder eine Kalender-ID ist erforderlich.');
   }
 
   if (!trimmedRequesterEmail) {
     throw new Error('Eine eigene E-Mail ist erforderlich.');
   }
 
-  const ownerEmailKey = normalizeEmail(trimmedOwnerEmail);
   const requesterEmailKey = normalizeEmail(trimmedRequesterEmail);
 
-  if (ownerEmailKey === requesterEmailKey) {
+  const calendar = await getCalendarBySlug(trimmedSlug);
+  if (calendar?.ownerId === params.requesterUserId) {
     throw new Error('Für den eigenen Kalender musst du keine Anfrage stellen.');
   }
 
-  const calendarsQuery = query(
-    collection(db, 'calendars'),
-    where('ownerEmailKey', '==', ownerEmailKey),
-    limit(1)
-  );
-  const calendarSnapshots = await getDocs(calendarsQuery);
-
-  if (!calendarSnapshots.docs.length) {
-    throw new Error('Zu dieser E-Mail wurde kein Kalender gefunden.');
+  if (!calendar) {
+    throw new Error('Zu diesem Kalender-Link wurde kein Kalender gefunden.');
   }
-
-  const calendarSnapshot = calendarSnapshots.docs[0];
-  const calendar = mapCalendar(
-    calendarSnapshot.id,
-    calendarSnapshot.data() as Record<string, unknown>
-  );
 
   const existingAccessSnapshot = await getDoc(
     doc(calendarAccessCollection(calendar.id), requesterEmailKey)
@@ -940,6 +1000,7 @@ export async function requestCalendarAccessByOwnerEmail(params: {
 
   await upsertCalendarAccessRequest({
     calendarId: calendar.id,
+    requesterUserId: params.requesterUserId,
     requesterEmail: trimmedRequesterEmail,
     status: 'pending',
   });
@@ -1015,6 +1076,22 @@ export async function rejectCalendarAccessRequest(params: {
     },
     { merge: true }
   );
+}
+
+export async function cancelCalendarAccessRequest(params: {
+  calendarId: string;
+  requesterEmail: string;
+}) {
+  const trimmedRequesterEmail = params.requesterEmail.trim();
+
+  if (!trimmedRequesterEmail) {
+    throw new Error('FÃ¼r die Anfrage ist eine E-Mail-Adresse erforderlich.');
+  }
+
+  const requesterEmailKey = normalizeEmail(trimmedRequesterEmail);
+  const requestRef = doc(calendarRequestsCollection(params.calendarId), requesterEmailKey);
+
+  await deleteDoc(requestRef);
 }
 
 export async function updateCalendarNotificationSettings(params: {

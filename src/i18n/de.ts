@@ -398,13 +398,14 @@ export const de = {
   'shared.backToDashboard': 'Zurueck zum Dashboard',
 
   'requestAccess.title': 'Zugriff anfragen',
-  'requestAccess.ownerEmail': 'E-Mail des Kalenderinhabers',
-  'requestAccess.placeholder': 'inhaber@beispiel.de',
+  'requestAccess.ownerEmail': 'Kalender-Link oder Kalender-ID',
+  'requestAccess.placeholder': 'https://app-domain.com/c/john-coaching',
   'requestAccess.submit': 'Anfrage senden',
   'requestAccess.submitting': 'Sende Anfrage...',
   'requestAccess.loginRequired': 'Du musst eingeloggt sein, um eine Zugriffsanfrage zu stellen.',
-  'requestAccess.emailRequired': 'Bitte gib die E-Mail des Kalenderinhabers ein.',
-  'requestAccess.success': 'Deine Anfrage fuer den Kalender von {{email}} wurde gespeichert.',
+  'requestAccess.emailRequired': 'Bitte gib einen Kalender-Link oder eine Kalender-ID ein.',
+  'requestAccess.invalidSlug': 'Der Kalender-Link oder die Kalender-ID ist ungueltig.',
+  'requestAccess.success': 'Zugriff angefragt',
   'requestAccess.error': 'Anfrage konnte nicht gespeichert werden.',
   'requestAccess.hint':
     'Deine Anfrage wird gespeichert und kann vom Kalenderinhaber angenommen oder abgelehnt werden.',

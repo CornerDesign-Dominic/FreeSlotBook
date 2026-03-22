@@ -396,13 +396,14 @@ export const en = {
   'shared.backToDashboard': 'Back to dashboard',
 
   'requestAccess.title': 'Request access',
-  'requestAccess.ownerEmail': 'Owner email',
-  'requestAccess.placeholder': 'owner@example.com',
+  'requestAccess.ownerEmail': 'Calendar link or calendar ID',
+  'requestAccess.placeholder': 'https://app-domain.com/c/john-coaching',
   'requestAccess.submit': 'Send request',
   'requestAccess.submitting': 'Sending request...',
   'requestAccess.loginRequired': 'You must be signed in to request access.',
-  'requestAccess.emailRequired': 'Please enter the calendar owner email.',
-  'requestAccess.success': 'Your request for the calendar of {{email}} was saved.',
+  'requestAccess.emailRequired': 'Please enter a calendar link or calendar ID.',
+  'requestAccess.invalidSlug': 'The calendar link or calendar ID is invalid.',
+  'requestAccess.success': 'Access requested',
   'requestAccess.error': 'The request could not be saved.',
   'requestAccess.hint':
     'Your request is stored and can be approved or rejected by the calendar owner.',

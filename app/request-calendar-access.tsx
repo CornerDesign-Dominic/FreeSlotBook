@@ -1,31 +1,80 @@
 import { useState } from 'react';
+import { Feather } from '@expo/vector-icons';
+import { Link } from 'expo-router';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { requestCalendarAccessByOwnerEmail } from '../src/features/mvp/repository';
+import { cancelCalendarAccessRequest, requestCalendarAccessBySlug } from '../src/features/mvp/repository';
+import { usePendingCalendarAccessRequests } from '../src/features/mvp/usePendingCalendarAccessRequests';
+import { useDashboardData } from '../src/features/mvp/useDashboardData';
 import { AppScreenHeader } from '../src/components/app-screen-header';
 import { useAuth } from '../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppTheme, useBottomSafeContentStyle } from '../src/theme/ui';
+
+function extractCalendarSlug(value: string) {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return '';
+  }
+
+  if (!trimmedValue.includes('://')) {
+    return trimmedValue.replace(/^\/+|\/+$/g, '');
+  }
+
+  try {
+    const parsedUrl = new URL(trimmedValue);
+    const pathSegments = parsedUrl.pathname.split('/').filter(Boolean);
+
+    if (!pathSegments.length) {
+      return '';
+    }
+
+    if (pathSegments[0] === 'c' && pathSegments[1]) {
+      return pathSegments[1];
+    }
+
+    return pathSegments[pathSegments.length - 1] ?? '';
+  } catch {
+    return '';
+  }
+}
 
 export default function RequestCalendarAccessScreen() {
   const { user, loading } = useAuth();
   const { t } = useTranslation();
   const { theme, uiStyles } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
-  const [ownerEmailInput, setOwnerEmailInput] = useState('');
+  const { data, loading: dashboardLoading, error: dashboardError } = useDashboardData(
+    user ? { uid: user.uid, email: user.email } : null
+  );
+  const {
+    records: pendingRequests,
+    loading: pendingRequestsLoading,
+    error: pendingRequestsError,
+  } = usePendingCalendarAccessRequests(user?.uid ?? null);
+  const [calendarLinkInput, setCalendarLinkInput] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [cancellingRequestKey, setCancellingRequestKey] = useState<string | null>(null);
 
   const handleRequestAccess = async () => {
-    if (!user?.email) {
+    if (!user?.email || !user.uid) {
       setMessage(t('requestAccess.loginRequired'));
       return;
     }
 
-    const trimmedOwnerEmail = ownerEmailInput.trim();
+    const trimmedCalendarLink = calendarLinkInput.trim();
 
-    if (!trimmedOwnerEmail) {
+    if (!trimmedCalendarLink) {
       setMessage(t('requestAccess.emailRequired'));
+      return;
+    }
+
+    const calendarSlug = extractCalendarSlug(trimmedCalendarLink);
+
+    if (!calendarSlug) {
+      setMessage(t('requestAccess.invalidSlug'));
       return;
     }
 
@@ -33,14 +82,13 @@ export default function RequestCalendarAccessScreen() {
     setMessage(null);
 
     try {
-      const calendar = await requestCalendarAccessByOwnerEmail({
-        ownerEmail: trimmedOwnerEmail,
+      await requestCalendarAccessBySlug({
+        slug: calendarSlug,
+        requesterUserId: user.uid,
         requesterEmail: user.email,
       });
-      setMessage(
-        t('requestAccess.success', { email: calendar.ownerEmail || trimmedOwnerEmail })
-      );
-      setOwnerEmailInput('');
+      setMessage(t('requestAccess.success'));
+      setCalendarLinkInput('');
     } catch (nextError) {
       setMessage(nextError instanceof Error ? nextError.message : t('requestAccess.error'));
     } finally {
@@ -48,7 +96,20 @@ export default function RequestCalendarAccessScreen() {
     }
   };
 
-  if (loading) {
+  const handleCancelRequest = async (calendarId: string, requesterEmail: string) => {
+    setCancellingRequestKey(`${calendarId}:${requesterEmail}`);
+    setMessage(null);
+
+    try {
+      await cancelCalendarAccessRequest({ calendarId, requesterEmail });
+    } catch (nextError) {
+      setMessage(nextError instanceof Error ? nextError.message : t('requestAccess.error'));
+    } finally {
+      setCancellingRequestKey(null);
+    }
+  };
+
+  if (loading || dashboardLoading) {
     return (
       <View style={uiStyles.centeredLoading}>
         <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
@@ -66,10 +127,9 @@ export default function RequestCalendarAccessScreen() {
         </Text>
         <TextInput
           placeholder={t('requestAccess.placeholder')}
-          value={ownerEmailInput}
-          onChangeText={setOwnerEmailInput}
+          value={calendarLinkInput}
+          onChangeText={setCalendarLinkInput}
           autoCapitalize="none"
-          keyboardType="email-address"
           placeholderTextColor={theme.colors.textSecondary}
           style={[uiStyles.input, { marginBottom: theme.spacing[12] }]}
         />
@@ -86,6 +146,80 @@ export default function RequestCalendarAccessScreen() {
         {message ? <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>{message}</Text> : null}
       </View>
 
+      <View style={uiStyles.panel}>
+        <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[12] }]}>
+          Ausstehende Anfragen
+        </Text>
+
+        {pendingRequestsLoading ? (
+          <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
+        ) : pendingRequests.length ? (
+          pendingRequests.map(({ request, calendar }) => {
+            const requestKey = `${request.calendarId}:${request.requesterEmail}`;
+            const calendarLabel = calendar?.publicSlug || calendar?.ownerEmail || request.calendarId;
+
+            return (
+              <View key={requestKey} style={uiStyles.listItem}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: theme.spacing[12],
+                  }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4] }]}>
+                      {calendarLabel}
+                    </Text>
+                    <Text style={uiStyles.secondaryText}>Anfrage ausstehend</Text>
+                  </View>
+
+                  <Pressable
+                    onPress={() => void handleCancelRequest(request.calendarId, request.requesterEmail)}
+                    disabled={cancellingRequestKey === requestKey}
+                    accessibilityRole="button"
+                    accessibilityLabel="Anfrage zurückziehen"
+                    style={{ opacity: cancellingRequestKey === requestKey ? 0.45 : 1 }}>
+                    <Feather name="trash-2" size={18} color={theme.colors.textSecondary} />
+                  </Pressable>
+                </View>
+              </View>
+            );
+          })
+        ) : (
+          <Text style={uiStyles.secondaryText}>Keine offenen Anfragen</Text>
+        )}
+
+        {pendingRequestsError ? (
+          <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>
+            {pendingRequestsError}
+          </Text>
+        ) : null}
+      </View>
+
+      <View style={uiStyles.panel}>
+        <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[4] }]}>
+          {t('dashboard.sharedCalendars')}
+        </Text>
+        {data.joinedCalendars.length ? (
+          data.joinedCalendars.map((calendar) => (
+            <Link key={calendar.id} href={`/shared-calendar/${calendar.id}`} asChild>
+              <Pressable style={{ marginTop: theme.spacing[12] }}>
+                <Text style={uiStyles.linkText}>
+                  {calendar.ownerEmail || t('dashboard.noOwnerEmail')}
+                </Text>
+              </Pressable>
+            </Link>
+          ))
+        ) : (
+          <Text style={uiStyles.secondaryText}>{t('dashboard.noJoinedCalendars')}</Text>
+        )}
+        {dashboardError ? (
+          <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>
+            {dashboardError}
+          </Text>
+        ) : null}
+      </View>
     </ScrollView>
   );
 }

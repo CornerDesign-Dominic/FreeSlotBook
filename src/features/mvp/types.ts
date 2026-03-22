@@ -80,6 +80,7 @@ export interface CalendarAccessRecord {
 export interface CalendarAccessRequestRecord {
   id: string;
   calendarId: string;
+  requesterUserId: string | null;
   requesterEmail: string;
   requesterEmailKey: string;
   status: AccessRequestStatus;
