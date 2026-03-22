@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Feather } from '@expo/vector-icons';
-import { Link, Redirect } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -45,9 +45,13 @@ export default function HomeScreen() {
   const visibleJoinedCalendars = data.joinedCalendars.slice(0, 3);
   const publicSlug = activeOwnerCalendar?.publicSlug ?? null;
   const publicCalendarUrl = publicSlug ? `https://slotlyme.app/${publicSlug}` : null;
+  const slotlymeUserId = data.ownerProfile?.slotlymeId ?? null;
+  const slotlymeProfileLabel = slotlymeUserId ? `slotlyme.app/${slotlymeUserId}` : null;
+  const slotlymeProfileUrl = slotlymeUserId ? `https://slotlyme.app/${slotlymeUserId}` : null;
   const [timelineNow, setTimelineNow] = useState(() => new Date());
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
   const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
+  const [profileCopyFeedbackVisible, setProfileCopyFeedbackVisible] = useState(false);
   const timelineWindow = useMemo(() => createRelativeTimelineWindow(timelineNow), [timelineNow]);
   const slotTimelineRef = useRef<ScrollView | null>(null);
   const appointmentTimelineRef = useRef<ScrollView | null>(null);
@@ -58,6 +62,7 @@ export default function HomeScreen() {
 
   const handleLogout = async () => {
     await logout();
+    router.replace('/');
   };
 
   useEffect(() => {
@@ -79,6 +84,18 @@ export default function HomeScreen() {
 
     return () => clearTimeout(timeout);
   }, [copyFeedbackVisible]);
+
+  useEffect(() => {
+    if (!profileCopyFeedbackVisible) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setProfileCopyFeedbackVisible(false);
+    }, 1800);
+
+    return () => clearTimeout(timeout);
+  }, [profileCopyFeedbackVisible]);
 
   useEffect(() => {
     if (
@@ -163,6 +180,15 @@ export default function HomeScreen() {
     setCopyFeedbackVisible(true);
   };
 
+  const handleCopyProfileLink = async () => {
+    if (!slotlymeProfileUrl) {
+      return;
+    }
+
+    await Clipboard.setStringAsync(slotlymeProfileUrl);
+    setProfileCopyFeedbackVisible(true);
+  };
+
   if (loading || dashboardLoading || ownerCalendarLoading) {
     return (
       <View style={[uiStyles.centeredLoading, { alignItems: 'center' }]}>
@@ -172,7 +198,7 @@ export default function HomeScreen() {
   }
 
   if (!user) {
-    return <Redirect href="/" />;
+    return null;
   }
 
   return (
@@ -317,7 +343,40 @@ export default function HomeScreen() {
         </Link>
       </View>
 
-      {user.email ? <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>{user.email}</Text> : null}
+      {user.email ? (
+        <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>{user.email}</Text>
+      ) : null}
+      {slotlymeProfileLabel ? (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: theme.spacing[12],
+            marginBottom: theme.spacing[12],
+          }}>
+          <Text
+            style={[
+              uiStyles.secondaryText,
+              {
+                flex: 1,
+                fontSize: 14,
+              },
+            ]}>
+            {slotlymeProfileLabel}
+          </Text>
+          <Pressable
+            onPress={() => void handleCopyProfileLink()}
+            accessibilityRole="button"
+            accessibilityLabel="Profil-Link kopieren">
+            <Feather
+              name={profileCopyFeedbackVisible ? 'check' : 'copy'}
+              size={16}
+              color={theme.colors.textSecondary}
+            />
+          </Pressable>
+        </View>
+      ) : null}
       {error ? <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>{error}</Text> : null}
 
       <Text style={uiStyles.linkText} onPress={handleLogout}>

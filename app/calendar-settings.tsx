@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Feather } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -155,7 +156,7 @@ export default function CalendarSettingsScreen() {
     <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
       <AppScreenHeader title="Kalender-Einstellungen" />
 
-        <View style={{ gap: theme.spacing[16] }}>
+        <View>
         {!calendar?.publicSlug ? (
           <View
             style={[
@@ -189,10 +190,7 @@ export default function CalendarSettingsScreen() {
               <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>
                 {t('settings.ownerEmail', { email: calendar.ownerEmail })}
               </Text>
-              <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[8] }]}>
-                Art des Kalenders
-              </Text>
-              <Text style={uiStyles.bodyText}>Standard</Text>
+              <Text style={uiStyles.bodyText}>Kalendertyp: privat</Text>
             </>
           ) : (
             <Text style={uiStyles.secondaryText}>{t('calendar.notAvailable')}</Text>
@@ -207,18 +205,34 @@ export default function CalendarSettingsScreen() {
 
         {calendar?.publicSlug ? (
           <View style={uiStyles.panel}>
-            <Text style={uiStyles.sectionTitle}>Slotlyme.ID</Text>
-            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>Kalender-ID</Text>
-            <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
-              {calendar.publicSlug}
-            </Text>
-            <Pressable
-              onPress={() => void handleCopyCalendarId()}
-              style={{ alignSelf: 'flex-start' }}>
-              <Text style={uiStyles.linkText}>
-                {copyFeedbackVisible ? 'Kopiert' : 'Kopieren'}
+            <Text style={uiStyles.sectionTitle}>Kalender-ID</Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: theme.spacing[12],
+              }}>
+              <Text
+                style={[
+                  uiStyles.bodyText,
+                  {
+                    flex: 1,
+                  },
+                ]}>
+                {calendar.publicSlug}
               </Text>
-            </Pressable>
+              <Pressable
+                onPress={() => void handleCopyCalendarId()}
+                accessibilityRole="button"
+                accessibilityLabel="Kalender-ID kopieren">
+                <Feather
+                  name={copyFeedbackVisible ? 'check' : 'copy'}
+                  size={16}
+                  color={theme.colors.textSecondary}
+                />
+              </Pressable>
+            </View>
           </View>
         ) : null}
 
@@ -258,6 +272,18 @@ export default function CalendarSettingsScreen() {
         ) : null}
 
         <View style={uiStyles.panel}>
+          <Text style={uiStyles.sectionTitle}>Freigaben</Text>
+          <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
+            Teile deinen Kalender mit anderen Personen und verwalte bestehende Zugriffe an einer Stelle.
+          </Text>
+          <Link href="/calendar-access" asChild>
+            <Pressable style={uiStyles.button}>
+              <Text style={uiStyles.buttonText}>Freigaben verwalten</Text>
+            </Pressable>
+          </Link>
+        </View>
+
+        <View style={uiStyles.panel}>
           <Text style={uiStyles.sectionTitle}>Benachrichtigungen</Text>
           {calendar ? (
             <>
@@ -292,18 +318,6 @@ export default function CalendarSettingsScreen() {
           ) : (
             <Text style={uiStyles.secondaryText}>{t('calendar.notAvailable')}</Text>
           )}
-        </View>
-
-        <View style={uiStyles.panel}>
-          <Text style={uiStyles.sectionTitle}>Freigaben</Text>
-          <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
-            Teile deinen Kalender mit anderen Personen und verwalte bestehende Zugriffe an einer Stelle.
-          </Text>
-          <Link href="/calendar-access" asChild>
-            <Pressable style={uiStyles.button}>
-              <Text style={uiStyles.buttonText}>Freigaben verwalten</Text>
-            </Pressable>
-          </Link>
         </View>
 
         <View style={uiStyles.panel}>
