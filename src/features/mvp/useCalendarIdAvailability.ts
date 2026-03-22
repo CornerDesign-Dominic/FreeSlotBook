@@ -18,7 +18,7 @@ export function useCalendarIdAvailability(
   value: string,
   currentCalendarId?: string | null
 ): AvailabilityState {
-  const normalizedValue = useMemo(() => value.trim().toLowerCase(), [value]);
+  const normalizedValue = useMemo(() => value.trim(), [value]);
   const [formatError, setFormatError] = useState<string | null>(null);
   const [availabilityMessage, setAvailabilityMessage] = useState<string | null>(null);
   const [isAvailable, setIsAvailable] = useState(false);

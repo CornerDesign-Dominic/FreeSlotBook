@@ -156,7 +156,7 @@ export default function CalendarSettingsScreen() {
       <AppScreenHeader title="Kalender-Einstellungen" />
 
         <View style={{ gap: theme.spacing[16] }}>
-        {canManagePublicCalendar && !calendar?.publicSlug ? (
+        {!calendar?.publicSlug ? (
           <View
             style={[
               uiStyles.panel,
@@ -205,7 +205,7 @@ export default function CalendarSettingsScreen() {
           ) : null}
         </View>
 
-        {canManagePublicCalendar && calendar?.publicSlug ? (
+        {calendar?.publicSlug ? (
           <View style={uiStyles.panel}>
             <Text style={uiStyles.sectionTitle}>Slotlyme.ID</Text>
             <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>Kalender-ID</Text>

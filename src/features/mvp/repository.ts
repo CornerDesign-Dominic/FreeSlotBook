@@ -256,7 +256,7 @@ function validateSlotlymeUserId(slotlymeId: string) {
 }
 
 function normalizePublicSlug(slug: string) {
-  return slug.trim().toLowerCase();
+  return slug.trim();
 }
 
 function validatePublicSlug(slug: string) {
@@ -271,7 +271,9 @@ function validatePublicSlug(slug: string) {
   }
 
   if (!/^[a-z0-9-]+$/.test(normalizedSlug)) {
-    throw new Error('Der Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten.');
+    throw new Error(
+      'Die Kalender-ID darf nur Kleinbuchstaben (a-z), Zahlen (0-9) und Bindestriche enthalten.'
+    );
   }
 
   if (reservedPublicSlugs.has(normalizedSlug)) {

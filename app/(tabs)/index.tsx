@@ -13,6 +13,7 @@ import {
   getInitialTimelineOffset,
 } from '../../src/features/dashboard/dashboard-timeline-utils';
 import { useDashboardData } from '../../src/features/mvp/useDashboardData';
+import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
 import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
 import { useParticipantAppointments } from '../../src/features/mvp/useParticipantAppointments';
 import { useAuth } from '../../src/firebase/useAuth';
@@ -28,14 +29,21 @@ export default function HomeScreen() {
   const { data, loading: dashboardLoading, error } = useDashboardData(
     user ? { uid: user.uid, email: user.email } : null
   );
-  const { slots, loading: slotsLoading, error: slotsError } = useOwnerSlots(data.ownerCalendar?.id ?? null);
+  const {
+    calendar: ownerCalendar,
+    loading: ownerCalendarLoading,
+  } = useOwnerCalendar(user ? { uid: user.uid, email: user.email } : null);
+  const activeOwnerCalendar = ownerCalendar ?? data.ownerCalendar;
+  const { slots, loading: slotsLoading, error: slotsError } = useOwnerSlots(
+    activeOwnerCalendar?.id ?? null
+  );
   const {
     appointments,
     loading: appointmentsLoading,
     error: appointmentsError,
   } = useParticipantAppointments(user?.email ?? null);
   const visibleJoinedCalendars = data.joinedCalendars.slice(0, 3);
-  const publicSlug = data.ownerCalendar?.publicSlug ?? null;
+  const publicSlug = activeOwnerCalendar?.publicSlug ?? null;
   const publicCalendarUrl = publicSlug ? `https://slotlyme.app/${publicSlug}` : null;
   const [timelineNow, setTimelineNow] = useState(() => new Date());
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
@@ -155,7 +163,7 @@ export default function HomeScreen() {
     setCopyFeedbackVisible(true);
   };
 
-  if (loading || dashboardLoading) {
+  if (loading || dashboardLoading || ownerCalendarLoading) {
     return (
       <View style={[uiStyles.centeredLoading, { alignItems: 'center' }]}>
         <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
