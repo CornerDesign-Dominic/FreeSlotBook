@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Feather } from '@expo/vector-icons';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import {
   approveCalendarAccessRequest,
@@ -145,6 +145,23 @@ export default function CalendarAccessScreen() {
     }
   };
 
+  const confirmRemoveAccess = (granteeEmail: string) => {
+    Alert.alert(
+      'Freigabe aufheben?',
+      'Der Nutzer verliert sofort den Zugriff auf diesen Kalender.',
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Freigabe aufheben',
+          style: 'destructive',
+          onPress: () => {
+            void handleRemoveAccess(granteeEmail);
+          },
+        },
+      ]
+    );
+  };
+
   if (authLoading || loading || accessLoading || requestsLoading) {
     return (
       <View style={uiStyles.centeredLoading}>
@@ -171,9 +188,13 @@ export default function CalendarAccessScreen() {
         <Pressable
           onPress={handleGrantAccess}
           disabled={submitting || !calendar}
-          style={[uiStyles.outlineAction, { opacity: submitting ? 0.6 : 1 }]}>
-          <Text style={uiStyles.buttonText}>
-            {submitting ? t('access.adding') : t('access.add')}
+          style={[
+            uiStyles.button,
+            uiStyles.buttonActive,
+            { opacity: submitting ? 0.6 : 1 },
+          ]}>
+          <Text style={[uiStyles.buttonText, { color: theme.colors.textPrimary, fontWeight: '600' }]}>
+            {submitting ? t('access.adding') : 'Nutzer freigeben'}
           </Text>
         </Pressable>
         {message ? <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>{message}</Text> : null}
@@ -186,7 +207,7 @@ export default function CalendarAccessScreen() {
         <Pressable
           onPress={() => setSharedPeopleExpanded((currentValue) => !currentValue)}
           style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={uiStyles.sectionTitle}>{`Freigegebene Personen (${accessRecords.length})`}</Text>
+          <Text style={uiStyles.sectionTitle}>{`Freigabeliste (${accessRecords.length})`}</Text>
           <Feather
             name={sharedPeopleExpanded ? 'chevron-up' : 'chevron-down'}
             size={18}
@@ -195,27 +216,27 @@ export default function CalendarAccessScreen() {
         </Pressable>
         {sharedPeopleExpanded ? (
           accessRecords.length ? (
-            accessRecords.map((record) => (
-              <View key={record.id} style={uiStyles.listItem}>
-                <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4] }]}>{record.granteeEmail}</Text>
-                {record.phoneNumber ? (
-                  <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[4] }]}>
-                    {t('common.phone')}: {record.phoneNumber}
-                  </Text>
-                ) : null}
-                <Text style={uiStyles.secondaryText}>
-                  {t('common.status')}: {record.status === 'approved' ? t('access.statusApproved') : t('access.statusRevoked')}
-                </Text>
+          accessRecords.map((record) => (
+            <View key={record.id} style={uiStyles.listItem}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: theme.spacing[12],
+                }}>
+                <Text style={[uiStyles.bodyText, { flex: 1 }]}>{record.granteeEmail}</Text>
                 <Pressable
-                  onPress={() => handleRemoveAccess(record.granteeEmail)}
+                  onPress={() => confirmRemoveAccess(record.granteeEmail)}
                   disabled={processingEmail === record.granteeEmail}
-                  style={{ marginTop: 8, alignSelf: 'flex-start' }}>
-                  <Text style={uiStyles.linkText}>
-                    {processingEmail === record.granteeEmail ? t('access.removing') : t('access.remove')}
-                  </Text>
+                  accessibilityRole="button"
+                  accessibilityLabel="Freigabe aufheben"
+                  style={{ opacity: processingEmail === record.granteeEmail ? 0.45 : 1 }}>
+                  <Feather name="trash-2" size={18} color={theme.colors.textSecondary} />
                 </Pressable>
               </View>
-            ))
+            </View>
+          ))
           ) : (
             <Text style={uiStyles.secondaryText}>{t('access.peopleEmpty')}</Text>
           )
