@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Feather } from '@expo/vector-icons';
-import { Link, router } from 'expo-router';
+import { Link, Redirect, router } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -45,7 +45,10 @@ export default function HomeScreen() {
   const visibleJoinedCalendars = data.joinedCalendars.slice(0, 3);
   const publicSlug = activeOwnerCalendar?.publicSlug ?? null;
   const publicCalendarUrl = publicSlug ? `https://slotlyme.app/${publicSlug}` : null;
-  const slotlymeUserId = data.ownerProfile?.slotlymeId ?? null;
+  const slotlymeUserId =
+    typeof data.ownerProfile?.slotlymeId === 'string' && data.ownerProfile.slotlymeId.trim()
+      ? data.ownerProfile.slotlymeId.trim()
+      : null;
   const slotlymeProfileLabel = slotlymeUserId ? `slotlyme.app/${slotlymeUserId}` : null;
   const slotlymeProfileUrl = slotlymeUserId ? `https://slotlyme.app/${slotlymeUserId}` : null;
   const [timelineNow, setTimelineNow] = useState(() => new Date());
@@ -189,7 +192,7 @@ export default function HomeScreen() {
     setProfileCopyFeedbackVisible(true);
   };
 
-  if (loading || dashboardLoading || ownerCalendarLoading) {
+  if (loading || dashboardLoading) {
     return (
       <View style={[uiStyles.centeredLoading, { alignItems: 'center' }]}>
         <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
@@ -198,7 +201,7 @@ export default function HomeScreen() {
   }
 
   if (!user) {
-    return null;
+    return <Redirect href="/" />;
   }
 
   return (
@@ -346,7 +349,7 @@ export default function HomeScreen() {
       {user.email ? (
         <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>{user.email}</Text>
       ) : null}
-      {slotlymeProfileLabel ? (
+      {!ownerCalendarLoading && slotlymeProfileLabel ? (
         <View
           style={{
             flexDirection: 'row',
