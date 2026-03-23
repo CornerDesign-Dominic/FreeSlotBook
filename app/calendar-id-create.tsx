@@ -21,6 +21,7 @@ export default function CalendarIdCreateScreen() {
   const [calendarIdInput, setCalendarIdInput] = useState(calendar?.publicSlug ?? '');
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const hasFixedCalendarSlug = Boolean(calendar?.publicSlug);
 
   const availability = useCalendarIdAvailability(calendarIdInput, calendar?.id ?? null);
 
@@ -36,10 +37,18 @@ export default function CalendarIdCreateScreen() {
     () =>
       Boolean(calendar?.id) &&
       Boolean(calendar?.ownerId) &&
+      !hasFixedCalendarSlug &&
       availability.isValid &&
       availability.isAvailable &&
       !availability.isChecking,
-    [availability.isAvailable, availability.isChecking, availability.isValid, calendar?.id, calendar?.ownerId]
+    [
+      availability.isAvailable,
+      availability.isChecking,
+      availability.isValid,
+      calendar?.id,
+      calendar?.ownerId,
+      hasFixedCalendarSlug,
+    ]
   );
   const canSave = showSaveButton && !isSaving;
 
@@ -82,20 +91,37 @@ export default function CalendarIdCreateScreen() {
 
       <View style={{ gap: theme.spacing[16] }}>
         <View style={uiStyles.panel}>
+          {hasFixedCalendarSlug ? (
+            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>
+              Fuer diesen Kalender ist bereits ein fester Kalender-Link hinterlegt.
+            </Text>
+          ) : null}
           <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>
             Kalender-ID
           </Text>
           <TextInput
             value={calendarIdInput}
             onChangeText={setCalendarIdInput}
+            editable={!hasFixedCalendarSlug}
             autoCapitalize="none"
             autoCorrect={false}
             placeholder="slotlyme.app/calendar/dein-link"
             placeholderTextColor={theme.colors.textSecondary}
-            style={[uiStyles.input, { marginBottom: theme.spacing[8] }]}
+            style={[
+              uiStyles.input,
+              { marginBottom: theme.spacing[8], opacity: hasFixedCalendarSlug ? 0.6 : 1 },
+            ]}
           />
 
-          {availability.formatError ? (
+          {hasFixedCalendarSlug ? (
+            <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[8] }]}>
+              Dein aktueller Kalender-Link lautet
+              {' '}
+              {`https://slotlyme.app/calendar/${calendar?.publicSlug}`}.
+              {' '}
+              Der Slug ist aktuell fix und kann nicht neu vergeben werden.
+            </Text>
+          ) : availability.formatError ? (
             <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[8] }]}>
               {availability.formatError}
             </Text>

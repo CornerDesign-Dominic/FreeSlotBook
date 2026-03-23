@@ -19,6 +19,11 @@ import type {
   DashboardData,
 } from './types';
 import {
+  normalizeExistingCalendarSlug,
+  normalizeExistingUsername,
+  resolveStableCalendarSlug,
+} from './calendar-slug-policy';
+import {
   calendarAccessCollection,
   calendarDoc,
   calendarSlugDoc,
@@ -268,13 +273,29 @@ export async function ensureOwnerAccountSetup(params: {
         throw new Error('Der Standard-Kalender-Link ist bereits vergeben.');
       }
 
+      const existingUsername = normalizeExistingUsername(
+        userSnapshot.exists() ? userSnapshot.data().username : null
+      );
+      const nextUsername = normalizedUsername || existingUsername || null;
+      const existingCalendarSlug = normalizeExistingCalendarSlug(
+        calendarSnapshot.exists() ? calendarSnapshot.data().calendarSlug : null
+      );
+      const nextCalendarSlug = resolveStableCalendarSlug({
+        currentCalendarSlug: existingCalendarSlug,
+        requestedCalendarSlug: normalizedUsername || null,
+      });
+      const existingOwnerUsername =
+        calendarSnapshot.exists() && typeof calendarSnapshot.data().ownerUsername === 'string'
+          ? calendarSnapshot.data().ownerUsername
+          : null;
+
       transaction.set(
         userDoc(params.uid),
         {
           uid: params.uid,
           email: trimmedEmail,
           emailKey,
-          username: normalizedUsername || null,
+          username: nextUsername,
           subscriptionTier:
             userSnapshot.exists() && userSnapshot.data().subscriptionTier === 'pro' ? 'pro' : 'free',
           defaultCalendarId: calendarId,
@@ -331,13 +352,13 @@ export async function ensureOwnerAccountSetup(params: {
           calendarId,
           ownerUid: params.uid,
           ownerEmail: trimmedEmail,
-          ownerUsername: normalizedUsername || null,
+          ownerUsername: nextUsername ?? existingOwnerUsername,
           title:
             calendarSnapshot.exists() && typeof calendarSnapshot.data().title === 'string'
               ? calendarSnapshot.data().title
               : 'Mein Kalender',
           visibility: calendarSnapshot.exists() ? calendarSnapshot.data().visibility ?? 'private' : 'private',
-          calendarSlug: calendarSlug || null,
+          calendarSlug: nextCalendarSlug,
           description:
             calendarSnapshot.exists() && typeof calendarSnapshot.data().description === 'string'
               ? calendarSnapshot.data().description
@@ -361,7 +382,7 @@ export async function ensureOwnerAccountSetup(params: {
           uid: params.uid,
           role: 'owner',
           email: trimmedEmail,
-          username: normalizedUsername || null,
+          username: nextUsername,
           addedAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         },
@@ -654,7 +675,7 @@ export async function updateCalendarVisibility(params: {
   visibility: CalendarRecord['visibility'];
   publicSlug: string;
 }) {
-  const normalizedSlug = validatePublicSlug(params.publicSlug);
+  const normalizedSlug = params.publicSlug.trim() ? validatePublicSlug(params.publicSlug) : '';
 
   if (params.visibility === 'public' && !normalizedSlug) {
     throw new Error('Bitte hinterlege zuerst einen gueltigen Kalender-Link.');
@@ -670,7 +691,10 @@ export async function updateCalendarVisibility(params: {
 
     const calendar = mapCalendar(calendarSnapshot.id, calendarSnapshot.data() as Record<string, unknown>);
     const currentSlug = calendar.calendarSlug ? normalizeSlug(calendar.calendarSlug) : '';
-    const nextSlug = normalizedSlug;
+    const nextSlug = resolveStableCalendarSlug({
+      currentCalendarSlug: currentSlug,
+      requestedCalendarSlug: normalizedSlug || null,
+    });
 
     if (nextSlug) {
       const slugRef = calendarSlugDoc(nextSlug);
@@ -696,16 +720,12 @@ export async function updateCalendarVisibility(params: {
       );
     }
 
-    if (currentSlug && currentSlug !== nextSlug) {
-      transaction.delete(calendarSlugDoc(currentSlug));
-    }
-
     transaction.set(
       calendarRef,
       {
         ownerUid: params.ownerId,
         visibility: params.visibility,
-        calendarSlug: nextSlug || null,
+        calendarSlug: nextSlug,
         updatedAt: serverTimestamp(),
       },
       { merge: true }

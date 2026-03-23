@@ -206,6 +206,9 @@ export default function CalendarSettingsScreen() {
         {calendar?.publicSlug ? (
           <View style={uiStyles.panel}>
             <Text style={uiStyles.sectionTitle}>Kalender-ID</Text>
+            <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
+              Dieser Kalender-Link ist bereits fest vergeben und kann aktuell nicht geaendert werden.
+            </Text>
             <View
               style={{
                 flexDirection: 'row',
@@ -220,7 +223,7 @@ export default function CalendarSettingsScreen() {
                     flex: 1,
                   },
                 ]}>
-                {calendar.publicSlug}
+                https://slotlyme.app/calendar/{calendar.publicSlug}
               </Text>
               <Pressable
                 onPress={() => void handleCopyCalendarId()}
