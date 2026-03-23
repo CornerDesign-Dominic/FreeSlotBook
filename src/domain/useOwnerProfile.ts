@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { ensureOwnerAccountSetup, getOwnerProfile } from './repository';
+import { getProfileLoadErrorMessage } from './repository-shared';
 import type { OwnerProfile } from './types';
 
 export function useOwnerProfile(user: { uid: string; email: string | null } | null) {
@@ -42,9 +43,7 @@ export function useOwnerProfile(user: { uid: string; email: string | null } | nu
         }
 
         setError(
-          nextError instanceof Error
-            ? nextError.message
-            : 'Das Profil konnte nicht geladen werden.'
+          getProfileLoadErrorMessage(nextError)
         );
         setLoading(false);
       }

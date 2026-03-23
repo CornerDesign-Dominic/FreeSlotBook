@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { subscribeToParticipantAppointments } from './repository';
+import { getAppointmentLoadErrorMessage } from './repository-shared';
 import type { AppointmentRecord } from './types';
 
 export function useParticipantAppointments(participant: { uid?: string | null; email?: string | null } | string | null) {
@@ -28,7 +29,7 @@ export function useParticipantAppointments(participant: { uid?: string | null; e
         setLoading(false);
       },
       (nextError) => {
-        setError(nextError.message);
+        setError(getAppointmentLoadErrorMessage(nextError));
         setLoading(false);
       }
     );

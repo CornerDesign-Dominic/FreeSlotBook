@@ -13,6 +13,7 @@ import {
 } from '../../../src/features/dashboard/dashboard-timeline-utils';
 import { useDashboardData } from '../../../src/domain/useDashboardData';
 import { useOwnerCalendar } from '../../../src/domain/useOwnerCalendar';
+import { useOwnerProfile } from '../../../src/domain/useOwnerProfile';
 import { useOwnerSlots } from '../../../src/domain/useOwnerSlots';
 import { useAppointmentCalendar } from '../../../src/domain/useAppointmentCalendar';
 import { useAuth } from '../../../src/firebase/useAuth';
@@ -35,8 +36,8 @@ export default function HomeScreen() {
   const { data, loading: dashboardLoading, error } = useDashboardData(authUser);
   const {
     calendar: ownerCalendar,
-    loading: ownerCalendarLoading,
   } = useOwnerCalendar(authUser);
+  const { profile: ownerProfile } = useOwnerProfile(authUser);
   const activeOwnerCalendar = ownerCalendar ?? data.ownerCalendar;
   const { slots, loading: slotsLoading, error: slotsError } = useOwnerSlots(
     activeOwnerCalendar?.id ?? null
@@ -49,12 +50,14 @@ export default function HomeScreen() {
   const visibleJoinedCalendars = data.joinedCalendars.slice(0, 3);
   const publicSlug = activeOwnerCalendar?.publicSlug ?? null;
   const publicCalendarUrl = publicSlug ? `https://slotlyme.app/calendar/${publicSlug}` : null;
-  const slotlymeUserId =
-    typeof data.ownerProfile?.slotlymeId === 'string' && data.ownerProfile.slotlymeId.trim()
-      ? data.ownerProfile.slotlymeId.trim()
-      : null;
-  const slotlymeProfileLabel = slotlymeUserId ? `slotlyme.app/user/${slotlymeUserId}` : null;
-  const slotlymeProfileUrl = slotlymeUserId ? `https://slotlyme.app/user/${slotlymeUserId}` : null;
+  const profileIdentifier =
+    typeof ownerProfile?.slotlymeId === 'string' && ownerProfile.slotlymeId.trim()
+      ? ownerProfile.slotlymeId.trim()
+      : typeof ownerProfile?.username === 'string' && ownerProfile.username.trim()
+        ? ownerProfile.username.trim()
+        : userUid;
+  const profileIdentifierLabel =
+    profileIdentifier === userUid ? 'User ID' : 'Slotlyme ID';
   const [timelineNow, setTimelineNow] = useState(() => new Date());
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
   const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
@@ -183,12 +186,12 @@ export default function HomeScreen() {
     setCopyFeedbackVisible(true);
   };
 
-  const handleCopyProfileLink = async () => {
-    if (!slotlymeProfileUrl) {
+  const handleCopyProfileIdentifier = async () => {
+    if (!profileIdentifier) {
       return;
     }
 
-    await Clipboard.setStringAsync(slotlymeProfileUrl);
+    await Clipboard.setStringAsync(profileIdentifier);
     setProfileCopyFeedbackVisible(true);
   };
 
@@ -354,7 +357,7 @@ export default function HomeScreen() {
       {user.email ? (
         <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>{user.email}</Text>
       ) : null}
-      {!ownerCalendarLoading && slotlymeProfileLabel ? (
+      {profileIdentifier ? (
         <View
           style={{
             flexDirection: 'row',
@@ -371,12 +374,12 @@ export default function HomeScreen() {
                 fontSize: 14,
               },
             ]}>
-            {slotlymeProfileLabel}
+            {`${profileIdentifierLabel}: ${profileIdentifier}`}
           </Text>
           <Pressable
-            onPress={() => void handleCopyProfileLink()}
+            onPress={() => void handleCopyProfileIdentifier()}
             accessibilityRole="button"
-            accessibilityLabel="Profil-Link kopieren">
+            accessibilityLabel="Profil-ID kopieren">
             <Feather
               name={profileCopyFeedbackVisible ? 'check' : 'copy'}
               size={16}
@@ -385,7 +388,11 @@ export default function HomeScreen() {
           </Pressable>
         </View>
       ) : null}
-      {error ? <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>{error}</Text> : null}
+      {error ? (
+        <View style={[uiStyles.subtlePanel, { marginBottom: theme.spacing[12] }]}>
+          <Text style={uiStyles.secondaryText}>{error}</Text>
+        </View>
+      ) : null}
 
       <Pressable
         onPress={() => {

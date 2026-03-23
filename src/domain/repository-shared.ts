@@ -79,6 +79,22 @@ export function getDashboardLoadErrorMessage(error: unknown) {
   return getFirestoreErrorMessage(error) ?? 'Das Dashboard konnte nicht geladen werden.';
 }
 
+export function getAppointmentLoadErrorMessage(error: unknown) {
+  if (isMissingFirestoreIndexError(error)) {
+    return 'Der Termin-Kalender ist gerade nicht verfuegbar.';
+  }
+
+  return getFirestoreErrorMessage(error) ?? 'Termine konnten nicht geladen werden.';
+}
+
+export function getProfileLoadErrorMessage(error: unknown) {
+  if (isMissingFirestoreIndexError(error)) {
+    return 'Das Profil konnte gerade nicht vollstaendig geladen werden.';
+  }
+
+  return getFirestoreErrorMessage(error) ?? 'Das Profil konnte nicht geladen werden.';
+}
+
 export function asDate(value: unknown): Date | null {
   return value instanceof Timestamp ? value.toDate() : null;
 }

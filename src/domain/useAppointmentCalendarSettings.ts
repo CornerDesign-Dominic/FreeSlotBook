@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { subscribeToAppointmentCalendarSettings, updateAppointmentCalendarSettings } from './repository';
+import { getAppointmentLoadErrorMessage } from './repository-shared';
 import type { AppointmentCalendarSettings } from './types';
 
 const defaultSettings: AppointmentCalendarSettings = {
@@ -30,7 +31,7 @@ export function useAppointmentCalendarSettings(uid: string | null) {
         setLoading(false);
       },
       (nextError) => {
-        setError(nextError.message);
+        setError(getAppointmentLoadErrorMessage(nextError));
         setLoading(false);
       }
     );

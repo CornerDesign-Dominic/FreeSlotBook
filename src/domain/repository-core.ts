@@ -599,23 +599,40 @@ export async function getDashboardData(params: { uid: string; email: string }) {
   await ensureOwnerAccountSetup(params);
 
   try {
-    const ownerProfileSnapshot = await getOwnerProfile(params.uid);
-    const ownerCalendarId = ownerProfileSnapshot?.defaultCalendarId ?? params.uid;
-    const [ownerProfile, ownerCalendar, joinedCalendars, upcomingAppointments, recentNotifications] =
-      await Promise.all([
-        Promise.resolve(ownerProfileSnapshot),
+    const ownerProfileResult = await getOwnerProfile(params.uid);
+    const ownerCalendarId = ownerProfileResult?.defaultCalendarId ?? params.uid;
+    const [ownerCalendarResult, joinedCalendarsResult, upcomingAppointmentsResult, recentNotificationsResult] =
+      await Promise.allSettled([
         getOwnerCalendar(ownerCalendarId),
         listJoinedCalendars(params.uid),
         listUpcomingAppointmentsForParticipant(params),
         listRecentNotificationsForRecipient(params),
       ]);
 
+    if (ownerCalendarResult.status === 'rejected') {
+      console.warn('Dashboard owner calendar could not be loaded.', ownerCalendarResult.reason);
+    }
+
+    if (joinedCalendarsResult.status === 'rejected') {
+      console.warn('Dashboard joined calendars could not be loaded.', joinedCalendarsResult.reason);
+    }
+
+    if (upcomingAppointmentsResult.status === 'rejected') {
+      console.warn('Dashboard upcoming appointments could not be loaded.', upcomingAppointmentsResult.reason);
+    }
+
+    if (recentNotificationsResult.status === 'rejected') {
+      console.warn('Dashboard notifications could not be loaded.', recentNotificationsResult.reason);
+    }
+
     return {
-      ownerProfile,
-      ownerCalendar,
-      joinedCalendars,
-      upcomingAppointments,
-      recentNotifications,
+      ownerProfile: ownerProfileResult,
+      ownerCalendar: ownerCalendarResult.status === 'fulfilled' ? ownerCalendarResult.value : null,
+      joinedCalendars: joinedCalendarsResult.status === 'fulfilled' ? joinedCalendarsResult.value : [],
+      upcomingAppointments:
+        upcomingAppointmentsResult.status === 'fulfilled' ? upcomingAppointmentsResult.value : [],
+      recentNotifications:
+        recentNotificationsResult.status === 'fulfilled' ? recentNotificationsResult.value : [],
     } satisfies DashboardData;
   } catch (error) {
     throw new Error(getDashboardLoadErrorMessage(error));
