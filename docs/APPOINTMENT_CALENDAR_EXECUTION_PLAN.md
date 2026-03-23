@@ -1,688 +1,265 @@
-# APPOINTMENT CALENDAR EXECUTION PLAN
-Slotly 1.0 – Termin-Kalender Umsetzung
+# Appointment Calendar Execution Plan
 
-Status: REQUIRED IMPLEMENTATION PLAN  
-Audience: Codex / implementation agent  
-Goal: Implement the Slotly appointment calendar on top of the current Slotly 1.0 architecture in a clean, testable, incremental way.
+This document defines the final execution scope for the Slotly 1.0 appointment calendar feature before implementation begins. Read it when you need the binding product rules, view behavior, and implementation boundaries for the appointment calendar. It is an execution document, not a brainstorming file and not a migration note.
 
-This file is an execution document, not a brainstorming note.
+Contents:
+- Feature goal and scope
+- Binding user-facing behavior
+- Settings and filtering rules
+- Overlap and day-boundary logic
+- Implementation order and validation
 
-The appointment calendar already exists conceptually in the product and is partially present in the codebase.  
-It must now be completed and aligned as a stable user-facing feature.
+## 1. Feature Goal
 
-The implementation must fit the existing Slotly 1.0 structure and must not trigger a new architecture refactor.
+The appointment calendar is the personal calendar view of appointments where the current user is the participant.
 
----
+It is:
 
-# 1. FEATURE GOAL
+- not a slot calendar
+- not a public calendar
+- not a booking authority
+- not an action-heavy management screen
 
-The appointment calendar is the personal calendar view of the user’s booked appointments in other calendars.
+It is a read-focused personal aggregation layer that reuses the existing Slotly 1.0 calendar UI patterns.
 
-It is not a bookable calendar.
-It is not a slot calendar.
-It is not a public calendar.
-
-It is a read-focused personal aggregation layer for appointments where the current user is the participant.
+## 2. Scope And Core Direction
 
 The appointment calendar must:
 
-- show the user’s booked appointments
+- load appointments where the current user is the participant
+- reuse the existing time-axis and calendar structures already present in Slotly
 - support dashboard, month, week, and day views
-- remain mostly read-only for the initial version
-- optionally support cancellation later
-- keep cancelled appointments out of the main timeline
-- show cancelled appointments only in day view history
-- support simple visibility preferences per source calendar
+- stay read-only in this phase
+- support source-calendar visibility settings
+- keep cancelled appointments out of the main calendar surfaces
 
----
+The appointment calendar must not introduce a new architecture or a separate booking system.
 
-# 2. EXISTING PRODUCT DIRECTION
+## 3. Binding Product Decisions
 
-This execution must follow the already agreed product logic.
+The following decisions are final for this execution:
 
-## 2.1 Main concept
+- existing time axes in dashboard, month, week, and day views must be reused
+- month view shows the appointment count per day, capped visually at `99+`
+- day view shows active appointments in the main timeline
+- day view shows cancelled appointments only in a separate Storno card
+- the Storno card is collapsed by default
+- the Storno card header shows the cancelled appointment count
+- cancelled appointments appear only in the Storno card
+- settings are reachable from the dashboard
+- settings only control visibility of connected source calendars
+- there is no setting for cancelled appointments
+- there are no collision warnings
+- there is no collision protection
+- there are no actions inside the appointment calendar views
+- overlapping appointments are vertically stacked because the time axis is horizontal
+- the maximum visible overlap depth is 3 rows, after that overflow is used
+- day-boundary logic must be canonical and reused consistently across all views
 
-The appointment calendar shows:
+## 4. Data Source
 
-- all appointments booked by the current user
-- across connected / source calendars
-- in calendar-like views similar to the slot calendar
+The appointment calendar is built from existing appointment records.
 
-## 2.2 Initial scope
-
-For the first implementation phase, the scope is intentionally simple:
-
-1. fetch appointments booked by the current user
-2. display them in:
-   - dashboard timeline
-   - month view
-   - week view
-   - day view
-3. keep the feature read-only in normal calendar views
-4. support basic settings:
-   - show / hide cancelled appointments
-   - show / hide appointments from selected source calendars
-
-## 2.3 Out of scope for now
-
-The following are not required in this first pass unless already trivial to support:
-
-- full editing of appointments
-- drag and drop
-- hard global collision blocking
-- changing foreign calendar bookings directly from all views
-- advanced conflict management
-- public exposure of appointment calendar
-
-Optional later:
-- cancellation from day view
-- cancellation request flow
-- conflict hint settings per source calendar
-
----
-
-# 3. SOURCE OF TRUTH FOR DATA
-
-The appointment calendar must be built from existing appointment records.
-
-Primary data source:
+Primary matching rule:
 
 ```text
-appointments
-
-The implementation must load appointments where the current user is the participant.
-
-Canonical matching:
-
 participantUid == currentUser.uid
+```
 
-Additional compatibility path:
+Compatibility path:
 
+```text
 participantEmailKey == currentUser.emailKey
+```
 
-This compatibility path remains valid while guest / email booking flows still exist.
+This compatibility path remains valid while guest and email-based booking continuity still exists in the product.
 
-Initial visible appointment statuses in main calendar views:
+## 5. Read-Only Rule
 
-booked
+The appointment calendar is read-only in this execution phase.
 
-Cancelled appointments must not appear in the main timeline by default.
-
-4. FINAL USER-FACING BEHAVIOR
-4.1 Dashboard
-
-The dashboard appointment calendar remains a horizontal timeline with:
-
-12 hours backward
-12 hours forward
-
-Goal:
-
-quick visual overview of nearby appointments
-
-## 4.2 Month view
-
-The month calendar view already exists and must reuse the existing calendar grid and navigation.
-
-The appointment calendar must not introduce a new calendar implementation.
-Instead it must attach appointment indicators to the existing month structure.
-
-### Appointment count display
-
-Each day cell must display the number of visible appointments on that day.
-
-The number must appear as a small numeric indicator inside the date cell.
-
-Rules:
-
-- If appointments ≤ 99 → show the number directly
-- If appointments > 99 → show `99+`
-
-Examples:
-
-1 appointment:
-1
-
-12 appointments:
-12
-
-124 appointments:
-99+
-
-### Counting logic
-
-The number represents:
-
-- active visible appointments
-- where the user is the participant
-
-Cancelled appointments must **not** be counted here.
-
-### Navigation
-
-Tapping a day must open the existing **day view** for that date.
-
-No actions must be triggered from the month view itself.
-This view is purely informational.
-
-4.3 Week view
-
-The week calendar must show visible appointments from Monday to Sunday.
-
-The week view should use the same overall visual language as the slot calendar, but for appointments.
-
-## 4.4 Day view
-
-The day view must reuse the existing horizontal time axis already used in the application.
-
-This view must contain three visual sections:
-
-1. Appointment timeline (active appointments)
-2. Storno card (cancelled appointments)
-3. Optional future sections (not implemented yet)
-
-### 1. Appointment timeline
-
-The timeline shows **active appointments only**.
-
-Appointments must appear according to their:
-
-start time  
-end time  
-
-Cancelled appointments must **never appear in the main timeline**.
-
-### Overlapping appointments
-
-Because the timeline is horizontal, overlapping appointments must stack vertically.
-
-Rules:
-
-- overlapping appointments create additional vertical rows
-- maximum visible rows: 3
-- if more than 3 appointments overlap, the third row must contain an overflow indicator
-
-Example:
-
-Appointment A  
-Appointment B  
-+4 more
-
-Selecting the overflow block should open or focus the day view list if applicable.
-
-### 2. Storno card
-
-Cancelled appointments are displayed in a **separate card** below the timeline.
-
-This card is completely separate from the active appointment timeline.
-
-Card behavior:
-
-- default state: **collapsed**
-- header displays the number of cancelled appointments
-
-Example:
-
-Stornos (4)
-
-When expanded, the card must show every cancelled appointment affecting that day.
-
-### Inclusion rule
-
-An appointment must appear in the Storno card if:
-
-- its start time OR end time lies within the selected day
-
-This ensures long appointments crossing midnight are still visible.
-
-### Storno card display
-
-Each item should show:
-
-- start time
-- end time
-- source calendar
-
-Multiple cancelled appointments with identical times are allowed and must all be displayed.
-
-This card represents the **historical record for that day**.
-
-
-5. CANCELLED APPOINTMENTS RULE
-
-Cancelled appointments must not be rendered as normal items in the main dashboard / week / day timeline.
-
-Reason:
-
-they create confusing visual overlap
-repeated bookings and cancellations at the same timeslot become unreadable
-old cancelled durations may visually extend beyond the active appointment
-
-Instead:
-
-5.1 Timeline behavior
-
-Main appointment timeline shows only active visible appointments.
-
-5.2 Day history behavior
-
-Cancelled appointments for the selected day appear in a separate day card.
-
-Suggested section title for now:
-
-History
-
-or
-
-Cancelled appointments
-
-Final wording can still be adjusted later.
-
-This section is allowed to show multiple cancelled appointments with identical times.
-
-That is acceptable and intentional.
-
-6. APPOINTMENT OVERLAP / VISUAL STACKING
-
-The appointment timeline in Slotly is horizontally time-based.
-
-Therefore overlapping appointments must be stacked vertically.
-
-This applies to:
-
-dashboard timeline
-week view
-day view
-6.1 Rule
-
-If two or more active visible appointments overlap in time, they must be shown in separate vertical rows.
-
-6.2 Maximum visible stacked rows
-
-Maximum visible overlap rows:
-
-3
-6.3 Overflow behavior
-
-If more than 3 active appointments overlap in the same time segment:
-
-show max 3 rows visually
-use the last visible row as an overflow representation if necessary
-show a compact block like:
-+X more
-
-where X is the number of additional overlapping appointments not directly visible
-
-Tapping the overflow should navigate to or reveal the day detail view.
-
-6.4 Important rule
-
-This stacking logic applies only to active visible appointments.
-
-Cancelled appointments are excluded from the main overlap layout.
-
-# 7. APPOINTMENT CALENDAR SETTINGS
-
-The appointment calendar has its own settings screen.
-
-The settings screen must be accessible from the **appointment calendar card in the dashboard**, similar to how slot calendar settings are accessed.
-
-The settings button must appear inside the dashboard card.
-
-### Current settings scope
-
-For the current implementation only **one setting type is required**:
-
-Source calendar visibility.
-
-Users must be able to choose which connected calendars should appear inside their appointment calendar.
-
-### Data model
-
-Suggested structure:
-
-users/{uid}/settings/appointmentCalendar
-
-Fields:
-
-hiddenCalendarIds: string[]
-
-### Behavior
-
-If a calendarId exists in hiddenCalendarIds:
-
-- appointments from that calendar must not appear in the appointment calendar views.
-
-This filtering applies to:
-
-- dashboard timeline
-- month view
-- week view
-- day view
-
-### Important rule
-
-Cancelled appointments must **not be configurable** in settings.
-
-Cancelled appointments are **always hidden** from normal calendar views.
-
-They only appear inside the **Storno card in the day view**.
-
-7.1 Suggested storage location
-
-Use a user-scoped settings document, for example:
-
-users/{uid}/settings/appointmentCalendar
-
-If the repo already uses another canonical user settings structure, use that structure instead, but keep the semantics identical.
-
-7.2 Initial settings fields
-
-Suggested initial shape:
-
-hiddenCalendarIds: string[]
-showCancelledAppointments: boolean
-showPastAppointments: boolean
-
-Optional later:
-
-showConflictHints: boolean
-7.3 Semantics
-hiddenCalendarIds
-source calendars whose appointments should be hidden from this user’s appointment calendar view
-showCancelledAppointments
-controls whether cancelled appointments are visible in the day history card
-does not mean “render cancelled in the main timeline”
-showPastAppointments
-controls whether past appointments should be shown in some views where relevant
-8. FILTERING LOGIC
-
-The appointment calendar must be built in two steps:
-
-Step 1
-
-Load the raw appointments relevant to the user.
-
-Step 2
-
-Apply user preference filtering.
-
-Filtering rules should include:
-
-remove appointments from hidden source calendars
-remove cancelled appointments from main timeline
-optionally hide past appointments depending on settings and view
-
-The source appointment data must remain unchanged.
-Only the user-facing appointment calendar view changes.
-
-# 9. COLLISION LOGIC
-
-The appointment calendar must not implement collision detection or booking restrictions.
-
-There must be:
-
-- no collision blocking
-- no collision warnings
-- no visual conflict indicators
-
-Appointments from different calendars are allowed to overlap freely.
-
-The appointment calendar is a **read-only personal overview**, not a global scheduling authority.
-
-Any future collision logic must be implemented separately and is explicitly out of scope for this implementation.
-
-# 10. USER ACTIONS
-
-The appointment calendar is currently a **read-only feature**.
-
-Users must not be able to perform actions from the following views:
-
-- dashboard timeline
-- month view
-- week view
-- day view timeline
-
-Specifically:
-
-Users cannot:
+Users must not be able to:
 
 - edit appointments
 - cancel appointments
 - send cancellation requests
 - modify foreign calendar bookings
+- trigger booking-side actions from dashboard, month, week, or day views
 
-These capabilities may be introduced later.
+Any future action model must be specified separately and is out of scope here.
 
-For the current implementation the appointment calendar only displays information.
+## 6. View Behavior
 
-Future cancellation logic will be implemented separately and is intentionally excluded from this execution plan.
+### 6.1 Dashboard
 
+The dashboard appointment calendar remains a horizontal timeline around the current time.
 
-10.1 Types
+Range:
 
-Extend src/domain/types.ts with a type for appointment calendar settings.
+- 12 hours backward
+- 12 hours forward
 
-Suggested type:
+Purpose:
 
-export interface AppointmentCalendarSettings {
-  hiddenCalendarIds: string[];
-  showCancelledAppointments: boolean;
-  showPastAppointments: boolean;
-}
-10.2 Repository / domain layer
+- quick visual overview of nearby active appointments
 
-Add or extend repository/domain functions for:
+The dashboard shows only active, visible appointments.
+Cancelled appointments do not appear there.
 
-reading appointment calendar settings
-subscribing to appointment calendar settings
-updating appointment calendar settings
+### 6.2 Month View
 
-These should live in the existing domain/repository structure, not directly inside screens.
+The month view must reuse the existing month grid and navigation.
+It must not introduce a second calendar implementation.
 
-10.3 Hooks
+Each day cell shows the count of visible active appointments for that day.
 
-Create or extend hooks so that appointment calendar screens do not manually assemble too much logic.
+Count display rules:
 
-Suggested pattern:
+- if count is `0`, show no appointment count indicator
+- if count is `1` to `99`, show the number directly
+- if count is greater than `99`, show `99+`
 
-one hook for raw participant appointments if already present
-one hook for appointment calendar state / filtering / settings / derived display model
+Cancelled appointments must not be counted.
 
-Possible examples:
+Tapping a day opens the existing day view for that date.
+The month view is informational only and does not expose actions.
 
-useParticipantAppointments(...)
-useAppointmentCalendar(...)
-useAppointmentCalendarSettings(...)
+### 6.3 Week View
 
-Codex may choose exact naming that best matches the current repo style.
+The week view must reuse the existing weekly calendar structure and visual language.
 
-10.4 UI screens
+It shows visible active appointments from Monday to Sunday.
+Cancelled appointments must not appear in the week view.
 
-Use the existing calendar screen structure and naming conventions already present in the repo.
+### 6.4 Day View
 
-The appointment calendar already conceptually exists and must be completed, not reinvented.
-11. VIEW REQUIREMENTS
-11.1 Dashboard timeline
+The day view must reuse the existing horizontal time axis already used in the product.
 
-Must show active visible appointments around current time.
+The day view contains exactly two active sections in this phase:
 
-11.2 Month view
+1. active appointment timeline
+2. Storno card
 
-Must support appointment count per day.
+There is no separate history card alongside the Storno card.
 
-11.3 Week view
+#### Active Appointment Timeline
 
-Must support visible appointments per day with vertical overlap stacking.
+The main day timeline shows active visible appointments only.
 
-11.4 Day view
+Appointments are positioned by:
 
-Must support:
+- `startsAt`
+- `endsAt`
 
-active appointment timeline
-separate history card for cancelled appointments
+Cancelled appointments must never appear in the main timeline.
 
-12. MINIMUM IMPLEMENTATION SCOPE
+#### Storno Card
 
-The implementation is considered complete for this phase when all of the following work:
+Cancelled appointments are shown only in a separate Storno card below the timeline.
 
-1current user’s appointments are loaded correctly
-2dashboard timeline shows nearby appointments
-3month view shows count per day
-4week view shows visible appointment blocks
-5day view shows active appointments
-6day view shows cancelled appointments in a separate history card
-7overlapping active appointments stack vertically
-8maximum 3 overlap rows are shown
-9source calendars can be hidden via settings
-10cancelled visibility can be controlled via settings
-11feature remains mostly read-only
-12no existing slot calendar functionality is broken
+Rules:
 
-13. TESTING REQUIREMENTS
+- default state: collapsed
+- header shows the number of cancelled appointments
+- cancelled appointments appear only here
 
-Codex must not stop at UI-only changes.
-The implementation must be validated.
+Each item should show at least:
 
-At minimum:
+- start time
+- end time
+- source calendar
 
-existing checks must still pass:
-npx tsc --noEmit
-npm run lint
-npm run test:firestore
+Multiple cancelled appointments with identical times are allowed and must all be shown.
 
-Additionally Codex must add or extend tests where useful for:
+## 7. Settings
 
-filtering hidden calendars
-exclusion of cancelled appointments from main timeline model
-inclusion of cancelled appointments in day history model
-overlap stacking behavior
-maximum 3 visible rows rule
+The appointment calendar has a dedicated settings entry reachable from the dashboard.
 
-If pure Firestore tests are not the right place for the display-layer overlap logic, Codex should add a small pure logic test for the overlap layout helper.
+Current settings scope:
 
-14. IMPLEMENTATION ORDER
+- show or hide appointments from selected connected source calendars
 
-Codex should implement in this order:
+Settings document:
 
-Phase 1
+```text
+users/{uid}/settings/appointmentCalendar
+```
 
-Audit existing appointment calendar related code and identify:
+Settings field:
 
-existing dashboard usage
-existing month/week/day implementations
-current appointment hooks
-current settings support if any
-Phase 2
+```text
+hiddenCalendarIds: string[]
+```
 
-Define / add appointment calendar settings model.
+Binding rules:
 
-Phase 3
+- hidden source calendars must be filtered out in dashboard, month, week, and day views
+- cancelled appointments are not configurable
+- there is no `showCancelledAppointments` setting
+- cancelled appointments are always excluded from main calendar surfaces
+- cancelled appointments are always handled only through the Storno card in day view
 
-Build / refine the appointment calendar data hook:
+## 8. Filtering Logic
 
-load raw appointments
-apply settings filtering
-split active appointments vs cancelled history
-derive day / week / month display data
-Phase 4
+The appointment calendar is built in two steps:
 
-Implement overlap stacking helper for active appointments:
+1. load raw appointments relevant to the current user
+2. apply user-facing filtering and derive the display model
 
-horizontal time axis
-vertical stacking
-max 3 rows
-overflow handling
-Phase 5
+Filtering rules:
 
-Integrate into dashboard / month / week / day views.
+- remove appointments from hidden source calendars
+- remove cancelled appointments from dashboard, month, week, and main day timeline
+- keep cancelled appointments available for the Storno card in day view
 
-Phase 6
+The underlying appointment records remain unchanged.
+Filtering changes only the user-facing projection of the data.
 
-Add or extend settings UI.
+## 9. Collision Policy
 
-Phase 7
+The appointment calendar must not implement collision logic as a scheduling rule.
 
-Add tests and run validation.
+There must be:
 
-15. IMPORTANT GUARDRAILS
+- no collision blocking
+- no collision warnings
+- no collision indicators
 
-Codex must not:
+Appointments from different source calendars are allowed to overlap freely.
+Overlap is only a display-layout concern.
 
-convert the appointment calendar into a slot calendar
-create a second booking system
-introduce hard collision blocking
-render cancelled appointments as full normal timeline blocks in all views
-move personal visibility preferences into foreign calendars
-do a broad architecture refactor unrelated to this feature
+## 10. Overlap Layout Logic
 
-This is a focused feature completion on the current Slotly 1.0 architecture.
+Because the appointment calendar uses a horizontal time axis, overlapping appointments must be stacked vertically.
 
-16. EXPECTED COMPLETION REPORT
-
-When implementation is done, Codex must report:
-
-which files were changed
-how appointment settings are stored
-how hidden source calendars are filtered
-how cancelled appointments are separated from active timeline data
-how overlap stacking works
-where the max-3-row rule is enforced
-what tests were added or updated
-confirmation that:
-npx tsc --noEmit
-npm run lint
-npm run test:firestore
-still pass
-
-17. FINAL INSTRUCTION TO CODEX
-
-Implement this feature incrementally, test along the way, and stop only when the appointment calendar works coherently across dashboard, month, week, and day views.
-
-Do not optimize for the smallest diff.
-Optimize for a clean Slotly 1.0 feature implementation that matches the existing architecture and user experience direction.
-
-
-# 18. OVERLAP LAYOUT LOGIC
-
-The appointment calendar uses a horizontal time axis.
-
-Therefore overlapping appointments must be stacked vertically.
-
-This rule applies to:
+This applies to:
 
 - dashboard timeline
 - week view
 - day view
 
-## 13.1 Purpose
+### 10.1 Purpose
 
 The overlap layout exists only to render active visible appointments clearly.
+It does not change data and does not enforce scheduling rules.
 
-It is a display rule, not a booking rule.
-
-It must not:
-
-- block bookings
-- create warnings
-- modify appointments
-
-It only determines visual placement.
-
-## 13.2 Input scope
+### 10.2 Input Scope
 
 Only active visible appointments participate in overlap layout.
 
 Included:
-- appointments with status `booked`
-- appointments not filtered out by hiddenCalendarIds
+
+- appointments with active status
+- appointments not filtered out by hidden calendar settings
+- appointments inside the current visible time range for the current view
 
 Excluded:
+
 - cancelled appointments
 - hidden appointments
-- appointments outside the current visible time range
+- appointments outside the visible time window
 
-## 13.3 Overlap rule
+### 10.3 Overlap Rule
 
 Two appointments overlap if:
 
@@ -690,145 +267,192 @@ Two appointments overlap if:
 left.startsAt < right.endsAt
 AND
 left.endsAt > right.startsAt
+```
 
 If this is true, they cannot occupy the same visual row.
 
-13.4 Row assignment
+### 10.4 Row Assignment
 
-Appointments must be sorted before layout:
+Appointments must be laid out deterministically.
 
-by startsAt ascending
-if equal, by endsAt ascending
-if still equal, by stable id ascending
+Sort order:
 
-Then assign each appointment to the first available row where it does not overlap with the last appointment already placed in that row.
+1. `startsAt` ascending
+2. `endsAt` ascending
+3. stable ID ascending
 
-This ensures stable deterministic layout.
+Then assign each appointment to the first row where it does not overlap with the last appointment already placed in that row.
 
-13.5 Maximum visible rows
+### 10.5 Maximum Visible Rows
 
-Maximum visible rows:
+Maximum visible overlap rows:
 
+```text
 3
+```
 
-If more than 3 active appointments overlap in the same visible segment:
+If more than three active appointments overlap in the same visible segment:
 
-rows 1 and 2 show normal appointment blocks
-row 3 may be used as overflow representation
+- rows 1 and 2 show normal appointment blocks
+- row 3 may become an overflow representation
 
-Example:
+Overflow example:
 
+```text
 Appointment A
 Appointment B
 +4 more
+```
 
-The overflow representation must indicate how many additional overlapping appointments are not directly shown.
+The timeline must never expand beyond three visible rows.
 
-13.6 Overflow behavior
+### 10.6 Overflow Behavior
 
-The overflow block is a UI representation only.
+The overflow block is a visual summary only.
 
-It should lead the user to the fuller day detail context if interaction is supported.
+It may navigate to or focus the richer day-detail context if interaction is available, but the key rule is:
 
-The exact interaction may follow current UI conventions, but the main rule is:
+- keep the timeline capped at three rows
 
-never expand beyond 3 visible rows in the timeline
-13.7 Stability requirement
+## 11. Day-Boundary Logic
 
-Layout must be stable.
+The appointment calendar must handle appointments that cross midnight or span multiple dates.
 
-The same appointment set must always produce the same row order and same overflow result.
+This includes:
 
-Appointments must not randomly jump between rows across renders.
-
-
----
-
-## Block 2 — Day Boundary Logic
-
-```md
-# 14. DAY BOUNDARY LOGIC
-
-The appointment calendar must correctly handle appointments that cross day boundaries.
-
-This includes appointments such as:
-
-- late evening to after midnight
+- late-evening to after-midnight appointments
 - multi-hour appointments spanning two dates
-- cancelled appointments whose start and end touch different days
+- cancelled appointments intersecting a day without starting and ending inside that day
 
-## 14.1 Purpose
+### 11.1 Canonical Day Inclusion Rule
 
-Day-boundary logic ensures that appointments are shown on every relevant day.
-
-Without this rule, appointments may:
-
-- disappear from a day view
-- appear on the wrong day
-- be counted incorrectly in month view
-- be missing from the Storno card
-
-## 14.2 Canonical day inclusion rule
-
-An appointment belongs to a calendar day if:
+An appointment belongs to a day if:
 
 ```text
 appointment.startsAt < dayEnd
 AND
 appointment.endsAt > dayStart
+```
 
 Where:
 
-dayStart = start of selected day
-dayEnd = start of next day
+- `dayStart` = start of the selected day
+- `dayEnd` = start of the next day
 
-This rule must be used consistently for:
+This is the canonical inclusion rule and must be reused everywhere.
 
-month counts
-week placement
-day view timeline inclusion
-Storno card inclusion
-14.3 Month view counting
+### 11.2 Month View Counting
 
-A day’s appointment count must include appointments that intersect that day according to the canonical day inclusion rule.
+A day count includes every active visible appointment that intersects that day by the canonical day inclusion rule.
 
-This means an appointment crossing midnight may count on more than one day if it overlaps both days.
+This means an appointment crossing midnight may count on more than one day.
 
-Cancelled appointments must still be excluded from the month count.
+Cancelled appointments remain excluded from the month count.
 
-14.4 Week view inclusion
+### 11.3 Week View Inclusion
 
-Appointments must appear on each visible day they intersect.
+An appointment appears on every visible week day it intersects.
+Rendering for that day should reflect the portion relevant to that day and view.
 
-If an appointment spans across midnight, the visible rendering must still align with the portion relevant to that day and view.
+### 11.4 Day Timeline Inclusion
 
-14.5 Day view inclusion
+The active day timeline shows every active visible appointment that intersects the selected day, including appointments that:
 
-The day view timeline must show active appointments that intersect the selected day.
+- start before the selected day and continue into it
+- start inside the selected day and end after midnight
 
-This includes appointments that:
+### 11.5 Storno Card Inclusion
 
-start before the selected day but continue into it
-start within the selected day and end after midnight
-14.6 Storno card inclusion
+Cancelled appointments appear in the Storno card if they intersect the selected day by the same canonical day inclusion rule.
 
-Cancelled appointments must appear in the Storno card if they intersect the selected day according to the same canonical day inclusion rule.
+This replaces any weaker rule such as checking only whether the start or end lies inside the day.
 
-This is stricter and more correct than checking only whether the start or end timestamp lies inside the day.
+### 11.6 Consistency Requirement
 
-Reason:
-An appointment may span across the full day without its exact start or end being inside a narrower interpretation window.
+The day inclusion rule must be identical across:
 
-Therefore the Storno card must use the same intersection logic as all other day-based appointment calculations.
+- month calculations
+- week calculations
+- day timeline calculations
+- Storno card calculations
 
-14.7 Consistency requirement
+No view may implement a divergent day-boundary rule.
 
-Codex must not implement different day-inclusion logic in different views.
+## 12. Minimum Implementation Scope
 
-The same canonical day inclusion rule must be reused across:
+This execution is complete for the first phase when all of the following work:
 
-dashboard derivations where relevant
-month calculations
-week calculations
-day timeline calculations
-Storno card calculations
+1. the current user’s relevant appointments load correctly
+2. the dashboard shows nearby active appointments
+3. the month view shows the appointment count per day
+4. the week view shows visible appointment blocks
+5. the day view shows active appointments in the main timeline
+6. the day view shows cancelled appointments only in the Storno card
+7. active overlaps stack vertically
+8. a maximum of three visible overlap rows is enforced
+9. hidden source calendars are filtered correctly
+10. the feature remains read-only
+11. no existing slot calendar behavior is broken
+
+## 13. Implementation Order
+
+Implementation should proceed in this order:
+
+1. audit existing appointment-calendar-related code paths
+2. define or align appointment calendar settings
+3. build or refine the data hook and filtering model
+4. implement overlap layout for active appointments
+5. integrate dashboard, month, week, and day views
+6. add or align settings UI
+7. add tests and run final validation
+
+## 14. Testing Requirements
+
+Implementation must not stop at UI-only changes.
+
+At minimum, these checks must still pass:
+
+```bash
+npx tsc --noEmit
+npm run lint
+npm run test:firestore
+```
+
+Additionally, implementation should add or extend tests where useful for:
+
+- filtering hidden source calendars
+- excluding cancelled appointments from the main timeline model
+- including cancelled appointments in the Storno card model
+- overlap stacking behavior
+- enforcing the maximum three-row display limit
+- canonical day-boundary inclusion
+
+If the overlap and day-boundary logic lives in pure helpers, small pure logic tests are preferred.
+
+## 15. Guardrails
+
+Implementation must not:
+
+- turn the appointment calendar into a slot calendar
+- create a second booking system
+- introduce collision blocking or warnings
+- render cancelled appointments as normal timeline blocks
+- add settings for showing cancelled appointments
+- add user actions into the appointment calendar views
+- trigger a broad unrelated architecture refactor
+
+This is a focused feature completion within the current Slotly 1.0 architecture.
+
+## 16. Expected Completion Report
+
+When implementation is complete, the report should state:
+
+- which files changed
+- how appointment calendar settings are stored
+- how hidden source calendars are filtered
+- how cancelled appointments are separated from active timeline data
+- how overlap stacking works
+- where the max-three-row rule is enforced
+- how canonical day-boundary logic is implemented
+- which tests were added or updated
+- confirmation that TypeScript, lint, and Firestore tests still pass
