@@ -10,9 +10,9 @@ import {
 } from 'react-native';
 import { FirebaseError } from 'firebase/app';
 
-import { sendResetPassword } from '../src/firebase/auth';
-import { useAuthUiStyles } from '../src/theme/auth-ui';
-import { useAppTheme, useBottomSafeContentStyle } from '../src/theme/ui';
+import { sendResetPassword } from '../../src/firebase/auth';
+import { useAuthUiStyles } from '../../src/theme/auth-ui';
+import { useAppTheme, useBottomSafeContentStyle } from '../../src/theme/ui';
 import { useTranslation } from '@/src/i18n/provider';
 
 function isValidEmail(email: string) {

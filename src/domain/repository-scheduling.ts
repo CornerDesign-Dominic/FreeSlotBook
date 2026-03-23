@@ -770,7 +770,7 @@ export function subscribeToParticipantAppointments(
     return () => undefined;
   }
 
-  const snapshotsByQuery = new Map<number, Array<{ path: string; appointment: AppointmentRecord }>>();
+  const snapshotsByQuery = new Map<number, { path: string; appointment: AppointmentRecord }[]>();
   const emitAppointments = () => {
     const appointments = Array.from(
       new Map(

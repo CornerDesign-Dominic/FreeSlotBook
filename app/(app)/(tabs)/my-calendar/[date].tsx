@@ -19,22 +19,22 @@ import {
   getMinutesSinceStartOfDay,
   getSlotsForDay,
   parseDayKey,
-} from '../../../src/domain/calendar-utils';
-import { AppScreenHeader } from '../../../src/components/app-screen-header';
-import { CalendarNavigationHeader } from '../../../src/components/calendar-navigation-header';
+} from '../../../../src/domain/calendar-utils';
+import { AppScreenHeader } from '../../../../src/components/app-screen-header';
+import { CalendarNavigationHeader } from '../../../../src/components/calendar-navigation-header';
 import {
   assignCalendarSlotByOwner,
   cancelAppointmentByOwner,
   setCalendarSlotInactive,
   updateCalendarSlotAvailability,
-} from '../../../src/domain/repository';
-import { useOwnerCalendar } from '../../../src/domain/useOwnerCalendar';
-import { useOwnerDaySlots } from '../../../src/domain/useOwnerDaySlots';
-import { useOwnerSlotDetail } from '../../../src/domain/useOwnerSlotDetail';
-import type { CalendarSlotEventRecord, SlotStatus } from '../../../src/domain/types';
-import { useAuth } from '../../../src/firebase/useAuth';
+} from '../../../../src/domain/repository';
+import { useOwnerCalendar } from '../../../../src/domain/useOwnerCalendar';
+import { useOwnerDaySlots } from '../../../../src/domain/useOwnerDaySlots';
+import { useOwnerSlotDetail } from '../../../../src/domain/useOwnerSlotDetail';
+import type { CalendarSlotEventRecord, SlotStatus } from '../../../../src/domain/types';
+import { useAuth } from '../../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
-import { useAppTheme, useBottomSafeContentStyle } from '../../../src/theme/ui';
+import { useAppTheme, useBottomSafeContentStyle } from '../../../../src/theme/ui';
 
 const hourWidth = 96;
 const timelineHeight = 164;
@@ -829,7 +829,7 @@ export default function CalendarDayScreen() {
                 ) : null}
               </>
             ) : (
-              <Text style={uiStyles.secondaryText}>Slot auswählen</Text>
+              <Text style={uiStyles.secondaryText}>Slot auswÃ¤hlen</Text>
             )}
           </View>
         </View>

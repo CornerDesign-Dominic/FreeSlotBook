@@ -1,20 +1,21 @@
 import { useEffect } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Stack, useRootNavigationState, useRouter, useSegments } from 'expo-router';
 import * as NavigationBar from 'expo-navigation-bar';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
-import { Platform, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import 'react-native-reanimated';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { useNotificationSetup } from '@/src/domain/useNotificationSetup';
+import { useAuth } from '@/src/firebase/useAuth';
 import { I18nProvider } from '@/src/i18n/provider';
 import { AppSettingsProvider, useAppSettings } from '@/src/settings/provider';
 import { getThemeColors, theme as designTheme } from '@/src/theme/ui';
 
 export const unstable_settings = {
-  anchor: '(tabs)',
+  anchor: '(app)',
 };
 
 export default function RootLayout() {
@@ -33,6 +34,10 @@ export default function RootLayout() {
 
 function RootLayoutContent() {
   const { theme } = useAppSettings();
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const segments = useSegments();
+  const rootNavigationState = useRootNavigationState();
 
   const colors = getThemeColors(theme);
   const baseNavigationTheme = theme === 'dark' ? DarkTheme : DefaultTheme;
@@ -70,6 +75,29 @@ function RootLayoutContent() {
     });
   }, [theme]);
 
+  const topSegment = segments[0] ?? null;
+  const isInAppGroup = topSegment === '(app)';
+  const isInAuthGroup = topSegment === '(auth)';
+  const isEntryRoute = topSegment === null;
+
+  useEffect(() => {
+    if (loading || !rootNavigationState?.key) {
+      return;
+    }
+
+    if (user) {
+      if (isInAuthGroup || isEntryRoute) {
+        router.replace('/(app)/(tabs)');
+      }
+
+      return;
+    }
+
+    if (isInAppGroup || isEntryRoute) {
+      router.replace('/(auth)/login');
+    }
+  }, [isEntryRoute, isInAppGroup, isInAuthGroup, loading, rootNavigationState?.key, router, user]);
+
   return (
     <ThemeProvider value={navigationTheme}>
       <SafeAreaView
@@ -81,6 +109,17 @@ function RootLayoutContent() {
             backgroundColor: navigationTheme.colors.background,
             paddingTop: designTheme.spacing[8],
           }}>
+          {loading || !rootNavigationState?.key ? (
+            <View
+              style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: designTheme.spacing[16],
+              }}>
+              <Text style={{ color: colors.textPrimary }}>Laedt...</Text>
+            </View>
+          ) : (
           <Stack
             screenOptions={{
               headerShown: false,
@@ -88,8 +127,10 @@ function RootLayoutContent() {
                 backgroundColor: navigationTheme.colors.background,
               },
             }}>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="(app)" options={{ headerShown: false }} />
           </Stack>
+          )}
         </View>
       </SafeAreaView>
       <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />

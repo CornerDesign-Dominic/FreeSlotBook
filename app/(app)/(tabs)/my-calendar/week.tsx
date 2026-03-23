@@ -11,16 +11,16 @@ import {
   getSlotsForDay,
   parseDayKey,
   startOfWeek,
-} from '../../../src/domain/calendar-utils';
-import { AppScreenHeader } from '../../../src/components/app-screen-header';
-import { CalendarNavigationHeader } from '../../../src/components/calendar-navigation-header';
-import { useOwnerCalendar } from '../../../src/domain/useOwnerCalendar';
-import { useOwnerSlots } from '../../../src/domain/useOwnerSlots';
-import type { CalendarSlotRecord, SlotStatus } from '../../../src/domain/types';
-import { useAuth } from '../../../src/firebase/useAuth';
+} from '../../../../src/domain/calendar-utils';
+import { AppScreenHeader } from '../../../../src/components/app-screen-header';
+import { CalendarNavigationHeader } from '../../../../src/components/calendar-navigation-header';
+import { useOwnerCalendar } from '../../../../src/domain/useOwnerCalendar';
+import { useOwnerSlots } from '../../../../src/domain/useOwnerSlots';
+import type { CalendarSlotRecord, SlotStatus } from '../../../../src/domain/types';
+import { useAuth } from '../../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';
-import { useAppTheme, useBottomSafeContentStyle } from '../../../src/theme/ui';
+import { useAppTheme, useBottomSafeContentStyle } from '../../../../src/theme/ui';
 
 const hourWidth = 88;
 const rowHeight = 64;

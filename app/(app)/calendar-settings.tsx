@@ -333,7 +333,7 @@ export default function CalendarSettingsScreen() {
             }}
             multiline
             maxLength={120}
-            placeholder="Kurzbeschreibung für deinen Kalender"
+            placeholder="Kurzbeschreibung fÃ¼r deinen Kalender"
             placeholderTextColor={theme.colors.textSecondary}
             style={[
               uiStyles.input,

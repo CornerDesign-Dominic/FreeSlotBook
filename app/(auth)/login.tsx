@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -8,38 +8,19 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Link, useLocalSearchParams, useRouter } from 'expo-router';
-import type { Href } from 'expo-router';
+import { Link } from 'expo-router';
 import { FirebaseError } from 'firebase/app';
 
-import { loginWithEmail, logout, sendVerificationEmail } from '../src/firebase/auth';
-import { useAuthUiStyles } from '../src/theme/auth-ui';
-import { useAppTheme, useBottomSafeContentStyle } from '../src/theme/ui';
-import { useAuth } from '../src/firebase/useAuth';
+import { loginWithEmail, logout, sendVerificationEmail } from '../../src/firebase/auth';
+import { useAuthUiStyles } from '../../src/theme/auth-ui';
+import { useAppTheme, useBottomSafeContentStyle } from '../../src/theme/ui';
 import { useTranslation } from '@/src/i18n/provider';
 
 function isValidEmail(email: string) {
   return /\S+@\S+\.\S+/.test(email);
 }
 
-function getSafeRedirectTarget(value: string | string[] | undefined): Href | null {
-  const redirect = Array.isArray(value) ? value[0] : value;
-
-  if (!redirect) {
-    return null;
-  }
-
-  if (!redirect.startsWith('/') || redirect.startsWith('//')) {
-    return null;
-  }
-
-  return redirect as Href;
-}
-
 export default function LoginScreen() {
-  const router = useRouter();
-  const params = useLocalSearchParams<{ redirect?: string | string[] }>();
-  const { user, loading } = useAuth();
   const { t } = useTranslation();
   const { theme } = useAppTheme();
   const authUiStyles = useAuthUiStyles();
@@ -49,13 +30,6 @@ export default function LoginScreen() {
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [canResendVerification, setCanResendVerification] = useState(false);
-  const redirectTarget = getSafeRedirectTarget(params.redirect);
-
-  useEffect(() => {
-    if (!loading && user && user.emailVerified) {
-      router.replace(redirectTarget ?? '/(tabs)');
-    }
-  }, [loading, redirectTarget, router, user]);
 
   const getLoginErrorMessage = (error: unknown) => {
     if (error instanceof FirebaseError) {
@@ -124,8 +98,6 @@ export default function LoginScreen() {
         setMessage(t('login.messageUnverified'));
         return;
       }
-
-      router.replace(redirectTarget ?? '/(tabs)');
     } catch (error) {
       setMessage(getLoginErrorMessage(error));
     } finally {

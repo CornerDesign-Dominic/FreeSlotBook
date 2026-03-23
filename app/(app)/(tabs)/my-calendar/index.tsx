@@ -2,21 +2,21 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'expo-router';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
-import { AppScreenHeader } from '../../../src/components/app-screen-header';
-import { CalendarNavigationHeader } from '../../../src/components/calendar-navigation-header';
-import { subscribeToSlotCalendarMonthReset } from '../../../src/navigation/slot-calendar-month-reset';
+import { AppScreenHeader } from '../../../../src/components/app-screen-header';
+import { CalendarNavigationHeader } from '../../../../src/components/calendar-navigation-header';
+import { subscribeToSlotCalendarMonthReset } from '../../../../src/navigation/slot-calendar-month-reset';
 import {
   buildMonthGrid,
   formatMonthTitle,
   getDayKey,
   getWeekdayLabels,
-} from '../../../src/domain/calendar-utils';
-import { useOwnerCalendar } from '../../../src/domain/useOwnerCalendar';
-import { useOwnerSlots } from '../../../src/domain/useOwnerSlots';
-import { useAuth } from '../../../src/firebase/useAuth';
+} from '../../../../src/domain/calendar-utils';
+import { useOwnerCalendar } from '../../../../src/domain/useOwnerCalendar';
+import { useOwnerSlots } from '../../../../src/domain/useOwnerSlots';
+import { useAuth } from '../../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';
-import { useAppTheme, useBottomSafeContentStyle } from '../../../src/theme/ui';
+import { useAppTheme, useBottomSafeContentStyle } from '../../../../src/theme/ui';
 
 export default function MyCalendarScreen() {
   const { user, loading: authLoading } = useAuth();

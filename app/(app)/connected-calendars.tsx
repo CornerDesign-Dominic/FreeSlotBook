@@ -48,7 +48,7 @@ export default function ConnectedCalendarsScreen() {
   const confirmDisconnectCalendar = (calendarId: string) => {
     Alert.alert(
       'Verbindung entfernen?',
-      'Der Zugriff auf diesen Kalender wird entfernt. Für einen erneuten Zugriff muss eine neue Anfrage gesendet werden.',
+      'Der Zugriff auf diesen Kalender wird entfernt. FÃ¼r einen erneuten Zugriff muss eine neue Anfrage gesendet werden.',
       [
         { text: 'Abbrechen', style: 'cancel' },
         {
@@ -138,7 +138,7 @@ export default function ConnectedCalendarsScreen() {
                   <Pressable
                     onPress={() => toggleExpanded(calendar.id)}
                     accessibilityRole="button"
-                    accessibilityLabel="Kalenderdetails öffnen"
+                    accessibilityLabel="Kalenderdetails Ã¶ffnen"
                   >
                     <Feather
                       name={isExpanded ? 'chevron-up' : 'chevron-down'}

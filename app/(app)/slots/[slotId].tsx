@@ -2,10 +2,10 @@ import { useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 
-import { getDayKey } from '../../src/domain/calendar-utils';
-import { useOwnerCalendar } from '../../src/domain/useOwnerCalendar';
-import { useOwnerSlotDetail } from '../../src/domain/useOwnerSlotDetail';
-import { useAuth } from '../../src/firebase/useAuth';
+import { getDayKey } from '../../../src/domain/calendar-utils';
+import { useOwnerCalendar } from '../../../src/domain/useOwnerCalendar';
+import { useOwnerSlotDetail } from '../../../src/domain/useOwnerSlotDetail';
+import { useAuth } from '../../../src/firebase/useAuth';
 
 export default function SlotDetailRedirectScreen() {
   const params = useLocalSearchParams<{ slotId?: string | string[] }>();
@@ -38,7 +38,7 @@ export default function SlotDetailRedirectScreen() {
         {error ?? 'Dieser Slot konnte nicht geladen werden.'}
       </Text>
       <Text style={{ color: 'black' }}>
-        Die Tagesansicht ist jetzt die zentrale Ansicht für Slots und Verlauf.
+        Die Tagesansicht ist jetzt die zentrale Ansicht fÃ¼r Slots und Verlauf.
       </Text>
     </View>
   );

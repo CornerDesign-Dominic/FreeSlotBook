@@ -1,12 +1,12 @@
 import { Link } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
-import { AppScreenHeader } from '../src/components/app-screen-header';
-import { LanguageSwitcher } from '../src/i18n/language-switcher';
+import { AppScreenHeader } from '../../src/components/app-screen-header';
+import { LanguageSwitcher } from '../../src/i18n/language-switcher';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';
-import type { AppTheme, WeekStartsOn } from '../src/settings/types';
-import { useAppTheme, useBottomSafeContentStyle } from '../src/theme/ui';
+import type { AppTheme, WeekStartsOn } from '../../src/settings/types';
+import { useAppTheme, useBottomSafeContentStyle } from '../../src/theme/ui';
 
 function ChoiceButton(props: {
   label: string;
@@ -106,7 +106,7 @@ export default function SettingsScreen() {
 
         <View style={{ marginTop: designTheme.spacing[20], alignItems: 'center' }}>
           <Text style={[uiStyles.secondaryText, { fontSize: designTheme.typography.meta, marginBottom: designTheme.spacing[4] }]}>
-            © 2026 Slotlyme
+            Â© 2026 Slotlyme
           </Text>
           <Text style={[uiStyles.secondaryText, { fontSize: designTheme.typography.meta }]}>
             Version 1.0.0

@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { Feather } from '@expo/vector-icons';
 import { Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { cancelCalendarAccessRequest, requestCalendarAccessBySlug } from '../src/domain/repository';
-import { usePendingCalendarAccessRequests } from '../src/domain/usePendingCalendarAccessRequests';
-import { AppScreenHeader } from '../src/components/app-screen-header';
-import { useAuth } from '../src/firebase/useAuth';
+import { cancelCalendarAccessRequest, requestCalendarAccessBySlug } from '../../src/domain/repository';
+import { usePendingCalendarAccessRequests } from '../../src/domain/usePendingCalendarAccessRequests';
+import { AppScreenHeader } from '../../src/components/app-screen-header';
+import { useAuth } from '../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
-import { useAppTheme, useBottomSafeContentStyle } from '../src/theme/ui';
+import { useAppTheme, useBottomSafeContentStyle } from '../../src/theme/ui';
 
 function extractCalendarSlug(value: string) {
   const trimmedValue = value.trim();
@@ -217,7 +217,7 @@ export default function RequestCalendarAccessScreen() {
                     onPress={() => void handleCancelRequest(request.calendarId, request.requesterUid)}
                     disabled={cancellingRequestKey === requestKey}
                     accessibilityRole="button"
-                    accessibilityLabel="Anfrage zurückziehen"
+                    accessibilityLabel="Anfrage zurÃ¼ckziehen"
                     style={{ opacity: cancellingRequestKey === requestKey ? 0.45 : 1 }}>
                     <Feather name="trash-2" size={18} color={theme.colors.textSecondary} />
                   </Pressable>

@@ -1,34 +1,36 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Feather } from '@expo/vector-icons';
-import { Link, Redirect } from 'expo-router';
+import { Link } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
-import { logout } from '../../src/firebase/auth';
-import { DashboardAppointmentTimeline } from '../../src/features/dashboard/dashboard-appointment-timeline';
-import { DashboardSlotTimeline } from '../../src/features/dashboard/dashboard-slot-timeline';
+import { DashboardAppointmentTimeline } from '../../../src/features/dashboard/dashboard-appointment-timeline';
+import { DashboardSlotTimeline } from '../../../src/features/dashboard/dashboard-slot-timeline';
 import {
   createRelativeTimelineWindow,
   getInitialTimelineOffset,
-} from '../../src/features/dashboard/dashboard-timeline-utils';
-import { useDashboardData } from '../../src/domain/useDashboardData';
-import { useOwnerCalendar } from '../../src/domain/useOwnerCalendar';
-import { useOwnerSlots } from '../../src/domain/useOwnerSlots';
-import { useAppointmentCalendar } from '../../src/domain/useAppointmentCalendar';
-import { useAuth } from '../../src/firebase/useAuth';
+} from '../../../src/features/dashboard/dashboard-timeline-utils';
+import { useDashboardData } from '../../../src/domain/useDashboardData';
+import { useOwnerCalendar } from '../../../src/domain/useOwnerCalendar';
+import { useOwnerSlots } from '../../../src/domain/useOwnerSlots';
+import { useAppointmentCalendar } from '../../../src/domain/useAppointmentCalendar';
+import { useAuth } from '../../../src/firebase/useAuth';
+import { useLogout } from '../../../src/firebase/useLogout';
 import { useTranslation } from '@/src/i18n/provider';
-import { useAppTheme, useBottomSafeContentStyle } from '../../src/theme/ui';
+import { useAppTheme, useBottomSafeContentStyle } from '../../../src/theme/ui';
 
 export default function HomeScreen() {
   const isFocused = useIsFocused();
   const { user, loading } = useAuth();
+  const userUid = user?.uid ?? null;
+  const userEmail = user?.email ?? null;
   const { t } = useTranslation();
   const { theme, uiStyles } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const authUser = useMemo(
-    () => (user ? { uid: user.uid, email: user.email } : null),
-    [user?.email, user?.uid]
+    () => (userUid ? { uid: userUid, email: userEmail } : null),
+    [userEmail, userUid]
   );
   const { data, loading: dashboardLoading, error } = useDashboardData(authUser);
   const {
@@ -57,7 +59,7 @@ export default function HomeScreen() {
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
   const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
   const [profileCopyFeedbackVisible, setProfileCopyFeedbackVisible] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { logout: handleLogout, isLoggingOut } = useLogout();
   const timelineWindow = useMemo(() => createRelativeTimelineWindow(timelineNow), [timelineNow]);
   const slotTimelineRef = useRef<ScrollView | null>(null);
   const appointmentTimelineRef = useRef<ScrollView | null>(null);
@@ -65,19 +67,6 @@ export default function HomeScreen() {
     slots: false,
     appointments: false,
   });
-
-  const handleLogout = async () => {
-    if (isLoggingOut) {
-      return;
-    }
-
-    try {
-      setIsLoggingOut(true);
-      await logout();
-    } finally {
-      setIsLoggingOut(false);
-    }
-  };
 
   useEffect(() => {
     if (!isFocused) {
@@ -212,7 +201,7 @@ export default function HomeScreen() {
   }
 
   if (!user) {
-    return <Redirect href="/" />;
+    return null;
   }
 
   return (
@@ -398,9 +387,16 @@ export default function HomeScreen() {
       ) : null}
       {error ? <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>{error}</Text> : null}
 
-      <Text style={uiStyles.linkText} onPress={handleLogout}>
-        {t('dashboard.logout')}
-      </Text>
+      <Pressable
+        onPress={() => {
+          void handleLogout();
+        }}
+        disabled={isLoggingOut}
+        style={{ alignSelf: 'flex-start', opacity: isLoggingOut ? 0.6 : 1 }}>
+        <Text style={uiStyles.linkText}>
+          {isLoggingOut ? `${t('dashboard.logout')}...` : t('dashboard.logout')}
+        </Text>
+      </Pressable>
     </ScrollView>
   );
 }

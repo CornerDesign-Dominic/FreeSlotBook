@@ -7,16 +7,16 @@ import {
   getDayKey,
   getMinutesSinceStartOfDay,
   parseDayKey,
-} from '../../../src/domain/calendar-utils';
-import { AppScreenHeader } from '../../../src/components/app-screen-header';
-import { CalendarNavigationHeader } from '../../../src/components/calendar-navigation-header';
-import { buildOverflowTimelineLayout, clipAppointmentToDay } from '../../../src/domain/appointment-calendar-utils';
-import type { AppointmentRecord } from '../../../src/domain/types';
-import { useAppointmentCalendar } from '../../../src/domain/useAppointmentCalendar';
-import { useAppointmentCalendarSourceCalendars } from '../../../src/domain/useAppointmentCalendarSourceCalendars';
-import { useAuth } from '../../../src/firebase/useAuth';
+} from '../../../../src/domain/calendar-utils';
+import { AppScreenHeader } from '../../../../src/components/app-screen-header';
+import { CalendarNavigationHeader } from '../../../../src/components/calendar-navigation-header';
+import { buildOverflowTimelineLayout, clipAppointmentToDay } from '../../../../src/domain/appointment-calendar-utils';
+import type { AppointmentRecord } from '../../../../src/domain/types';
+import { useAppointmentCalendar } from '../../../../src/domain/useAppointmentCalendar';
+import { useAppointmentCalendarSourceCalendars } from '../../../../src/domain/useAppointmentCalendarSourceCalendars';
+import { useAuth } from '../../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
-import { useAppTheme, useBottomSafeContentStyle } from '../../../src/theme/ui';
+import { useAppTheme, useBottomSafeContentStyle } from '../../../../src/theme/ui';
 
 const hourWidth = 96;
 const laneHeight = 48;

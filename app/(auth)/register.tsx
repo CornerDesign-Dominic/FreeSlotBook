@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -8,18 +8,16 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { FirebaseError } from 'firebase/app';
 
-import { logout, registerWithEmail, sendVerificationEmail } from '../src/firebase/auth';
+import { logout, registerWithEmail, sendVerificationEmail } from '../../src/firebase/auth';
 import {
   ensureOwnerAccountSetup,
   isSlotlymeUserIdAvailable,
-} from '../src/domain/repository';
-import { useSlotlymeIdAvailability } from '../src/domain/useSlotlymeIdAvailability';
-import { useAuth } from '../src/firebase/useAuth';
-import { useAuthUiStyles } from '../src/theme/auth-ui';
-import { useAppTheme, useBottomSafeContentStyle } from '../src/theme/ui';
+} from '../../src/domain/repository';
+import { useSlotlymeIdAvailability } from '../../src/domain/useSlotlymeIdAvailability';
+import { useAuthUiStyles } from '../../src/theme/auth-ui';
+import { useAppTheme, useBottomSafeContentStyle } from '../../src/theme/ui';
 import { useTranslation } from '@/src/i18n/provider';
 
 function isValidEmail(email: string) {
@@ -27,8 +25,6 @@ function isValidEmail(email: string) {
 }
 
 export default function RegisterScreen() {
-  const router = useRouter();
-  const { user, loading } = useAuth();
   const { t } = useTranslation();
   const { theme } = useAppTheme();
   const authUiStyles = useAuthUiStyles();
@@ -38,14 +34,7 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [awaitingVerification, setAwaitingVerification] = useState(false);
   const slotlymeIdAvailability = useSlotlymeIdAvailability(slotlymeId);
-
-  useEffect(() => {
-    if (!loading && user && user.emailVerified && !awaitingVerification) {
-      router.replace('/(tabs)');
-    }
-  }, [awaitingVerification, loading, router, user]);
 
   const getRegisterErrorMessage = (error: unknown) => {
     if (error instanceof FirebaseError) {
@@ -143,7 +132,6 @@ export default function RegisterScreen() {
 
       await sendVerificationEmail(credential.user);
       await logout();
-      setAwaitingVerification(true);
       setMessage(t('register.messageVerification'));
     } catch (error) {
       setMessage(getRegisterErrorMessage(error));

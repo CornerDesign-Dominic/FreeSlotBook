@@ -155,7 +155,7 @@ export default function CalendarIdCreateScreen() {
 
         <Text style={uiStyles.secondaryText}>
           Erlaubt sind Kleinbuchstaben von a bis z, Zahlen von 0 bis 9 und Bindestriche. Deine
-          Kalender-ID muss zwischen 3 und 30 Zeichen lang sein und wird für deinen öffentlichen
+          Kalender-ID muss zwischen 3 und 30 Zeichen lang sein und wird fÃ¼r deinen Ã¶ffentlichen
           Kalenderlink verwendet.
         </Text>
       </View>

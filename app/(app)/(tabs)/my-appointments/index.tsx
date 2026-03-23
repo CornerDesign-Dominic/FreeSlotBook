@@ -2,19 +2,19 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
-import { AppScreenHeader } from '../../../src/components/app-screen-header';
-import { CalendarNavigationHeader } from '../../../src/components/calendar-navigation-header';
+import { AppScreenHeader } from '../../../../src/components/app-screen-header';
+import { CalendarNavigationHeader } from '../../../../src/components/calendar-navigation-header';
 import {
   buildMonthGrid,
   formatMonthTitle,
   getDayKey,
   getWeekdayLabels,
-} from '../../../src/domain/calendar-utils';
-import { useAppointmentCalendar } from '../../../src/domain/useAppointmentCalendar';
-import { useAuth } from '../../../src/firebase/useAuth';
+} from '../../../../src/domain/calendar-utils';
+import { useAppointmentCalendar } from '../../../../src/domain/useAppointmentCalendar';
+import { useAuth } from '../../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';
-import { useAppTheme, useBottomSafeContentStyle } from '../../../src/theme/ui';
+import { useAppTheme, useBottomSafeContentStyle } from '../../../../src/theme/ui';
 
 export default function MyAppointmentsMonthScreen() {
   const { resetMonth } = useLocalSearchParams<{ resetMonth?: string }>();
