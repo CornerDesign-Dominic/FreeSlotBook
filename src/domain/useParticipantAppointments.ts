@@ -7,9 +7,11 @@ export function useParticipantAppointments(participant: { uid?: string | null; e
   const [appointments, setAppointments] = useState<AppointmentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const participantUid = typeof participant === 'string' ? null : participant?.uid ?? null;
+  const participantEmail = typeof participant === 'string' ? participant : participant?.email ?? null;
 
   useEffect(() => {
-    if (!participant || (typeof participant !== 'string' && !participant.uid && !participant.email)) {
+    if (!participantUid && !participantEmail) {
       setAppointments([]);
       setError(null);
       setLoading(false);
@@ -20,7 +22,7 @@ export function useParticipantAppointments(participant: { uid?: string | null; e
     setError(null);
 
     const unsubscribe = subscribeToParticipantAppointments(
-      participant,
+      { uid: participantUid, email: participantEmail },
       (nextAppointments) => {
         setAppointments(nextAppointments);
         setLoading(false);
@@ -32,7 +34,7 @@ export function useParticipantAppointments(participant: { uid?: string | null; e
     );
 
     return unsubscribe;
-  }, [participant]);
+  }, [participantEmail, participantUid]);
 
   return { appointments, loading, error };
 }

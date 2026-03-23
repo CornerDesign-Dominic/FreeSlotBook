@@ -745,7 +745,12 @@ export function subscribeToParticipantAppointments(
 
   if (participantUid) {
     queries.push(
-      query(collectionGroup(db, 'appointments'), where('participantUid', '==', participantUid))
+      query(
+        collectionGroup(db, 'appointments'),
+        where('participantUid', '==', participantUid),
+        where('status', '==', 'booked'),
+        orderBy('startsAt', 'asc')
+      )
     );
   }
 
@@ -753,7 +758,9 @@ export function subscribeToParticipantAppointments(
     queries.push(
       query(
         collectionGroup(db, 'appointments'),
-        where('participantEmailKey', '==', normalizeEmail(participantEmail))
+        where('participantEmailKey', '==', normalizeEmail(participantEmail)),
+        where('status', '==', 'booked'),
+        orderBy('startsAt', 'asc')
       )
     );
   }
@@ -763,31 +770,41 @@ export function subscribeToParticipantAppointments(
     return () => undefined;
   }
 
-  const unsubscribeHandles = queries.map((appointmentsQuery) =>
+  const snapshotsByQuery = new Map<number, Array<{ path: string; appointment: AppointmentRecord }>>();
+  const emitAppointments = () => {
+    const appointments = Array.from(
+      new Map(
+        Array.from(snapshotsByQuery.values())
+          .flat()
+          .map(({ path, appointment }) => [path, appointment])
+      ).values()
+    ).sort((left, right) => (left.startsAt?.getTime() ?? 0) - (right.startsAt?.getTime() ?? 0));
+
+    onData(appointments);
+  };
+
+  const unsubscribeHandles = queries.map((appointmentsQuery, queryIndex) =>
     onSnapshot(
       appointmentsQuery,
-      () => {
-        void (async () => {
-          try {
-            const snapshots = await Promise.all(queries.map((currentQuery) => getDocs(currentQuery)));
-            const appointments = Array.from(
-              new Map(
-                snapshots
-                  .flatMap((snapshot) => snapshot.docs)
-                  .map((snapshot) => [
-                    snapshot.ref.path,
-                    mapAppointment(snapshot.id, snapshot.data() as Record<string, unknown>),
-                  ])
-              ).values()
-            ).sort((left, right) => (left.startsAt?.getTime() ?? 0) - (right.startsAt?.getTime() ?? 0));
-
-            onData(appointments);
-          } catch (error) {
-            onError(error instanceof Error ? error : new Error('Termine konnten nicht geladen werden.'));
-          }
-        })();
+      (snapshot) => {
+        try {
+          snapshotsByQuery.set(
+            queryIndex,
+            snapshot.docs.map((documentSnapshot) =>
+              ({
+                path: documentSnapshot.ref.path,
+                appointment: mapAppointment(documentSnapshot.id, documentSnapshot.data() as Record<string, unknown>),
+              })
+            )
+          );
+          emitAppointments();
+        } catch (error) {
+          onError(error instanceof Error ? error : new Error('Termine konnten nicht geladen werden.'));
+        }
       },
-      onError
+      (error) => {
+        onError(error instanceof Error ? error : new Error('Termine konnten nicht geladen werden.'));
+      }
     )
   );
 

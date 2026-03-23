@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Feather } from '@expo/vector-icons';
-import { Link, Redirect, router } from 'expo-router';
+import { Link, Redirect } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -26,13 +26,15 @@ export default function HomeScreen() {
   const { t } = useTranslation();
   const { theme, uiStyles } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
-  const { data, loading: dashboardLoading, error } = useDashboardData(
-    user ? { uid: user.uid, email: user.email } : null
+  const authUser = useMemo(
+    () => (user ? { uid: user.uid, email: user.email } : null),
+    [user?.email, user?.uid]
   );
+  const { data, loading: dashboardLoading, error } = useDashboardData(authUser);
   const {
     calendar: ownerCalendar,
     loading: ownerCalendarLoading,
-  } = useOwnerCalendar(user ? { uid: user.uid, email: user.email } : null);
+  } = useOwnerCalendar(authUser);
   const activeOwnerCalendar = ownerCalendar ?? data.ownerCalendar;
   const { slots, loading: slotsLoading, error: slotsError } = useOwnerSlots(
     activeOwnerCalendar?.id ?? null
@@ -41,7 +43,7 @@ export default function HomeScreen() {
     activeAppointments,
     loading: appointmentsLoading,
     error: appointmentsError,
-  } = useAppointmentCalendar(user ? { uid: user.uid, email: user.email } : null);
+  } = useAppointmentCalendar(authUser);
   const visibleJoinedCalendars = data.joinedCalendars.slice(0, 3);
   const publicSlug = activeOwnerCalendar?.publicSlug ?? null;
   const publicCalendarUrl = publicSlug ? `https://slotlyme.app/calendar/${publicSlug}` : null;
@@ -55,6 +57,7 @@ export default function HomeScreen() {
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
   const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
   const [profileCopyFeedbackVisible, setProfileCopyFeedbackVisible] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const timelineWindow = useMemo(() => createRelativeTimelineWindow(timelineNow), [timelineNow]);
   const slotTimelineRef = useRef<ScrollView | null>(null);
   const appointmentTimelineRef = useRef<ScrollView | null>(null);
@@ -64,8 +67,16 @@ export default function HomeScreen() {
   });
 
   const handleLogout = async () => {
-    await logout();
-    router.replace('/');
+    if (isLoggingOut) {
+      return;
+    }
+
+    try {
+      setIsLoggingOut(true);
+      await logout();
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   useEffect(() => {

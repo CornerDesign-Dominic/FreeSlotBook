@@ -9,11 +9,15 @@ import { useAppointmentCalendarSettings } from './useAppointmentCalendarSettings
 import { useParticipantAppointments } from './useParticipantAppointments';
 
 export function useAppointmentCalendar(user: { uid: string; email: string | null } | null) {
+  const participant = useMemo(
+    () => (user ? { uid: user.uid, email: user.email } : null),
+    [user?.email, user?.uid]
+  );
   const {
     appointments,
     loading: appointmentsLoading,
     error: appointmentsError,
-  } = useParticipantAppointments(user ? { uid: user.uid, email: user.email } : null);
+  } = useParticipantAppointments(participant);
   const {
     settings,
     loading: settingsLoading,
