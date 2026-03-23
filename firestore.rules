@@ -11,17 +11,16 @@ service cloud.firestore {
     }
 
     function authEmail() {
-      return isSignedIn() && request.auth.token.email is string
+      return isSignedIn()
+        && request.auth.token.email is string
+        && request.auth.token.email != ''
         ? request.auth.token.email
         : null;
     }
 
     function authEmailKey() {
-      return authEmail() != null ? authEmail().lower() : null;
-    }
-
-    function userDoc(uid) {
-      return /databases/$(database)/documents/users/$(uid);
+      let email = authEmail();
+      return email != null ? email.lower() : null;
     }
 
     function calendarDocPath(calendarId) {
@@ -34,10 +33,6 @@ service cloud.firestore {
 
     function inviteDocPath(calendarId, uid) {
       return /databases/$(database)/documents/calendars/$(calendarId)/invites/$(uid);
-    }
-
-    function accessRequestDocPath(calendarId, uid) {
-      return /databases/$(database)/documents/calendars/$(calendarId)/accessRequests/$(uid);
     }
 
     function isSelf(uid) {
@@ -203,7 +198,8 @@ service cloud.firestore {
         allow read: if isCalendarOwner(calendarId) || isSelf(uid);
         allow create: if isCalendarOwner(calendarId) || isOwnerBootstrapAccess(calendarId, uid) || isInvitedMemberAcceptance(calendarId, uid);
         allow update: if isCalendarOwner(calendarId);
-        allow delete: if isCalendarOwner(calendarId) || (isSelf(uid) && resource.data.role == 'member');
+        allow delete: if (isCalendarOwner(calendarId) && resource.data.role == 'member')
+          || (isSelf(uid) && resource.data.role == 'member');
       }
 
       match /invites/{invitedUid} {

@@ -105,7 +105,7 @@ src/domain/useOwnerProfile.ts
 src/domain/useOwnerCalendar.ts
 src/domain/useNotificationSetup.ts
 app/register.tsx
-app/[publicSlug].tsx
+app/calendar/[calendarSlug].tsx
 app/(tabs)/index.tsx
 app/(tabs)/my-calendar/[date].tsx
 app/connected-calendars.tsx
@@ -318,7 +318,7 @@ Codex must verify:
 
 copied user link resolves to user identity flow
 copied calendar link resolves to calendar view
-app/[publicSlug].tsx or replacement route no longer misrepresents both concepts
+app/calendar/[calendarSlug].tsx and app/user/[username].tsx no longer misrepresent both concepts
 dashboard wording matches implemented behavior
 no UI presents a link that has no matching route behavior
 
@@ -759,7 +759,7 @@ src/domain/useOwnerProfile.ts
 src/domain/useOwnerCalendar.ts
 src/domain/useNotificationSetup.ts
 app/register.tsx
-app/[publicSlug].tsx or replacement route files
+app/calendar/[calendarSlug].tsx and related route files
 app/(tabs)/index.tsx
 app/(tabs)/my-calendar/[date].tsx
 app/connected-calendars.tsx

@@ -88,7 +88,7 @@ This collection guarantees global username uniqueness.
 Public user route:
 
 
-slotlyme.app/{username}
+/user/{username}
 
 
 Purpose:
@@ -150,7 +150,7 @@ private
 Public calendar routes use a separate slug.
 
 
-slotlyme.app/{calendarSlug}
+/calendar/{calendarSlug}
 
 
 Resolution collection:
@@ -206,7 +206,7 @@ Owner invites user.
 Collection:
 
 
-calendars/{calendarId}/invites/{inviteId}
+calendars/{calendarId}/invites/{invitedUid}
 
 
 Fields:

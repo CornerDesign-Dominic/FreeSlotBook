@@ -51,7 +51,7 @@ uid is immutable.
 Two public concepts exist and must never be confused:
 
 User identity route
-slotlyme.app/{username}
+/user/{username}
 
 Purpose:
 
@@ -62,7 +62,7 @@ resolve a public user identity
 This route does not represent a calendar.
 
 Calendar share route
-slotlyme.app/{calendarSlug}
+/calendar/{calendarSlug}
 
 Purpose:
 

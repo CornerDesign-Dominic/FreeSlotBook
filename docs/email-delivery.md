@@ -1,28 +1,25 @@
 # E-Mail-Zustellung
 
-## Ziel
-
 Dieses Dokument beschreibt die aktuelle E-Mail-Zustellung im produktiven Grundaufbau von Slotly 1.0.
 
-Es beschreibt keinen provisorischen Zustand, sondern den derzeitigen Versandpfad fuer termin- und kontoassoziierte E-Mails.
-
-## Aktuelle Architektur
+## Architektur
 
 Der Versandpfad ist zweistufig:
 
-1. Die App oder die serverseitige Logik erzeugt ein Notification-Dokument in Firestore.
-2. Eine Cloud Function verarbeitet dieses Dokument und uebernimmt die eigentliche E-Mail-Zustellung.
+1. Die App oder serverseitige Logik erzeugt ein Notification-Dokument.
+2. Eine Cloud Function verarbeitet dieses Dokument und uebernimmt die eigentliche Zustellung.
 
 ## Datenbasis
 
-Die relevanten Notification-Dokumente liegen kalenderbezogen unter:
+Notification-Dokumente liegen in:
 
 ```text
-calendars/{calendarId}/notifications/{notificationId}
+notifications/{notificationId}
 ```
 
 Wichtige Felder sind unter anderem:
 
+- `calendarId`
 - `channel`
 - `type`
 - `status`
@@ -32,11 +29,7 @@ Wichtige Felder sind unter anderem:
 - `createdAt`
 - `updatedAt`
 
-## Versandlogik
-
-Die Function reagiert auf neue oder aktualisierte Notification-Dokumente mit passendem Versandkanal.
-
-Der typische Ablauf:
+## Ablauf
 
 1. Ein Dokument wird mit `channel = email` angelegt.
 2. Der Zustellstatus startet in `pending`.
@@ -44,26 +37,7 @@ Der typische Ablauf:
 4. Die E-Mail wird ueber den konfigurierten Provider versendet.
 5. Danach wird auf `sent` oder `failed` aktualisiert.
 
-## Abgedeckte Faelle
-
-Die aktuelle Zustellung ist fuer produktrelevante Kommunikationsfaelle vorbereitet, insbesondere:
-
-- Buchungsbestaetigungen
-- Terminbezogene Hinweise
-- Einladungen zur Kontoanlage nach einer Gastbuchung
-
-## Gast-zu-Konto-Verknuepfung
-
-Wenn eine Buchung zunaechst gastbasiert erfolgt und spaeter ein Konto mit derselben E-Mail entsteht, wird die Rueckverknuepfung serverseitig ueber Cloud Functions verarbeitet.
-
-Dadurch bleibt der Zustellpfad konsistent:
-
-- Gastvorgaenge koennen bereits E-Mails ausloesen
-- spaetere Kontoverknuepfung erfordert keine manuelle Datenmigration im Client
-
 ## Architekturhinweis
 
-Der E-Mail-Versand ist ein strukturierter Bestandteil des Systems.
-
-UI-Komponenten sollen keine Versandlogik direkt implementieren.
-Sie erzeugen die fachlich passenden Daten oder stoessen Repository-Operationen an, die die erforderlichen Notification-Dokumente schreiben.
+UI-Komponenten implementieren keine Versandlogik direkt.
+Sie erzeugen die fachlich passenden Daten oder stossen Repository-Operationen an, die die benoetigten Notification-Dokumente schreiben.

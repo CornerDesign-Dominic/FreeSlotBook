@@ -8,13 +8,13 @@ type PendingCalendarAccessRequestItem = {
   calendar: CalendarRecord | null;
 };
 
-export function usePendingCalendarAccessRequests(requesterUserId: string | null) {
+export function usePendingCalendarAccessRequests(requesterUid: string | null) {
   const [records, setRecords] = useState<PendingCalendarAccessRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!requesterUserId) {
+    if (!requesterUid) {
       setRecords([]);
       setError(null);
       setLoading(false);
@@ -25,7 +25,7 @@ export function usePendingCalendarAccessRequests(requesterUserId: string | null)
     setError(null);
 
     const unsubscribe = subscribeToPendingCalendarAccessRequestsByRequester(
-      requesterUserId,
+      requesterUid,
       (nextRequests) => {
         void (async () => {
           try {
@@ -51,7 +51,7 @@ export function usePendingCalendarAccessRequests(requesterUserId: string | null)
     );
 
     return unsubscribe;
-  }, [requesterUserId]);
+  }, [requesterUid]);
 
   return { records, loading, error };
 }

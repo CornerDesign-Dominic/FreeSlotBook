@@ -102,7 +102,6 @@ export interface CalendarAccessRequestRecord {
   calendarId: string;
   calendarSlug: string | null;
   requesterUid: string;
-  requesterUserId: string;
   requesterEmail: string;
   requesterUsername: string | null;
   status: AccessRequestStatus;

@@ -28,36 +28,28 @@ The hard source of truth remains:
 ## Identity rules
 
 - Firebase Auth UID is the internal user identity.
-- `users/{uid}` is the only canonical user root.
-- `usernames/{username}` maps username to UID.
-- `emails/{emailKey}` maps normalized email to UID.
 - Email and username are lookup keys, not relational primary keys.
 
 ## Calendar rules
 
-- A user and a calendar are separate entities.
-- `calendars/{calendarId}` is the source of truth for calendar metadata.
-- `ownerUid` is the ownership source of truth.
-- The model structurally supports multiple calendars per user.
-- Registration bootstraps one private calendar and one owner access entry.
-- `calendarSlugs/{calendarSlug}` maps calendar link to calendar ID.
+- calendars are independent resources
+- `calendars/{calendarId}` is the source of truth for calendar metadata
+- `ownerUid` is the ownership source of truth
+- registration bootstraps one private calendar and one owner access entry
 
 ## Access rules
 
-- Membership is calendar-local in `access/{uid}`.
-- Roles are `owner` and `member`.
-- Invites are owner-driven and stored in `invites/{invitedUid}`.
-- Access requests are user-driven and stored in `accessRequests/{uid}`.
-- Owner removal and member leave are separate actions.
+- membership is calendar-local
+- invites and access requests are structurally separate
+- owner removal and member leave are separate actions
 
 ## Scheduling rules
 
-- Slots live in `slots/{slotId}`.
-- Appointments live in `appointments/{appointmentId}`.
-- Slot overlap is forbidden within the same calendar.
-- Booking and cancellation must keep slot and appointment state consistent.
+- slots live in `slots/{slotId}`
+- appointments live in `appointments/{appointmentId}`
+- slot overlap is forbidden within the same calendar
+- booking and cancellation must keep slot and appointment state consistent
 
 ## Legacy note
 
-Older structures such as `owners`, `publicCalendarSlugs`, email-keyed access docs, and
-`calendars/{calendarId}/requests` are not canonical and should not be used for active work.
+Legacy structures from earlier revisions are intentionally excluded from the active model.

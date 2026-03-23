@@ -96,7 +96,7 @@ export default function RequestCalendarAccessScreen() {
     try {
       await requestCalendarAccessBySlug({
         slug: calendarSlug,
-        requesterUserId: user.uid,
+        requesterUid: user.uid,
         requesterEmail: user.email,
       });
       setMessage(t('requestAccess.success'));

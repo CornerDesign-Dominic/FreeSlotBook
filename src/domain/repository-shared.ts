@@ -281,7 +281,6 @@ export function mapAccessRequest(id: string, data: Record<string, unknown>): Cal
         ? data.calendarSlug.trim()
         : null,
     requesterUid,
-    requesterUserId: requesterUid,
     requesterEmail: String(data.requesterEmail ?? ''),
     requesterUsername:
       typeof data.requesterUsername === 'string' && data.requesterUsername.trim().length

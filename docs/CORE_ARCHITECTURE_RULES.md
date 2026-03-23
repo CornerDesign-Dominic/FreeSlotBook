@@ -22,7 +22,7 @@ Username is globally unique.
 Username identifies the public user route.
 
 
-slotlyme.app/{username}
+/user/{username}
 
 
 Username maps to UID via the usernames collection.
@@ -102,7 +102,7 @@ Owner cannot leave their own calendar.
 Calendars have public slugs.
 
 
-slotlyme.app/{calendarSlug}
+/calendar/{calendarSlug}
 
 
 Slug must be globally unique.
@@ -114,7 +114,7 @@ Slug must be globally unique.
 User routes are used to identify users for invitations.
 
 
-slotlyme.app/{username}
+/user/{username}
 
 
 They do not represent calendars.

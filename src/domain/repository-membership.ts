@@ -223,12 +223,12 @@ export async function removeConnectedCalendar(params: {
 export async function upsertCalendarAccessRequest(params: {
   calendarId: string;
   calendarSlug?: string | null;
-  requesterUserId?: string | null;
+  requesterUid?: string | null;
   requesterEmail: string;
   requesterUsername?: string | null;
   status?: CalendarAccessRequestRecord['status'];
 }) {
-  const requesterUid = params.requesterUserId?.trim();
+  const requesterUid = params.requesterUid?.trim();
 
   if (!requesterUid) {
     throw new Error('Fuer die Anfrage ist eine Nutzer-ID erforderlich.');
@@ -292,13 +292,13 @@ export function subscribeToCalendarAccessRequests(
 }
 
 export function subscribeToPendingCalendarAccessRequestsByRequester(
-  requesterUserId: string,
+  requesterUid: string,
   onData: (records: CalendarAccessRequestRecord[]) => void,
   onError: (error: Error) => void
 ) {
   const requestsQuery = query(
     collectionGroup(db, 'accessRequests'),
-    where('requesterUid', '==', requesterUserId),
+    where('requesterUid', '==', requesterUid),
     where('status', '==', 'pending')
   );
 
@@ -345,7 +345,7 @@ export function subscribeToPendingCalendarInvitesByUser(
 
 export async function requestCalendarAccessBySlug(params: {
   slug: string;
-  requesterUserId: string;
+  requesterUid: string;
   requesterEmail: string;
 }) {
   const calendar = await getCalendarBySlug(params.slug);
@@ -354,7 +354,7 @@ export async function requestCalendarAccessBySlug(params: {
     throw new Error('Zu diesem Kalender-Link wurde kein Kalender gefunden.');
   }
 
-  if (calendar.ownerUid === params.requesterUserId) {
+  if (calendar.ownerUid === params.requesterUid) {
     throw new Error('Fuer den eigenen Kalender musst du keine Anfrage stellen.');
   }
 
@@ -362,19 +362,19 @@ export async function requestCalendarAccessBySlug(params: {
     throw new Error('Anfragen sind aktuell nur fuer private Kalender verfuegbar.');
   }
 
-  const requesterProfile = await getOwnerProfile(params.requesterUserId);
+  const requesterProfile = await getOwnerProfile(params.requesterUid);
 
   if (!requesterProfile) {
     throw new Error('Dein Konto konnte nicht aufgeloest werden.');
   }
 
-  const existingMembership = await getMembership(calendar.id, params.requesterUserId);
+  const existingMembership = await getMembership(calendar.id, params.requesterUid);
 
   if (existingMembership) {
     throw new Error('Du hast bereits Zugriff auf diesen Kalender.');
   }
 
-  const pendingInvite = await getDoc(calendarInviteDoc(calendar.id, params.requesterUserId));
+  const pendingInvite = await getDoc(calendarInviteDoc(calendar.id, params.requesterUid));
 
   if (pendingInvite.exists()) {
     const invite = mapInvite(pendingInvite.id, pendingInvite.data() as Record<string, unknown>);
@@ -383,7 +383,7 @@ export async function requestCalendarAccessBySlug(params: {
     }
   }
 
-  const requestSnapshot = await getDoc(calendarAccessRequestDoc(calendar.id, params.requesterUserId));
+  const requestSnapshot = await getDoc(calendarAccessRequestDoc(calendar.id, params.requesterUid));
 
   if (requestSnapshot.exists()) {
     const request = mapAccessRequest(requestSnapshot.id, requestSnapshot.data() as Record<string, unknown>);
@@ -395,7 +395,7 @@ export async function requestCalendarAccessBySlug(params: {
   await upsertCalendarAccessRequest({
     calendarId: calendar.id,
     calendarSlug: calendar.calendarSlug,
-    requesterUserId: params.requesterUserId,
+    requesterUid: params.requesterUid,
     requesterEmail: params.requesterEmail,
     requesterUsername: requesterProfile.username,
     status: 'pending',
