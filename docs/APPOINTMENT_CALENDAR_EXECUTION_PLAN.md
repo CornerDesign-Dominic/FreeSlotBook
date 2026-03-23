@@ -641,3 +641,194 @@ Implement this feature incrementally, test along the way, and stop only when the
 
 Do not optimize for the smallest diff.
 Optimize for a clean Slotly 1.0 feature implementation that matches the existing architecture and user experience direction.
+
+
+# 18. OVERLAP LAYOUT LOGIC
+
+The appointment calendar uses a horizontal time axis.
+
+Therefore overlapping appointments must be stacked vertically.
+
+This rule applies to:
+
+- dashboard timeline
+- week view
+- day view
+
+## 13.1 Purpose
+
+The overlap layout exists only to render active visible appointments clearly.
+
+It is a display rule, not a booking rule.
+
+It must not:
+
+- block bookings
+- create warnings
+- modify appointments
+
+It only determines visual placement.
+
+## 13.2 Input scope
+
+Only active visible appointments participate in overlap layout.
+
+Included:
+- appointments with status `booked`
+- appointments not filtered out by hiddenCalendarIds
+
+Excluded:
+- cancelled appointments
+- hidden appointments
+- appointments outside the current visible time range
+
+## 13.3 Overlap rule
+
+Two appointments overlap if:
+
+```text
+left.startsAt < right.endsAt
+AND
+left.endsAt > right.startsAt
+
+If this is true, they cannot occupy the same visual row.
+
+13.4 Row assignment
+
+Appointments must be sorted before layout:
+
+by startsAt ascending
+if equal, by endsAt ascending
+if still equal, by stable id ascending
+
+Then assign each appointment to the first available row where it does not overlap with the last appointment already placed in that row.
+
+This ensures stable deterministic layout.
+
+13.5 Maximum visible rows
+
+Maximum visible rows:
+
+3
+
+If more than 3 active appointments overlap in the same visible segment:
+
+rows 1 and 2 show normal appointment blocks
+row 3 may be used as overflow representation
+
+Example:
+
+Appointment A
+Appointment B
++4 more
+
+The overflow representation must indicate how many additional overlapping appointments are not directly shown.
+
+13.6 Overflow behavior
+
+The overflow block is a UI representation only.
+
+It should lead the user to the fuller day detail context if interaction is supported.
+
+The exact interaction may follow current UI conventions, but the main rule is:
+
+never expand beyond 3 visible rows in the timeline
+13.7 Stability requirement
+
+Layout must be stable.
+
+The same appointment set must always produce the same row order and same overflow result.
+
+Appointments must not randomly jump between rows across renders.
+
+
+---
+
+## Block 2 — Day Boundary Logic
+
+```md
+# 14. DAY BOUNDARY LOGIC
+
+The appointment calendar must correctly handle appointments that cross day boundaries.
+
+This includes appointments such as:
+
+- late evening to after midnight
+- multi-hour appointments spanning two dates
+- cancelled appointments whose start and end touch different days
+
+## 14.1 Purpose
+
+Day-boundary logic ensures that appointments are shown on every relevant day.
+
+Without this rule, appointments may:
+
+- disappear from a day view
+- appear on the wrong day
+- be counted incorrectly in month view
+- be missing from the Storno card
+
+## 14.2 Canonical day inclusion rule
+
+An appointment belongs to a calendar day if:
+
+```text
+appointment.startsAt < dayEnd
+AND
+appointment.endsAt > dayStart
+
+Where:
+
+dayStart = start of selected day
+dayEnd = start of next day
+
+This rule must be used consistently for:
+
+month counts
+week placement
+day view timeline inclusion
+Storno card inclusion
+14.3 Month view counting
+
+A day’s appointment count must include appointments that intersect that day according to the canonical day inclusion rule.
+
+This means an appointment crossing midnight may count on more than one day if it overlaps both days.
+
+Cancelled appointments must still be excluded from the month count.
+
+14.4 Week view inclusion
+
+Appointments must appear on each visible day they intersect.
+
+If an appointment spans across midnight, the visible rendering must still align with the portion relevant to that day and view.
+
+14.5 Day view inclusion
+
+The day view timeline must show active appointments that intersect the selected day.
+
+This includes appointments that:
+
+start before the selected day but continue into it
+start within the selected day and end after midnight
+14.6 Storno card inclusion
+
+Cancelled appointments must appear in the Storno card if they intersect the selected day according to the same canonical day inclusion rule.
+
+This is stricter and more correct than checking only whether the start or end timestamp lies inside the day.
+
+Reason:
+An appointment may span across the full day without its exact start or end being inside a narrower interpretation window.
+
+Therefore the Storno card must use the same intersection logic as all other day-based appointment calculations.
+
+14.7 Consistency requirement
+
+Codex must not implement different day-inclusion logic in different views.
+
+The same canonical day inclusion rule must be reused across:
+
+dashboard derivations where relevant
+month calculations
+week calculations
+day timeline calculations
+Storno card calculations
