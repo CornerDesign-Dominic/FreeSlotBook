@@ -15,6 +15,7 @@ import {
 import { db } from '@/src/firebase/config';
 
 import type {
+  AppointmentCalendarSettings,
   CalendarRecord,
   DashboardData,
 } from './types';
@@ -24,12 +25,14 @@ import {
   resolveStableCalendarSlug,
 } from './calendar-slug-policy';
 import {
+  appointmentCalendarSettingsDoc,
   calendarAccessCollection,
   calendarDoc,
   calendarSlugDoc,
   emailDoc,
   getDashboardLoadErrorMessage,
   mapAccess,
+  mapAppointmentCalendarSettings,
   mapAppointment,
   mapCalendar,
   mapNotification,
@@ -617,6 +620,66 @@ export async function getDashboardData(params: { uid: string; email: string }) {
   } catch (error) {
     throw new Error(getDashboardLoadErrorMessage(error));
   }
+}
+
+export async function getAppointmentCalendarSettings(uid: string) {
+  const snapshot = await getDoc(appointmentCalendarSettingsDoc(uid));
+  return snapshot.exists()
+    ? mapAppointmentCalendarSettings(snapshot.data() as Record<string, unknown>)
+    : { hiddenCalendarIds: [] };
+}
+
+export function subscribeToAppointmentCalendarSettings(
+  uid: string,
+  onData: (settings: AppointmentCalendarSettings) => void,
+  onError: (error: Error) => void
+) {
+  return onSnapshot(
+    appointmentCalendarSettingsDoc(uid),
+    (snapshot) => {
+      onData(
+        snapshot.exists()
+          ? mapAppointmentCalendarSettings(snapshot.data() as Record<string, unknown>)
+          : { hiddenCalendarIds: [] }
+      );
+    },
+    onError
+  );
+}
+
+export async function updateAppointmentCalendarSettings(params: {
+  uid: string;
+  hiddenCalendarIds: string[];
+}) {
+  await runTransaction(db, async (transaction) => {
+    transaction.set(
+      appointmentCalendarSettingsDoc(params.uid),
+      {
+        hiddenCalendarIds: Array.from(
+          new Set(params.hiddenCalendarIds.filter((calendarId) => calendarId.trim().length))
+        ),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  });
+}
+
+export async function listCalendarsByIds(calendarIds: string[]) {
+  const uniqueCalendarIds = Array.from(
+    new Set(calendarIds.filter((calendarId) => calendarId.trim().length))
+  );
+
+  const calendars = await Promise.all(
+    uniqueCalendarIds.map(async (calendarId) => {
+      const snapshot = await getDoc(calendarDoc(calendarId));
+      return snapshot.exists()
+        ? mapCalendar(snapshot.id, snapshot.data() as Record<string, unknown>)
+        : null;
+    })
+  );
+
+  return calendars.filter((calendar): calendar is CalendarRecord => calendar !== null);
 }
 
 export async function updateCalendarDescription(params: {

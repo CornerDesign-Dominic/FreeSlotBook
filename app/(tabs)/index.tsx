@@ -15,7 +15,7 @@ import {
 import { useDashboardData } from '../../src/domain/useDashboardData';
 import { useOwnerCalendar } from '../../src/domain/useOwnerCalendar';
 import { useOwnerSlots } from '../../src/domain/useOwnerSlots';
-import { useParticipantAppointments } from '../../src/domain/useParticipantAppointments';
+import { useAppointmentCalendar } from '../../src/domain/useAppointmentCalendar';
 import { useAuth } from '../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppTheme, useBottomSafeContentStyle } from '../../src/theme/ui';
@@ -38,10 +38,10 @@ export default function HomeScreen() {
     activeOwnerCalendar?.id ?? null
   );
   const {
-    appointments,
+    activeAppointments,
     loading: appointmentsLoading,
     error: appointmentsError,
-  } = useParticipantAppointments(user ? { uid: user.uid, email: user.email } : null);
+  } = useAppointmentCalendar(user ? { uid: user.uid, email: user.email } : null);
   const visibleJoinedCalendars = data.joinedCalendars.slice(0, 3);
   const publicSlug = activeOwnerCalendar?.publicSlug ?? null;
   const publicCalendarUrl = publicSlug ? `https://slotlyme.app/calendar/${publicSlug}` : null;
@@ -303,7 +303,7 @@ export default function HomeScreen() {
           style={{ marginTop: theme.spacing[12] }}
           onLayout={(event) => handleTimelineViewportLayout(event.nativeEvent.layout.width)}>
           <DashboardAppointmentTimeline
-            appointments={appointments}
+            appointments={activeAppointments}
             loading={appointmentsLoading}
             error={appointmentsError}
             window={timelineWindow}
@@ -311,6 +311,11 @@ export default function HomeScreen() {
             onScroll={(x) => syncTimelineScroll('appointments', x)}
           />
         </View>
+        <Link href="/appointment-calendar-settings" asChild>
+          <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
+            <Text style={uiStyles.linkText}>Termin-Kalender-Einstellungen</Text>
+          </Pressable>
+        </Link>
       </View>
 
       <View style={[uiStyles.panel, { marginBottom: theme.spacing[24] }]}>

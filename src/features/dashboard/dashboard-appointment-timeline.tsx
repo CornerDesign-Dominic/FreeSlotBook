@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import type { RefObject } from 'react';
+import { router } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 
+import { getDayKey } from '../../domain/calendar-utils';
 import type { AppointmentRecord } from '../../domain/types';
 import { useTranslation } from '@/src/i18n/provider';
 import {
@@ -83,6 +85,11 @@ export function DashboardAppointmentTimeline(props: {
         emptyLabel={t('dashboard.appointmentTimelineEmpty')}
         scrollRef={props.scrollRef}
         onScroll={props.onScroll}
+        maxVisibleLanes={3}
+        overflowLabel={(count) => t('appointments.timelineOverflow', { count })}
+        onOverflowPress={(start) => {
+          router.push(`/my-appointments/${getDayKey(start)}`);
+        }}
       />
       {props.error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{props.error}</Text> : null}
     </View>

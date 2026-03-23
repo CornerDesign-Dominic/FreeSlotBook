@@ -321,6 +321,7 @@ export const en = {
   'appointments.emptyMonth': 'You currently have no booked or received appointments.',
   'appointments.emptyWeek': 'You have no appointments in this week.',
   'appointments.emptyDay': 'You have no appointments on this day.',
+  'appointments.emptyCancelled': 'There are no cancelled appointments on this day.',
   'appointments.invalidDate': 'The selected date is invalid.',
   'appointments.timeUnavailable': 'Time unavailable',
   'appointments.timeLabel': 'Time: {{time}}',
@@ -330,6 +331,19 @@ export const en = {
   'appointments.selectHint': 'Select an appointment above to see its details.',
   'appointments.sourceManual': 'Assigned manually',
   'appointments.sourceSelfService': 'Booked by myself',
+  'appointments.timelineOverflow': '+{{count}} more',
+  'appointments.cancelledCardTitle': 'Cancelled appointments ({{count}})',
+  'appointments.show': 'Show',
+  'appointments.settingsTitle': 'Appointment calendar settings',
+  'appointments.settingsDescription':
+    'Hide appointments from selected connected calendars. Cancelled appointments always stay in the day view storno card.',
+  'appointments.settingsEmpty':
+    'There are currently no connected source calendars with appointments to configure.',
+  'appointments.settingsVisible': 'Visible',
+  'appointments.settingsHidden': 'Hidden',
+  'appointments.settingsHideAction': 'Hide',
+  'appointments.settingsShowAction': 'Show',
+  'appointments.settingsBackToDashboard': 'Back to dashboard',
 
   'public.title': 'Public calendar',
   'public.notPublic': 'This calendar is currently not publicly available.',

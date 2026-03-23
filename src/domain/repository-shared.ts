@@ -8,6 +8,7 @@ import { db } from '@/src/firebase/config';
 
 import type {
   AppointmentRecord,
+  AppointmentCalendarSettings,
   CalendarAccessRecord,
   CalendarAccessRequestRecord,
   CalendarInviteRecord,
@@ -160,6 +161,14 @@ export function userConnectedCalendarPreferencesCollection(uid: string) {
 
 export function userConnectedCalendarPreferenceDoc(uid: string, calendarId: string) {
   return doc(db, 'users', uid, 'connectedCalendarPreferences', calendarId);
+}
+
+export function userSettingsDoc(uid: string, settingId: string) {
+  return doc(db, 'users', uid, 'settings', settingId);
+}
+
+export function appointmentCalendarSettingsDoc(uid: string) {
+  return userSettingsDoc(uid, 'appointmentCalendar');
 }
 
 export const reservedPublicSlugs = new Set([
@@ -380,6 +389,18 @@ export function mapAppointment(id: string, data: Record<string, unknown>): Appoi
     createdAt: asDate(data.createdAt),
     updatedAt: asDate(data.updatedAt),
     cancelledAt: asDate(data.cancelledAt),
+  };
+}
+
+export function mapAppointmentCalendarSettings(
+  data: Record<string, unknown> | null | undefined
+): AppointmentCalendarSettings {
+  return {
+    hiddenCalendarIds: Array.isArray(data?.hiddenCalendarIds)
+      ? data!.hiddenCalendarIds.filter(
+          (value): value is string => typeof value === 'string' && value.trim().length > 0
+        )
+      : [],
   };
 }
 

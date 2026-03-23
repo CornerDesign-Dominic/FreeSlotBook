@@ -169,6 +169,10 @@ export interface AppointmentRecord {
   cancelledAt?: Date | null;
 }
 
+export interface AppointmentCalendarSettings {
+  hiddenCalendarIds: string[];
+}
+
 export interface NotificationRecord {
   id: string;
   calendarId: string;

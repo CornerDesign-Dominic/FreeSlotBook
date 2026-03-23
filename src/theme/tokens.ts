@@ -1,29 +1,29 @@
 import type { AppTheme } from '@/src/settings/types';
 
 export const lightColorTokens = {
-  background: '#F4F5F7',
+  background: '#FAFBFD',
   surface: '#FFFFFF',
-  surfaceSoft: '#ECEFF3',
-  border: '#D7DCE2',
-  textPrimary: '#1F2329',
+  surfaceSoft: '#F5F7FA',
+  border: '#E6EAF0',
+  textPrimary: '#111418',
   textSecondary: '#66707A',
-  accent: '#2F343B',
-  accentSoft: '#E6EAEE',
-  shadow: 'rgba(18, 24, 32, 0.08)',
-  overlay: 'rgba(18, 24, 32, 0.18)',
+  accent: '#6366F1',
+  accentSoft: '#EEF0FF',
+  shadow: 'rgba(15, 23, 42, 0.06)',
+  overlay: 'rgba(15, 23, 42, 0.14)',
 } as const;
 
 export const darkColorTokens = {
-  background: '#101418',
-  surface: '#171C22',
-  surfaceSoft: '#20262D',
-  border: '#2C343D',
-  textPrimary: '#F3F5F7',
-  textSecondary: '#A2ADB8',
-  accent: '#E6EAEE',
-  accentSoft: '#2B333B',
-  shadow: 'rgba(0, 0, 0, 0.34)',
-  overlay: 'rgba(0, 0, 0, 0.45)',
+  background: '#090B0E',
+  surface: '#111418',
+  surfaceSoft: '#171B20',
+  border: '#232A32',
+  textPrimary: '#F5F7FA',
+  textSecondary: '#98A2AD',
+  accent: '#818CF8',
+  accentSoft: 'rgba(129,140,248,0.18)',
+  shadow: 'rgba(0,0,0,0.42)',
+  overlay: 'rgba(0,0,0,0.56)',
 } as const;
 
 export const colorTokensByTheme = {

@@ -10,25 +10,11 @@ import {
   getDayKey,
   getWeekdayLabels,
 } from '../../../src/domain/calendar-utils';
-import type { AppointmentRecord } from '../../../src/domain/types';
-import { useParticipantAppointments } from '../../../src/domain/useParticipantAppointments';
+import { useAppointmentCalendar } from '../../../src/domain/useAppointmentCalendar';
 import { useAuth } from '../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';
 import { useAppTheme, useBottomSafeContentStyle } from '../../../src/theme/ui';
-
-function getAppointmentCountsByDay(appointments: AppointmentRecord[]) {
-  return appointments.reduce<Record<string, number>>((accumulator, appointment) => {
-    if (!appointment.startsAt) {
-      return accumulator;
-    }
-
-    const dayKey = getDayKey(appointment.startsAt);
-    accumulator[dayKey] = (accumulator[dayKey] ?? 0) + 1;
-
-    return accumulator;
-  }, {});
-}
 
 export default function MyAppointmentsMonthScreen() {
   const { resetMonth } = useLocalSearchParams<{ resetMonth?: string }>();
@@ -39,7 +25,12 @@ export default function MyAppointmentsMonthScreen() {
   const { weekStartsOn } = useAppSettings();
   const { width: screenWidth } = useWindowDimensions();
   const locale = language === 'de' ? 'de-DE' : 'en-US';
-  const { appointments, loading, error } = useParticipantAppointments(user?.email ?? null);
+  const {
+    activeAppointments,
+    activeAppointmentCountsByDay,
+    loading,
+    error,
+  } = useAppointmentCalendar(user ? { uid: user.uid, email: user.email } : null);
   const [visibleMonth, setVisibleMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -61,10 +52,6 @@ export default function MyAppointmentsMonthScreen() {
   const weekdayLabels = useMemo(
     () => getWeekdayLabels(language, weekStartsOn),
     [language, weekStartsOn]
-  );
-  const appointmentCountsByDay = useMemo(
-    () => getAppointmentCountsByDay(appointments),
-    [appointments]
   );
   const calendarCellGap = theme.spacing[4];
   const availableWidth = Math.max(screenWidth - theme.spacing[16] * 2 - theme.spacing[16] * 2, 280);
@@ -88,8 +75,8 @@ export default function MyAppointmentsMonthScreen() {
   };
 
   const formatCompactCount = (count: number) => {
-    if (count > 9) {
-      return '9+';
+    if (count > 99) {
+      return '99+';
     }
 
     return `${count}`;
@@ -129,7 +116,7 @@ export default function MyAppointmentsMonthScreen() {
               key={`week-${weekIndex}`}
               style={{ flexDirection: 'row', columnGap: calendarCellGap }}>
               {week.map((day) => {
-                const appointmentCount = appointmentCountsByDay[day.key] ?? 0;
+                const appointmentCount = activeAppointmentCountsByDay[day.key] ?? 0;
                 const isOutsideMonth = !day.isCurrentMonth;
 
                 return (
@@ -193,7 +180,7 @@ export default function MyAppointmentsMonthScreen() {
           ))}
         </View>
 
-        {!appointments.length ? (
+        {!activeAppointments.length ? (
           <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>
             {t('appointments.emptyMonth')}
           </Text>

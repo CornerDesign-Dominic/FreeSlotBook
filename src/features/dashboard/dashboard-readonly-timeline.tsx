@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import type { RefObject } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { buildOverflowTimelineLayout } from '../../domain/appointment-calendar-utils';
 import {
-  assignTimelineLanes,
   buildTimelineHourMarkers,
   getDateDividerLabel,
   getTimelineContentWidth,
@@ -34,6 +34,9 @@ export function DashboardReadonlyTimeline(props: {
   emptyLabel: string;
   scrollRef: RefObject<ScrollView | null>;
   onScroll: (x: number) => void;
+  maxVisibleLanes?: number;
+  overflowLabel?: (count: number) => string;
+  onOverflowPress?: (start: Date) => void;
 }) {
   const { theme, uiStyles } = useAppTheme();
   const hourMarkers = useMemo(
@@ -49,25 +52,50 @@ export function DashboardReadonlyTimeline(props: {
     [props.window]
   );
   const hourWidth = getTimelineHourWidth();
-  const { laneByItemId, laneCount } = useMemo(
-    () => assignTimelineLanes(props.items),
-    [props.items]
+  const { visibleItems, overflowItems, laneCount } = useMemo(
+    () =>
+      props.maxVisibleLanes
+        ? buildOverflowTimelineLayout(props.items, props.maxVisibleLanes)
+        : {
+            visibleItems: props.items.map((item) => ({ item, lane: 0 })),
+            overflowItems: [],
+            laneCount: 1,
+          },
+    [props.items, props.maxVisibleLanes]
   );
-  const trackHeight = useMemo(() => getTimelineTrackHeight(laneCount), [laneCount]);
+  const standardLayout = useMemo(
+    () => (!props.maxVisibleLanes ? buildOverflowTimelineLayout(props.items, Number.MAX_SAFE_INTEGER) : null),
+    [props.items, props.maxVisibleLanes]
+  );
+  const standardVisibleItems = standardLayout?.visibleItems ?? [];
+  const resolvedVisibleItems = props.maxVisibleLanes ? visibleItems : standardVisibleItems;
+  const resolvedLaneCount = props.maxVisibleLanes ? laneCount : standardLayout?.laneCount ?? 1;
+  const trackHeight = useMemo(() => getTimelineTrackHeight(resolvedLaneCount), [resolvedLaneCount]);
   const itemHeight = getTimelineItemHeight();
   const renderedSegments = useMemo(
     () =>
-      props.items.flatMap((item) =>
+      resolvedVisibleItems.flatMap(({ item, lane }) =>
         splitIntervalAtMidnight({ start: item.start, end: item.end }, props.window).map(
           (segment, segmentIndex) => ({
             item,
             segment,
             segmentIndex,
-            lane: laneByItemId.get(item.id) ?? 0,
+            lane,
           })
         )
       ),
-    [laneByItemId, props.items, props.window]
+    [props.window, resolvedVisibleItems]
+  );
+  const renderedOverflowSegments = useMemo(
+    () =>
+      overflowItems.flatMap((item, segmentIndex) =>
+        splitIntervalAtMidnight({ start: item.start, end: item.end }, props.window).map((segment) => ({
+          item,
+          segment,
+          segmentIndex,
+        }))
+      ),
+    [overflowItems, props.window]
   );
   const currentTimeLeft = useMemo(
     () => getTimelinePosition(props.window.now, props.window),
@@ -202,8 +230,9 @@ export function DashboardReadonlyTimeline(props: {
               }}
             />
 
-            {renderedSegments.length ? (
-              renderedSegments.map(({ item, segment, segmentIndex, lane }) => {
+            {renderedSegments.length || renderedOverflowSegments.length ? (
+              <>
+              {renderedSegments.map(({ item, segment, segmentIndex, lane }) => {
                 const left = getTimelinePosition(segment.start, props.window);
                 const right = getTimelinePosition(segment.end, props.window);
                 const width = Math.max(right - left, 18);
@@ -235,7 +264,43 @@ export function DashboardReadonlyTimeline(props: {
                     ) : null}
                   </View>
                 );
-              })
+              })}
+              {renderedOverflowSegments.map(({ item, segment, segmentIndex }) => {
+                const left = getTimelinePosition(segment.start, props.window);
+                const right = getTimelinePosition(segment.end, props.window);
+                const width = Math.max(right - left, 36);
+                const overflowLabel = props.overflowLabel
+                  ? props.overflowLabel(item.hiddenCount)
+                  : `+${item.hiddenCount}`;
+                const Container = props.onOverflowPress ? Pressable : View;
+
+                return (
+                  <Container
+                    key={`${item.id}-${segmentIndex}`}
+                    {...(props.onOverflowPress
+                      ? { onPress: () => props.onOverflowPress?.(item.start) }
+                      : {})}
+                    style={{
+                      position: 'absolute',
+                      left,
+                      top: getTimelineItemTop(item.lane),
+                      width,
+                      minHeight: itemHeight,
+                      paddingHorizontal: theme.spacing[8],
+                      paddingVertical: theme.spacing[8],
+                      borderWidth: 1,
+                      borderColor: theme.colors.accent,
+                      backgroundColor: theme.colors.accentSoft,
+                      justifyContent: 'center',
+                      borderRadius: theme.radius.small,
+                    }}>
+                    <Text style={[uiStyles.metaText, { color: theme.colors.textPrimary }]} numberOfLines={1}>
+                      {overflowLabel}
+                    </Text>
+                  </Container>
+                );
+              })}
+              </>
             ) : (
               <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={uiStyles.secondaryText}>{props.emptyLabel}</Text>

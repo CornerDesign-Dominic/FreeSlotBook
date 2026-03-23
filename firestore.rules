@@ -156,6 +156,10 @@ service cloud.firestore {
         allow read, write: if isSelf(uid);
       }
 
+      match /settings/{settingId} {
+        allow read, write: if isSelf(uid);
+      }
+
       match /connectedCalendarPreferences/{calendarId} {
         allow read, write: if isSelf(uid);
       }

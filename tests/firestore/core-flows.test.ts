@@ -46,6 +46,38 @@ describe('Firestore core flows', () => {
     await expectDocExists(ownerContext, ['calendars', ownerCalendarId, 'access', ownerUser.uid]);
   });
 
+  test('Appointment calendar settings can be stored only on the own user settings path', async () => {
+    const ownerContext = await getAuthenticatedContext({
+      uid: ownerUser.uid,
+      email: ownerUser.email,
+    });
+    const memberContext = await getAuthenticatedContext({
+      uid: memberUser.uid,
+      email: memberUser.email,
+    });
+    const ownerDb = firestoreOf(ownerContext);
+    const memberDb = firestoreOf(memberContext);
+
+    await bootstrapOwnerCalendar(ownerContext);
+    await bootstrapMemberUser(memberContext);
+
+    await assertSucceeds(
+      setDoc(doc(ownerDb, 'users', ownerUser.uid, 'settings', 'appointmentCalendar'), {
+        hiddenCalendarIds: ['calendar_a'],
+        updatedAt: Timestamp.fromDate(new Date('2026-03-24T08:05:00.000Z')),
+      })
+    );
+
+    await expectDocExists(ownerContext, ['users', ownerUser.uid, 'settings', 'appointmentCalendar']);
+
+    await expectWriteDenied(
+      setDoc(doc(memberDb, 'users', ownerUser.uid, 'settings', 'appointmentCalendar'), {
+        hiddenCalendarIds: ['calendar_b'],
+        updatedAt: Timestamp.fromDate(new Date('2026-03-24T08:06:00.000Z')),
+      })
+    );
+  });
+
   test('Owner creates slot in own calendar', async () => {
     const ownerContext = await getAuthenticatedContext({
       uid: ownerUser.uid,

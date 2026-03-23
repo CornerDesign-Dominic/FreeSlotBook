@@ -323,6 +323,7 @@ export const de = {
   'appointments.emptyMonth': 'Du hast aktuell noch keine gebuchten oder erhaltenen Termine.',
   'appointments.emptyWeek': 'In dieser Woche hast du keine Termine.',
   'appointments.emptyDay': 'An diesem Tag hast du keine Termine.',
+  'appointments.emptyCancelled': 'An diesem Tag gibt es keine stornierten Termine.',
   'appointments.invalidDate': 'Das gewaehlte Datum ist ungueltig.',
   'appointments.timeUnavailable': 'Zeit nicht verfuegbar',
   'appointments.timeLabel': 'Zeit: {{time}}',
@@ -332,6 +333,19 @@ export const de = {
   'appointments.selectHint': 'Waehle oben einen Termin aus, um die Details zu sehen.',
   'appointments.sourceManual': 'Manuell zugewiesen',
   'appointments.sourceSelfService': 'Selbst gebucht',
+  'appointments.timelineOverflow': '+{{count}} mehr',
+  'appointments.cancelledCardTitle': 'Stornos ({{count}})',
+  'appointments.show': 'Anzeigen',
+  'appointments.settingsTitle': 'Termin-Kalender Einstellungen',
+  'appointments.settingsDescription':
+    'Blende Termine aus ausgewaehlten verbundenen Kalendern aus. Stornierte Termine bleiben immer nur in der Storno-Card der Tagesansicht sichtbar.',
+  'appointments.settingsEmpty':
+    'Aktuell gibt es keine verbundenen Quellkalender mit Terminen zum Konfigurieren.',
+  'appointments.settingsVisible': 'Sichtbar',
+  'appointments.settingsHidden': 'Ausgeblendet',
+  'appointments.settingsHideAction': 'Ausblenden',
+  'appointments.settingsShowAction': 'Einblenden',
+  'appointments.settingsBackToDashboard': 'Zurueck zum Dashboard',
 
   'public.title': 'Oeffentlicher Kalender',
   'public.notPublic': 'Dieser Kalender ist aktuell nicht oeffentlich verfuegbar.',

@@ -745,7 +745,7 @@ export function subscribeToParticipantAppointments(
 
   if (participantUid) {
     queries.push(
-      query(collectionGroup(db, 'appointments'), where('participantUid', '==', participantUid), where('status', '==', 'booked'))
+      query(collectionGroup(db, 'appointments'), where('participantUid', '==', participantUid))
     );
   }
 
@@ -753,8 +753,7 @@ export function subscribeToParticipantAppointments(
     queries.push(
       query(
         collectionGroup(db, 'appointments'),
-        where('participantEmailKey', '==', normalizeEmail(participantEmail)),
-        where('status', '==', 'booked')
+        where('participantEmailKey', '==', normalizeEmail(participantEmail))
       )
     );
   }
