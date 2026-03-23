@@ -84,6 +84,7 @@ async function linkGuestAppointmentsToUser(params) {
             continue;
         }
         batch.set(snapshot.ref, {
+            participantUid: params.uid,
             bookedByUserId: params.uid,
             createdByUserId: typeof appointment.createdByUserId === 'string' && appointment.createdByUserId.length > 0
                 ? appointment.createdByUserId
@@ -127,7 +128,7 @@ async function buildEmailPayload(notification) {
     };
 }
 exports.deliverEmailNotification = (0, firestore_2.onDocumentCreated)({
-    document: 'calendars/{calendarId}/notifications/{notificationId}',
+    document: 'notifications/{notificationId}',
     region: 'europe-west1',
     secrets: [resendApiKey, mailFromEmail],
 }, async (event) => {
@@ -140,7 +141,7 @@ exports.deliverEmailNotification = (0, firestore_2.onDocumentCreated)({
     }
     const notification = snapshot.data();
     const baseLogContext = {
-        calendarId: event.params.calendarId,
+        calendarId: typeof notification.calendarId === 'string' ? notification.calendarId : null,
         notificationId: snapshot.id,
         recipientEmail: notification.recipientEmail ?? null,
         type: notification.type ?? null,

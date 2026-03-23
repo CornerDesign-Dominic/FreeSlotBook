@@ -398,7 +398,7 @@ export const en = {
 
   'requestAccess.title': 'Request access',
   'requestAccess.ownerEmail': 'Slotlyme.ID',
-  'requestAccess.placeholder': 'slotlyme.app/ID',
+  'requestAccess.placeholder': 'slotlyme.app/calendar/your-link',
   'requestAccess.submit': 'Send request',
   'requestAccess.submitting': 'Sending request...',
   'requestAccess.loginRequired': 'You must be signed in to request access.',
@@ -446,5 +446,5 @@ export const en = {
   'legal.termsTitle': 'Terms and conditions',
   'legal.privacyTitle': 'Privacy policy',
   'legal.germanOnlyNotice':
-    'In this MVP version, the full legal texts are currently only available in German.',
+    'The full legal texts are currently only available in German.',
 } satisfies TranslationMessages;

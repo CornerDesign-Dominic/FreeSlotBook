@@ -3,9 +3,9 @@ import { router } from 'expo-router';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { AppScreenHeader } from '@/src/components/app-screen-header';
-import { saveCalendarPublicSlug } from '@/src/features/mvp/repository';
-import { useCalendarIdAvailability } from '@/src/features/mvp/useCalendarIdAvailability';
-import { useOwnerCalendar } from '@/src/features/mvp/useOwnerCalendar';
+import { saveCalendarPublicSlug } from '@/src/domain/repository';
+import { useCalendarIdAvailability } from '@/src/domain/useCalendarIdAvailability';
+import { useOwnerCalendar } from '@/src/domain/useOwnerCalendar';
 import { useAuth } from '@/src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppTheme, useBottomSafeContentStyle } from '@/src/theme/ui';
@@ -90,7 +90,7 @@ export default function CalendarIdCreateScreen() {
             onChangeText={setCalendarIdInput}
             autoCapitalize="none"
             autoCorrect={false}
-            placeholder="slotlyme.app/ID"
+            placeholder="slotlyme.app/calendar/dein-link"
             placeholderTextColor={theme.colors.textSecondary}
             style={[uiStyles.input, { marginBottom: theme.spacing[8] }]}
           />

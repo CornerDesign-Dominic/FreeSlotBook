@@ -1,3 +1,3 @@
-import CalendarAccessScreen from '@/src/features/mvp/calendar-access-screen';
+import CalendarAccessScreen from '@/src/domain/calendar-access-screen';
 
 export default CalendarAccessScreen;

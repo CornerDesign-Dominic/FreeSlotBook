@@ -5,13 +5,13 @@ import * as Clipboard from 'expo-clipboard';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { AppScreenHeader } from '@/src/components/app-screen-header';
-import { useOwnerCalendar } from '@/src/features/mvp/useOwnerCalendar';
-import { useOwnerProfile } from '@/src/features/mvp/useOwnerProfile';
+import { useOwnerCalendar } from '@/src/domain/useOwnerCalendar';
+import { useOwnerProfile } from '@/src/domain/useOwnerProfile';
 import {
   updateCalendarDescription,
   updateCalendarNotificationSettings,
   updateCalendarVisibility,
-} from '@/src/features/mvp/repository';
+} from '@/src/domain/repository';
 import { useAuth } from '@/src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppTheme, useBottomSafeContentStyle } from '@/src/theme/ui';
@@ -73,7 +73,7 @@ export default function CalendarSettingsScreen() {
       await updateCalendarVisibility({
         calendarId: activeCalendarId,
         ownerId: calendar.ownerId,
-        visibility: calendar.visibility === 'public' ? 'restricted' : 'public',
+        visibility: calendar.visibility === 'public' ? 'private' : 'public',
         publicSlug: calendar.publicSlug ?? '',
       });
       setVisibilityMessage(t('settings.visibilitySaved'));
@@ -114,7 +114,7 @@ export default function CalendarSettingsScreen() {
       return;
     }
 
-    await Clipboard.setStringAsync(`https://slotlyme.app/${calendar.publicSlug}`);
+    await Clipboard.setStringAsync(`https://slotlyme.app/calendar/${calendar.publicSlug}`);
     setCopyFeedbackVisible(true);
   };
 

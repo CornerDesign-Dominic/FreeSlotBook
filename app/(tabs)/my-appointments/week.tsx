@@ -10,10 +10,10 @@ import {
   getMinutesSinceStartOfDay,
   parseDayKey,
   startOfWeek,
-} from '../../../src/features/mvp/calendar-utils';
+} from '../../../src/domain/calendar-utils';
 import { AppScreenHeader } from '../../../src/components/app-screen-header';
-import type { AppointmentRecord } from '../../../src/features/mvp/types';
-import { useParticipantAppointments } from '../../../src/features/mvp/useParticipantAppointments';
+import type { AppointmentRecord } from '../../../src/domain/types';
+import { useParticipantAppointments } from '../../../src/domain/useParticipantAppointments';
 import { CalendarNavigationHeader } from '../../../src/components/calendar-navigation-header';
 import { useAuth } from '../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';

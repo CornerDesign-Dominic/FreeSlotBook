@@ -75,7 +75,7 @@ This route does not represent a user.
 
 A user may own multiple calendars.
 
-Current MVP behavior:
+Current system behavior:
 
 on registration, exactly one private calendar is created automatically
 
@@ -114,7 +114,7 @@ Current product state:
 
 private is active
 public exists structurally
-public booking/public access is future-supported but not yet required to be fully exposed in MVP UX
+public booking/public access is structurally supported but not yet required to be fully exposed in the current UX
 
 The data model must support public visibility now.
 2. ROOT COLLECTIONS
@@ -181,7 +181,7 @@ uid must equal document id
 email must be normalized to lowercase trimmed format
 username must be normalized according to the username rules defined below
 subscriptionTier must exist even if current value is only free
-defaultCalendarId should point to the first auto-created calendar in MVP
+defaultCalendarId should point to the first auto-created private calendar created during registration
 isActive should default to true
 
 Notes:
@@ -988,7 +988,7 @@ Forbidden 7
 
 Hard-coding the system around one calendar per user
 
-MVP may create one, but schema must support many.
+The current product behavior may create one automatically, but the schema must support many.
 
 21. MINIMUM DEPLOYMENT READINESS CONDITIONS
 

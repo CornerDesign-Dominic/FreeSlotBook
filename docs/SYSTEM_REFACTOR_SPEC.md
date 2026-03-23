@@ -111,7 +111,7 @@ username -> uid
 
 Users can own multiple calendars.
 
-Even though the MVP creates only one calendar automatically, the system must support multiple calendars immediately.
+Even though the system creates one private calendar automatically during registration, the architecture must support multiple calendars immediately.
 
 ### Firestore Structure
 
@@ -394,7 +394,7 @@ Public calendars allow read access without whitelist.
 
 # 13 PUBLIC CALENDAR MODE
 
-Public calendars are not yet enabled in MVP but must be structurally supported.
+Public calendars are not yet enabled in the current product behavior but must be structurally supported.
 
 Behavior:
 
@@ -411,7 +411,7 @@ Allows read access without whitelist.
 File:
 
 
-src/features/mvp/repository.ts
+src/domain/repository.ts
 
 
 Responsibilities:

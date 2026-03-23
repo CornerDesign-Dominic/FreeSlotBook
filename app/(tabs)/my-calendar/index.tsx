@@ -10,9 +10,9 @@ import {
   formatMonthTitle,
   getDayKey,
   getWeekdayLabels,
-} from '../../../src/features/mvp/calendar-utils';
-import { useOwnerCalendar } from '../../../src/features/mvp/useOwnerCalendar';
-import { useOwnerSlots } from '../../../src/features/mvp/useOwnerSlots';
+} from '../../../src/domain/calendar-utils';
+import { useOwnerCalendar } from '../../../src/domain/useOwnerCalendar';
+import { useOwnerSlots } from '../../../src/domain/useOwnerSlots';
 import { useAuth } from '../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';

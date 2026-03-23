@@ -98,12 +98,12 @@ Priority files:
 ```text
 firestore.rules
 firestore.indexes.json
-src/features/mvp/repository.ts
-src/features/mvp/types.ts
-src/features/mvp/useDashboardData.ts
-src/features/mvp/useOwnerProfile.ts
-src/features/mvp/useOwnerCalendar.ts
-src/features/mvp/useNotificationSetup.ts
+src/domain/repository.ts
+src/domain/types.ts
+src/domain/useDashboardData.ts
+src/domain/useOwnerProfile.ts
+src/domain/useOwnerCalendar.ts
+src/domain/useNotificationSetup.ts
 app/register.tsx
 app/[publicSlug].tsx
 app/(tabs)/index.tsx
@@ -117,8 +117,8 @@ docs/ACCESS_AND_IDENTITY_MODEL.md
 docs/ARCHITECTURE.md
 docs/DATA_MODEL.md
 docs/UI_SYSTEM.md
-docs/email-delivery-mvp.md
-docs/firestore-mvp-model.md
+docs/email-delivery.md
+docs/firestore-schema.md
 
 Codex must identify all active reads/writes, route expectations, and Firestore paths before changing architecture.
 
@@ -227,7 +227,7 @@ Tasks:
 create or align calendars/{calendarId}
 ensure ownerUid is the source of truth for ownership
 ensure the system supports one user owning many calendars
-keep MVP bootstrap behavior:
+keep current registration bootstrap behavior:
 one private calendar created automatically on registration
 create or align calendarSlugs/{calendarSlug}
 ensure calendar slug route resolves to one calendar
@@ -236,7 +236,7 @@ remove any architecture that implies the only real calendar lives under an owner
 ensure calendar visibility exists as:
 private
 public
-keep public structure supported even if not fully exposed in MVP UX
+keep public structure supported even if not fully exposed in the current UX
 
 Phase 2 required invariants:
 
@@ -635,8 +635,8 @@ docs/PLAN_MODEL.md
 docs/ACCESS_AND_IDENTITY_MODEL.md
 docs/ARCHITECTURE.md
 docs/DATA_MODEL.md
-docs/firestore-mvp-model.md
-docs/email-delivery-mvp.md
+docs/firestore-schema.md
+docs/email-delivery.md
 
 Tasks:
 
@@ -646,7 +646,7 @@ update docs to separate username route and calendar slug route
 update docs to separate invites vs access requests
 update docs to current product truth:
 public structurally supported
-not necessarily fully active in MVP UX
+not necessarily fully active in the current UX
 replace stale Expo starter README if still present
 remove obsolete statements that would mislead future implementation
 
@@ -752,12 +752,12 @@ Codex should expect real changes in at least these files:
 
 firestore.rules
 firestore.indexes.json
-src/features/mvp/repository.ts
-src/features/mvp/types.ts
-src/features/mvp/useDashboardData.ts
-src/features/mvp/useOwnerProfile.ts
-src/features/mvp/useOwnerCalendar.ts
-src/features/mvp/useNotificationSetup.ts
+src/domain/repository.ts
+src/domain/types.ts
+src/domain/useDashboardData.ts
+src/domain/useOwnerProfile.ts
+src/domain/useOwnerCalendar.ts
+src/domain/useNotificationSetup.ts
 app/register.tsx
 app/[publicSlug].tsx or replacement route files
 app/(tabs)/index.tsx
@@ -771,7 +771,7 @@ docs/PLAN_MODEL.md
 docs/ACCESS_AND_IDENTITY_MODEL.md
 docs/ARCHITECTURE.md
 docs/DATA_MODEL.md
-docs/firestore-mvp-model.md
+docs/firestore-schema.md
 
 This list is not exclusive.
 

@@ -3,13 +3,13 @@ import { useEffect, useState } from 'react';
 import { subscribeToParticipantAppointments } from './repository';
 import type { AppointmentRecord } from './types';
 
-export function useParticipantAppointments(email: string | null) {
+export function useParticipantAppointments(participant: { uid?: string | null; email?: string | null } | string | null) {
   const [appointments, setAppointments] = useState<AppointmentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!email) {
+    if (!participant || (typeof participant !== 'string' && !participant.uid && !participant.email)) {
       setAppointments([]);
       setError(null);
       setLoading(false);
@@ -20,7 +20,7 @@ export function useParticipantAppointments(email: string | null) {
     setError(null);
 
     const unsubscribe = subscribeToParticipantAppointments(
-      email,
+      participant,
       (nextAppointments) => {
         setAppointments(nextAppointments);
         setLoading(false);
@@ -32,7 +32,7 @@ export function useParticipantAppointments(email: string | null) {
     );
 
     return unsubscribe;
-  }, [email]);
+  }, [participant]);
 
   return { appointments, loading, error };
 }

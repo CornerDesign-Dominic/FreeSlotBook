@@ -3,7 +3,7 @@ import { Feather } from '@expo/vector-icons';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { AppScreenHeader } from '@/src/components/app-screen-header';
-import { useConnectedCalendars } from '@/src/features/mvp/useConnectedCalendars';
+import { useConnectedCalendars } from '@/src/domain/useConnectedCalendars';
 import { useAuth } from '@/src/firebase/useAuth';
 import { useAppTheme, useBottomSafeContentStyle } from '@/src/theme/ui';
 

@@ -9,9 +9,9 @@ import {
   formatMonthTitle,
   getDayKey,
   getWeekdayLabels,
-} from '../../../src/features/mvp/calendar-utils';
-import type { AppointmentRecord } from '../../../src/features/mvp/types';
-import { useParticipantAppointments } from '../../../src/features/mvp/useParticipantAppointments';
+} from '../../../src/domain/calendar-utils';
+import type { AppointmentRecord } from '../../../src/domain/types';
+import { useParticipantAppointments } from '../../../src/domain/useParticipantAppointments';
 import { useAuth } from '../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';

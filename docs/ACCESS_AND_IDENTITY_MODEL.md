@@ -1,169 +1,140 @@
 # Access And Identity Model
 
-This document defines the canonical MVP architecture for identity, calendars, slugs, and access control.
+This document defines the current Slotly 1.0 architecture for identity, calendars, slugs, and access control.
 
-Its purpose is to make future changes safer by documenting which concepts belong together and which ones must remain separate.
+It complements the canonical contracts in:
+
+- `docs/SYSTEM_REFACTOR_SPEC.md`
+- `docs/CORE_ARCHITECTURE_RULES.md`
+- `docs/FIRESTORE_TARGET_SCHEMA.md`
 
 ## 1. User Identity
 
-Email, backed by Firebase Auth, is the primary identity in the system.
+Firebase Auth UID is the canonical internal identity.
 
 Core rules:
 
-- A user is identified by their authenticated Firebase account.
-- The authenticated email is the main cross-resource identity reference.
+- A user is identified internally by `uid`.
+- Email and username are unique attributes, not relational primary keys.
 - A user can own multiple calendars.
-- A user can also be whitelisted on multiple calendars owned by other users.
+- A user can also be a member of multiple calendars owned by other users.
 
 Important implication:
 
-- Ownership and access are separate concerns.
-- Being the owner of one calendar does not imply access to another calendar.
+- Ownership and membership are separate concerns.
+- Owning one calendar does not imply access to another calendar.
 - Access must always be granted explicitly per calendar.
 
-## 2. Calendar Model
+## 2. Public Identity Concepts
 
-Each calendar is an independent resource.
+Two public identity concepts exist and must never be merged:
 
-A calendar contains its own identity and sharing metadata, including:
-
-- `calendarId`
-- `ownerId`
-- `ownerEmail`
-- `visibility`
-- `publicSlug`
+- user route: `slotlyme.app/{username}`
+- calendar route: `slotlyme.app/{calendarSlug}`
 
 Interpretation:
 
-- `calendarId` identifies the calendar resource itself.
-- `ownerId` links the calendar to the Firebase Auth user who owns it.
-- `ownerEmail` is stored for display, lookup, and operational flows.
-- `visibility` controls whether the calendar is public or restricted.
-- `publicSlug` defines the shareable public URL for that calendar.
+- `username` identifies a user for lookup and invitation flows.
+- `calendarSlug` identifies one specific shareable calendar route.
+- A user route does not open a calendar.
+- A calendar route does not identify an account.
+
+## 3. Calendar Model
+
+Each calendar is an independent resource.
+
+A calendar contains its own ownership and sharing metadata, including:
+
+- `calendarId`
+- `ownerUid`
+- `title`
+- `visibility`
+- `calendarSlug`
 
 Architectural rule:
 
 - Calendars are first-class resources.
 - Sharing, booking, and access decisions are made at the calendar level, not at the user level.
+- The current registration flow creates one private calendar automatically, but the model must remain multi-calendar capable.
 
-## 3. Slug System
-
-Slugs belong to calendars, not users.
-
-They are used for:
-
-- public calendar pages
-- booking links
-- shareable URLs
-
-Canonical mapping:
-
-```text
-publicCalendarSlugs/{slug}
-  -> calendarId
-  -> ownerId
-```
-
-Implications:
-
-- A slug resolves to a specific calendar.
-- A user may own multiple calendars and therefore may have multiple calendar slugs.
-- Slugs must not be treated as account identity.
-- Public routing should resolve through the slug-to-calendar mapping, not through user profile assumptions.
-
-## 4. Access / Whitelist Model
+## 4. Access Model
 
 Access is always defined per calendar.
 
 Canonical path:
 
 ```text
-calendars/{calendarId}/access/{emailKey}
+calendars/{calendarId}/access/{uid}
 ```
 
 Canonical fields:
 
-- `calendarId`
-- `ownerId`
-- `granteeEmail`
-- `granteeEmailKey`
-- `status`
-- `createdAt`
-- `updatedAt`
-
-Status values:
-
-- `approved`
-- `revoked`
+- `uid`
+- `role`
+- `addedAt`
 
 Interpretation:
 
 - Access entries belong to exactly one calendar.
-- Access is granted to an email identity, normalized via `granteeEmailKey`.
-- The whitelist is calendar-scoped, not global.
-- The same email may be approved on multiple different calendars.
+- Membership is calendar-scoped, not global.
+- The same user may have access to multiple calendars.
 
 Architectural rule:
 
 - Access checks must always be evaluated against the current calendar.
-- There is no user-global whitelist role in the MVP model.
+- There is no user-global whitelist role in the current system model.
 
-## 5. Invitation Flow (Current MVP)
+## 5. Invitation Flow
 
-Invitations are email-based only.
+Invitations are calendar-specific.
 
 Current flow:
 
-1. Owner enters an email.
-2. `upsertCalendarAccess` creates or updates the access record for that calendar.
-3. An email invitation is sent.
-4. Access becomes active when the invited user signs in.
+1. Owner selects or resolves a target user.
+2. The system writes `calendars/{calendarId}/invites/{inviteId}`.
+3. The invite remains tied to that one calendar.
+4. On acceptance, the system creates the corresponding `access/{uid}` entry.
 
 Important characteristics:
 
-- Invitation is tied to a specific calendar.
-- The invitation target is an email, not a phone number or profile slug.
-- Access is represented by the persisted whitelist record, not by the invitation itself.
+- An invitation is tied to one calendar.
+- Invitation state is distinct from active access membership.
+- Invite handling must never be merged with access-request storage.
 
-## 6. Explicit MVP Simplifications
+## 6. Access Request Flow
 
-The following concepts are intentionally not implemented yet:
+Access requests are initiated by the requesting user.
 
-- user slugs
-- contact links
-- link-based invitations
-- phone number identity
+Canonical path:
 
-These omissions are deliberate MVP boundaries, not accidental gaps.
+```text
+calendars/{calendarId}/accessRequests/{uid}
+```
 
-This means:
+Current flow:
 
-- public URLs identify calendars, not people
-- invitations are email-based, not share-link-based
-- phone numbers are not part of identity or access control
-- there is no profile-level public identity layer yet
+1. A signed-in user requests access to a specific calendar.
+2. The system stores one request per user per calendar.
+3. The owner approves or rejects that request.
+4. Approval creates or confirms the matching access membership.
 
-## 7. Future Extensions
+## 7. Product Boundaries
 
-Possible future extensions include:
+The current product behavior is intentionally narrower than the full structural model.
 
-- account profile slug
-- contact sharing links
-- push notifications
-- whitelist limits for free vs paid plans
+Examples:
 
-Guidance for future work:
+- registration creates one private calendar automatically
+- public calendar capability is structurally supported but not fully exposed everywhere
+- subscription enforcement may expand later without changing the base schema
 
-- A future account profile slug should be introduced as a separate user-level concept, not by overloading calendar slugs.
-- Contact sharing links should remain clearly distinct from public calendar slugs.
-- Push notifications should integrate with existing calendar-scoped ownership and access rules.
-- Plan limits should be enforced without changing the core rule that access is defined per calendar.
+These are current product boundaries, not provisional architecture.
 
 ## Summary
 
-The MVP model is based on three core principles:
+The current system model is based on three core principles:
 
-- Firebase Auth email is the primary identity.
+- Firebase Auth UID is the primary internal identity.
 - Calendars are independent resources.
 - Access is always granted per calendar.
 

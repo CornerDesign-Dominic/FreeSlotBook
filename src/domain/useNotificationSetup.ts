@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 import { ensureOwnerAccountSetup, upsertOwnerDeviceToken } from './repository';
-import { useAuth } from '../../firebase/useAuth';
+import { useAuth } from '../firebase/useAuth';
 
 function isExpoGo() {
   return (

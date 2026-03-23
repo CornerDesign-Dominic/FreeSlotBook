@@ -103,7 +103,7 @@ export function PublicCalendarScreenContent(props: {
   }
 
   if (calendar?.visibility === 'public' && calendar.publicSlug) {
-    const canonicalPath = `/${calendar.publicSlug}`;
+    const canonicalPath = `/calendar/${calendar.publicSlug}`;
 
     if (props.currentPublicPath !== canonicalPath) {
       return <Redirect href={canonicalPath as Href} />;

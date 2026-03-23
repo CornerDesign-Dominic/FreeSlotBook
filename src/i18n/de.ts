@@ -400,7 +400,7 @@ export const de = {
 
   'requestAccess.title': 'Freigabe anfragen',
   'requestAccess.ownerEmail': 'Slotlyme.ID',
-  'requestAccess.placeholder': 'slotlyme.app/ID',
+  'requestAccess.placeholder': 'slotlyme.app/calendar/dein-link',
   'requestAccess.submit': 'Anfrage senden',
   'requestAccess.submitting': 'Sende Anfrage...',
   'requestAccess.loginRequired': 'Du musst eingeloggt sein, um eine Zugriffsanfrage zu stellen.',
@@ -448,5 +448,5 @@ export const de = {
   'legal.termsTitle': 'Allgemeine Geschaeftsbedingungen',
   'legal.privacyTitle': 'Datenschutzerklaerung',
   'legal.germanOnlyNotice':
-    'Die vollstaendigen Rechtstexte liegen in dieser MVP-Version derzeit nur auf Deutsch vor.',
+    'Die vollstaendigen Rechtstexte liegen derzeit nur auf Deutsch vor.',
 } satisfies TranslationMessages;

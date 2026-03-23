@@ -12,10 +12,10 @@ import {
   createRelativeTimelineWindow,
   getInitialTimelineOffset,
 } from '../../src/features/dashboard/dashboard-timeline-utils';
-import { useDashboardData } from '../../src/features/mvp/useDashboardData';
-import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
-import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
-import { useParticipantAppointments } from '../../src/features/mvp/useParticipantAppointments';
+import { useDashboardData } from '../../src/domain/useDashboardData';
+import { useOwnerCalendar } from '../../src/domain/useOwnerCalendar';
+import { useOwnerSlots } from '../../src/domain/useOwnerSlots';
+import { useParticipantAppointments } from '../../src/domain/useParticipantAppointments';
 import { useAuth } from '../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppTheme, useBottomSafeContentStyle } from '../../src/theme/ui';
@@ -41,16 +41,16 @@ export default function HomeScreen() {
     appointments,
     loading: appointmentsLoading,
     error: appointmentsError,
-  } = useParticipantAppointments(user?.email ?? null);
+  } = useParticipantAppointments(user ? { uid: user.uid, email: user.email } : null);
   const visibleJoinedCalendars = data.joinedCalendars.slice(0, 3);
   const publicSlug = activeOwnerCalendar?.publicSlug ?? null;
-  const publicCalendarUrl = publicSlug ? `https://slotlyme.app/${publicSlug}` : null;
+  const publicCalendarUrl = publicSlug ? `https://slotlyme.app/calendar/${publicSlug}` : null;
   const slotlymeUserId =
     typeof data.ownerProfile?.slotlymeId === 'string' && data.ownerProfile.slotlymeId.trim()
       ? data.ownerProfile.slotlymeId.trim()
       : null;
-  const slotlymeProfileLabel = slotlymeUserId ? `slotlyme.app/${slotlymeUserId}` : null;
-  const slotlymeProfileUrl = slotlymeUserId ? `https://slotlyme.app/${slotlymeUserId}` : null;
+  const slotlymeProfileLabel = slotlymeUserId ? `slotlyme.app/user/${slotlymeUserId}` : null;
+  const slotlymeProfileUrl = slotlymeUserId ? `https://slotlyme.app/user/${slotlymeUserId}` : null;
   const [timelineNow, setTimelineNow] = useState(() => new Date());
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
   const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
@@ -264,7 +264,7 @@ export default function HomeScreen() {
                   fontSize: 14,
                 },
               ]}>
-              {`Link: ${publicSlug}`}
+              {`Kalender-Link: /calendar/${publicSlug}`}
             </Text>
             <Pressable
               onPress={() => void handleCopyPublicLink()}

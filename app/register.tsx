@@ -15,8 +15,8 @@ import { logout, registerWithEmail, sendVerificationEmail } from '../src/firebas
 import {
   ensureOwnerAccountSetup,
   isSlotlymeUserIdAvailable,
-} from '../src/features/mvp/repository';
-import { useSlotlymeIdAvailability } from '../src/features/mvp/useSlotlymeIdAvailability';
+} from '../src/domain/repository';
+import { useSlotlymeIdAvailability } from '../src/domain/useSlotlymeIdAvailability';
 import { useAuth } from '../src/firebase/useAuth';
 import { useAuthUiStyles } from '../src/theme/auth-ui';
 import { useAppTheme, useBottomSafeContentStyle } from '../src/theme/ui';

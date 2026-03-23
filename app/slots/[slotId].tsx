@@ -2,9 +2,9 @@ import { useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
 
-import { getDayKey } from '../../src/features/mvp/calendar-utils';
-import { useOwnerCalendar } from '../../src/features/mvp/useOwnerCalendar';
-import { useOwnerSlotDetail } from '../../src/features/mvp/useOwnerSlotDetail';
+import { getDayKey } from '../../src/domain/calendar-utils';
+import { useOwnerCalendar } from '../../src/domain/useOwnerCalendar';
+import { useOwnerSlotDetail } from '../../src/domain/useOwnerSlotDetail';
 import { useAuth } from '../../src/firebase/useAuth';
 
 export default function SlotDetailRedirectScreen() {

@@ -12,7 +12,7 @@ Produktseitig beschreibt das Projekt eine Slot- und Terminbuchungsanwendung mit 
 
 Die Anwendung dient als slotbasierter Terminplaner mit einem Kalender pro registriertem Nutzer. Kalenderinhaber koennen freie Zeitfenster als Slots anlegen, privat oder oeffentlich sichtbar machen und diese entweder selbst verwalten oder durch andere Personen buchen lassen.
 
-Der aktuelle Produktfokus ist ein kleines, release-nahes MVP mit:
+Der aktuelle Produktfokus ist der release-nahe Grundaufbau von Slotly 1.0 mit:
 
 - persoenlichem Kalender pro User
 - freien buchbaren Slots
@@ -71,7 +71,7 @@ Der aktuelle Produktfokus ist ein kleines, release-nahes MVP mit:
 - E-Mail-Benachrichtigungen fuer Buchung, Einladung und Kontovorbereitung
 - optionale Kontoanlage nach Gastbuchung
 
-## Aktueller MVP-Stand
+## Aktueller Produktstand
 
 Bereits umgesetzt:
 

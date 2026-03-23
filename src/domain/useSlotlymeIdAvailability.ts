@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   isSlotlymeUserIdAvailable,
   validateSlotlymeUserIdInput,
-} from '@/src/features/mvp/repository';
+} from '@/src/domain/repository';
 
 type SlotlymeIdAvailabilityState = {
   normalizedValue: string;

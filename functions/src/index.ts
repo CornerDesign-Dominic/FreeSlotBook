@@ -14,6 +14,7 @@ const resendApiKey = defineSecret('RESEND_API_KEY');
 const mailFromEmail = defineSecret('MAIL_FROM_EMAIL');
 
 type NotificationDocument = {
+  calendarId?: string;
   recipientEmail?: string;
   channel?: string;
   status?: string;
@@ -26,6 +27,7 @@ type AppointmentDocument = {
   participantEmail?: string;
   participantEmailKey?: string;
   guestBooking?: boolean;
+  participantUid?: string | null;
   bookedByUserId?: string | null;
   createdByUserId?: string | null;
 };
@@ -126,6 +128,7 @@ async function linkGuestAppointmentsToUser(params: {
     batch.set(
       snapshot.ref,
       {
+        participantUid: params.uid,
         bookedByUserId: params.uid,
         createdByUserId:
           typeof appointment.createdByUserId === 'string' && appointment.createdByUserId.length > 0
@@ -181,7 +184,7 @@ async function buildEmailPayload(notification: NotificationDocument) {
 
 export const deliverEmailNotification = onDocumentCreated(
   {
-    document: 'calendars/{calendarId}/notifications/{notificationId}',
+    document: 'notifications/{notificationId}',
     region: 'europe-west1',
     secrets: [resendApiKey, mailFromEmail],
   },
@@ -197,7 +200,7 @@ export const deliverEmailNotification = onDocumentCreated(
 
     const notification = snapshot.data() as NotificationDocument;
     const baseLogContext = {
-      calendarId: event.params.calendarId,
+      calendarId: typeof notification.calendarId === 'string' ? notification.calendarId : null,
       notificationId: snapshot.id,
       recipientEmail: notification.recipientEmail ?? null,
       type: notification.type ?? null,

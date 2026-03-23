@@ -152,7 +152,7 @@ calendar member
 
 # 12 PUBLIC CALENDARS
 
-Public calendars are supported but not mandatory in MVP.
+Public calendars are structurally supported but not mandatory in the current product behavior.
 
 Public calendar:
 

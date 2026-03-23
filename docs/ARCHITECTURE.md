@@ -79,11 +79,11 @@ Der Client arbeitet direkt mit Firestore fuer:
 
 Die fachliche Firestore-Logik ist zentral in:
 
-- `src/features/mvp/repository.ts`
+- `src/domain/repository.ts`
 
 Hooks fuer konsumierende Screens liegen unter:
 
-- `src/features/mvp/`
+- `src/domain/`
 
 ## E-Mail-System
 

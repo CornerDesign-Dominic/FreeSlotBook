@@ -1,8 +1,8 @@
 # Slotlyme Plan Model
 
-Dieses Dokument beschreibt die langfristige Plan- und Abo-Struktur von Slotlyme sowie die aktuell gueltigen Produktgrenzen im MVP. Es dient als Referenz fuer Produktentscheidungen und Entwicklung, damit bestehende Einschraenkungen nicht versehentlich aufgeweicht werden.
+Dieses Dokument beschreibt die langfristige Plan- und Abo-Struktur von Slotlyme sowie die aktuell gueltigen Produktgrenzen im aktuellen Produkt. Es dient als Referenz fuer Produktentscheidungen und Entwicklung, damit bestehende Einschraenkungen nicht versehentlich aufgeweicht werden.
 
-## Current Implementation (MVP)
+## Current Implementation
 
 Slotlyme laeuft aktuell ausschliesslich im FREE MODE.
 
@@ -69,4 +69,4 @@ Dieses Dokument soll:
 - als Referenz fuer zukuenftige Entwicklung dienen
 - versehentliche Feature-Ausweitung verhindern
 - die geplante Preis- und Planstruktur festhalten
-- die Einschraenkungen des MVP dokumentieren
+- die aktuellen Produkteinschraenkungen dokumentieren

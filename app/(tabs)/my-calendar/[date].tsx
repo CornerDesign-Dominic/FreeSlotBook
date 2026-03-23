@@ -19,7 +19,7 @@ import {
   getMinutesSinceStartOfDay,
   getSlotsForDay,
   parseDayKey,
-} from '../../../src/features/mvp/calendar-utils';
+} from '../../../src/domain/calendar-utils';
 import { AppScreenHeader } from '../../../src/components/app-screen-header';
 import { CalendarNavigationHeader } from '../../../src/components/calendar-navigation-header';
 import {
@@ -27,11 +27,11 @@ import {
   cancelAppointmentByOwner,
   setCalendarSlotInactive,
   updateCalendarSlotAvailability,
-} from '../../../src/features/mvp/repository';
-import { useOwnerCalendar } from '../../../src/features/mvp/useOwnerCalendar';
-import { useOwnerDaySlots } from '../../../src/features/mvp/useOwnerDaySlots';
-import { useOwnerSlotDetail } from '../../../src/features/mvp/useOwnerSlotDetail';
-import type { CalendarSlotEventRecord, SlotStatus } from '../../../src/features/mvp/types';
+} from '../../../src/domain/repository';
+import { useOwnerCalendar } from '../../../src/domain/useOwnerCalendar';
+import { useOwnerDaySlots } from '../../../src/domain/useOwnerDaySlots';
+import { useOwnerSlotDetail } from '../../../src/domain/useOwnerSlotDetail';
+import type { CalendarSlotEventRecord, SlotStatus } from '../../../src/domain/types';
 import { useAuth } from '../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppTheme, useBottomSafeContentStyle } from '../../../src/theme/ui';
@@ -296,7 +296,7 @@ export default function CalendarDayScreen() {
     const actorLabel =
       event.actorRole === 'owner'
         ? t('day.eventActorOwner')
-        : event.actorRole === 'contact'
+        : event.actorRole === 'member' || event.actorRole === 'guest'
           ? t('day.eventActorContact')
           : t('day.eventActorSystem');
     const target = event.targetEmail ?? actorLabel;

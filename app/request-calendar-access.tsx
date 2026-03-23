@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Feather } from '@expo/vector-icons';
 import { Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { cancelCalendarAccessRequest, requestCalendarAccessBySlug } from '../src/features/mvp/repository';
-import { usePendingCalendarAccessRequests } from '../src/features/mvp/usePendingCalendarAccessRequests';
+import { cancelCalendarAccessRequest, requestCalendarAccessBySlug } from '../src/domain/repository';
+import { usePendingCalendarAccessRequests } from '../src/domain/usePendingCalendarAccessRequests';
 import { AppScreenHeader } from '../src/components/app-screen-header';
 import { useAuth } from '../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
@@ -28,7 +28,7 @@ function extractCalendarSlug(value: string) {
       return '';
     }
 
-    if (pathSegments[0] === 'c' && pathSegments[1]) {
+    if (pathSegments[0] === 'calendar' && pathSegments[1]) {
       return pathSegments[1];
     }
 
@@ -108,12 +108,12 @@ export default function RequestCalendarAccessScreen() {
     }
   };
 
-  const handleCancelRequest = async (calendarId: string, requesterEmail: string) => {
-    setCancellingRequestKey(`${calendarId}:${requesterEmail}`);
+  const handleCancelRequest = async (calendarId: string, requesterUid: string) => {
+    setCancellingRequestKey(`${calendarId}:${requesterUid}`);
     setMessage(null);
 
     try {
-      await cancelCalendarAccessRequest({ calendarId, requesterEmail });
+      await cancelCalendarAccessRequest({ calendarId, requesterUid });
     } catch (nextError) {
       setMessage(nextError instanceof Error ? nextError.message : t('requestAccess.error'));
     } finally {
@@ -193,9 +193,9 @@ export default function RequestCalendarAccessScreen() {
           </View>
         ) : pendingRequests.length ? (
           pendingRequests.map(({ request, calendar }) => {
-            const requestKey = `${request.calendarId}:${request.requesterEmail}`;
+            const requestKey = `${request.calendarId}:${request.requesterUid}`;
             const calendarLabel =
-              request.calendarSlug || calendar?.publicSlug || calendar?.ownerEmail || request.calendarId;
+              request.calendarSlug || calendar?.calendarSlug || calendar?.ownerEmail || request.calendarId;
 
             return (
               <View key={requestKey} style={uiStyles.listItem}>
@@ -214,7 +214,7 @@ export default function RequestCalendarAccessScreen() {
                   </View>
 
                   <Pressable
-                    onPress={() => void handleCancelRequest(request.calendarId, request.requesterEmail)}
+                    onPress={() => void handleCancelRequest(request.calendarId, request.requesterUid)}
                     disabled={cancellingRequestKey === requestKey}
                     accessibilityRole="button"
                     accessibilityLabel="Anfrage zurückziehen"

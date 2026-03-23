@@ -1,8 +1,8 @@
-# Produktanforderungen und MVP-Konzept
+# Produktanforderungen und Produktgrundaufbau
 
 ## Zweck des Dokuments
 
-Dieses Dokument beschreibt den derzeitigen fachlichen Zielzustand des Produkts, den verbindlichen Umfang des ersten MVP sowie die aktuell noch offenen Entscheidungen. Es ist als Arbeitsgrundlage fuer Architektur, Entwicklung, Priorisierung und spaetere Detailentscheidungen gedacht.
+Dieses Dokument beschreibt den derzeitigen fachlichen Zielzustand des Produkts, den verbindlichen Umfang des aktuellen Produktgrundaufbaus sowie die aktuell noch offenen Entscheidungen. Es ist als Arbeitsgrundlage fuer Architektur, Entwicklung, Priorisierung und spaetere Detailentscheidungen gedacht.
 
 Die Inhalte sind bewusst in klare Kategorien getrennt:
 
@@ -17,7 +17,7 @@ Dieses Dokument enthaelt keine Marketingbeschreibung, sondern eine sachliche Pro
 
 Das Projekt ist eine kleine mobile Terminplaner-App.
 
-Ziel ist ein direkt nutzbares MVP, das moeglichst release-nah entwickelt wird. Die Umsetzung soll sauber, minimalistisch und produktionsnah sein. Dabei soll die Produkt- und Architekturarbeit so erfolgen, dass spaetere unnoetige Umbauten moeglichst vermieden werden.
+Ziel ist ein direkt nutzbarer Produktgrundaufbau, der moeglichst release-nah entwickelt wird. Die Umsetzung soll sauber, minimalistisch und produktionsnah sein. Dabei soll die Produkt- und Architekturarbeit so erfolgen, dass spaetere unnoetige Umbauten moeglichst vermieden werden.
 
 Der Fokus liegt damit nicht auf einem experimentellen Demo-Stand, sondern auf einem kompakten, aber tragfaehigen Kernprodukt.
 
@@ -35,13 +35,13 @@ Nach erfolgreicher Registrierung erhaelt jeder User genau einen eigenen Kalender
 
 Der Kalender wird zunaechst mit Firebase abgebildet. Firebase ist damit fuer die erste Produktphase die aktuelle technische Grundlage fuer die Benutzer- und Kalenderbasis.
 
-Das MVP basiert ausdruecklich auf einem einfachen Modell:
+Der aktuelle Produktgrundaufbau basiert ausdruecklich auf einem einfachen Modell:
 
 - ein User,
 - ein Account,
 - genau ein zugeordneter Kalender.
 
-Ein Multi-Kalender-Modell pro User ist fuer das MVP nicht vorgesehen.
+Im aktuellen Produktverhalten wird pro Registrierung zunaechst ein privater Kalender erzeugt; die Architektur bleibt jedoch multi-kalenderfaehig.
 
 ### Noch offen
 
@@ -53,24 +53,24 @@ Noch nicht abschliessend festgelegt ist, wie die Kalenderdaten intern strukturie
 
 Langfristig soll die Telefonnummer die primaere Identitaet im Produkt sein.
 
-Fuer das erste MVP wird jedoch zunaechst E-Mail verwendet, weil die Umsetzung mit Firebase einfacher und pragmatischer ist. Das ist keine Zufallsentscheidung, sondern eine bewusst getroffene Produktentscheidung fuer den Start.
+Im aktuellen Produkt wird zunaechst E-Mail verwendet, weil die Umsetzung mit Firebase einfacher und pragmatischer ist. Das ist keine Zufallsentscheidung, sondern eine bewusst getroffene Produktentscheidung fuer den Start.
 
 Ebenfalls entschieden ist die langfristige Zielrichtung:
 
-- Das MVP startet mit E-Mail als Identitaetsgrundlage.
+- Das aktuelle Produkt startet mit E-Mail als Identitaetsgrundlage.
 - Spaeter soll es eine Kombination aus E-Mail und Telefonnummer geben.
 - In dieser spaeteren Zielarchitektur soll die Telefonnummer die staerkere beziehungsweise primaere Identitaet sein.
 
 Damit gilt:
 
-- **MVP-Startidentitaet**: E-Mail
+- **Startidentitaet des aktuellen Produkts**: E-Mail
 - **Langfristige Zielidentitaet**: Telefonnummer mit hoeherer Gewichtung, ergaenzt um E-Mail
 
 Diese Entscheidung ist fuer Produkt, Datenmodell und spaetere Migrationsfaehigkeit relevant und soll frueh beruecksichtigt werden.
 
 ### Noch offen
 
-Noch offen ist, wie der spaetere Uebergang von einer E-Mail-basierten MVP-Identitaet zu einer staerker telefonnummernbasierten Zielidentitaet technisch umgesetzt wird. Ebenfalls offen ist, wie Kontakte im internen Systemmodell konkret repraesentiert werden.
+Noch offen ist, wie der spaetere Uebergang von einer E-Mail-basierten Startidentitaet zu einer staerker telefonnummernbasierten Zielidentitaet technisch umgesetzt wird. Ebenfalls offen ist, wie Kontakte im internen Systemmodell konkret repraesentiert werden.
 
 ## 4. Slot- und Verfuegbarkeitslogik
 
@@ -107,7 +107,7 @@ Der Kalenderinhaber kann bestimmen, wer Zugriff auf seinen Kalender erhaelt. Daf
 
 Kontakte auf dieser Freigabeliste duerfen den Kalender sehen und Termine buchen. Personen ausserhalb dieser Liste muessen zunaechst eine Anfrage stellen. Erst nach Bestaetigung durch den Kalenderinhaber erhalten sie Zugriff.
 
-Ebenfalls als Architekturentscheidung beziehungsweise klare Empfehlung fuer das MVP festgehalten ist:
+Ebenfalls als Architekturentscheidung beziehungsweise klare Empfehlung fuer den aktuellen Produktgrundaufbau festgehalten ist:
 
 - Die Freigabeliste beziehungsweise Whitelist soll zentral in der Cloud gespeichert werden.
 
@@ -142,7 +142,7 @@ Freigegebene Kontakte koennen Termine im Kalender buchen.
 
 Der Kalenderinhaber kann Termine auch manuell vergeben.
 
-Kontaktpersonen koennen Termine im ersten MVP noch nicht selbst stornieren.
+Kontaktpersonen koennen Termine im aktuellen Produkt noch nicht selbst stornieren.
 
 Der Kalenderinhaber kann Termine absagen beziehungsweise stornieren.
 
@@ -161,18 +161,18 @@ Noch offen ist, wie Terminstatus und Storno-Status intern modelliert werden und 
 
 ### Bereits entschieden
 
-Fuer das MVP sind zwei Benachrichtigungsebenen vorgesehen:
+Fuer das aktuelle Produkt sind zwei Benachrichtigungsebenen vorgesehen:
 
 - E-Mail-Benachrichtigungen
 - Push- beziehungsweise In-App-Benachrichtigungen direkt aufs Handy
 
-E-Mail ist der erste technische Zustellweg. Push- beziehungsweise In-App-Benachrichtigungen sollen parallel vorgesehen werden und gehoeren ebenfalls zum MVP-Zielbild.
+E-Mail ist der erste technische Zustellweg. Push- beziehungsweise In-App-Benachrichtigungen sollen parallel vorgesehen werden und gehoeren ebenfalls zum aktuellen Zielbild.
 
-SMS ist keine MVP-Anforderung, sondern eine spaetere Ausbaustufe. Gleiches gilt fuer moegliche Messenger-Dienste wie WhatsApp.
+SMS ist keine Anforderung des aktuellen Produktgrundaufbaus, sondern eine spaetere Ausbaustufe. Gleiches gilt fuer moegliche Messenger-Dienste wie WhatsApp.
 
-### Benachrichtigungsfaelle im MVP
+### Benachrichtigungsfaelle im aktuellen Produkt
 
-Im MVP sollen mindestens folgende Faelle abgedeckt sein:
+Im aktuellen Produkt sollen mindestens folgende Faelle abgedeckt sein:
 
 1. Wenn ein Kontakt einen Termin bucht, erhaelt der Kalenderinhaber eine Benachrichtigung.
 2. Wenn der Kalenderinhaber einem Kontakt manuell einen Termin vergibt, erhaelt dieser Kontakt eine Benachrichtigung.
@@ -221,13 +221,13 @@ Gleichzeitig soll ein spaeterer Wechsel der Datenbank grundsaetzlich moeglich bl
 
 ### Noch offen
 
-Noch offen ist, in welchem Grad die Austauschbarkeit der Datenbasis bereits im MVP technisch vorbereitet wird und wo bewusst pragmatische, Firebase-nahe Entscheidungen getroffen werden duerfen.
+Noch offen ist, in welchem Grad die Austauschbarkeit der Datenbasis bereits im aktuellen Produkt technisch vorbereitet wird und wo bewusst pragmatische, Firebase-nahe Entscheidungen getroffen werden duerfen.
 
-## 10. MVP-Abgrenzung
+## 10. Produktabgrenzung
 
-### Mindestumfang des MVP
+### Mindestumfang des aktuellen Produkts
 
-Das MVP muss mindestens folgende Bestandteile enthalten:
+Das aktuelle Produkt muss mindestens folgende Bestandteile enthalten:
 
 1. Registrierung und Login
 2. Genau einen Kalender pro User
@@ -241,9 +241,9 @@ Das MVP muss mindestens folgende Bestandteile enthalten:
 
 Diese Funktionen bilden gemeinsam den minimalen fachlichen Kern des Produkts.
 
-### Nicht Teil des ersten MVP, aber spaeter moeglich
+### Nicht Teil des aktuellen Produkts, aber spaeter moeglich
 
-Folgende Themen sind als spaetere Erweiterungen moeglich, gehoeren aber nicht zwingend in den ersten MVP:
+Folgende Themen sind als spaetere Erweiterungen moeglich, gehoeren aber nicht zwingend in den aktuellen Produktgrundaufbau:
 
 - SMS
 - WhatsApp oder andere Messenger-Dienste
@@ -253,9 +253,9 @@ Folgende Themen sind als spaetere Erweiterungen moeglich, gehoeren aber nicht zw
 - Komfortfunktionen rund um lokale Geraetekontakte
 - Terminverschiebung als bestaetigungspflichtiger Vorschlag
 
-### Umsetzungsleitlinie fuer das MVP
+### Umsetzungsleitlinie fuer den aktuellen Produktgrundaufbau
 
-Das MVP soll den Kernprozess tragfaehig abbilden:
+Der aktuelle Produktgrundaufbau soll den Kernprozess tragfaehig abbilden:
 
 1. User registriert sich oder meldet sich an.
 2. User erhaelt genau einen persoenlichen Kalender.
@@ -282,7 +282,7 @@ Die folgenden Punkte sind aktuell noch offen und muessen spaeter konkretisiert w
 
 ### Terminverschiebung
 
-Terminverschiebung ist ausdruecklich noch nicht Teil des aktuellen MVP.
+Terminverschiebung ist ausdruecklich noch nicht Teil des aktuellen Produkts.
 
 Fuer eine spaetere Ausbaustufe soll Terminverschiebung nicht als einseitige finale Aenderung durch den Kalenderinhaber umgesetzt werden. Stattdessen soll sie als Vorschlag beziehungsweise Anfrage modelliert werden, die vom Terminnehmenden bestaetigt oder abgelehnt werden kann.
 

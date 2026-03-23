@@ -11,11 +11,11 @@ import {
   rejectCalendarAccessRequest,
   removeCalendarAccess,
   upsertCalendarAccess,
-} from '@/src/features/mvp/repository';
-import { useCalendarAccessList } from '@/src/features/mvp/useCalendarAccessList';
-import { useCalendarAccessRequests } from '@/src/features/mvp/useCalendarAccessRequests';
-import { useOwnerCalendar } from '@/src/features/mvp/useOwnerCalendar';
-import type { AccessRequestStatus } from '@/src/features/mvp/types';
+} from '@/src/domain/repository';
+import { useCalendarAccessList } from '@/src/domain/useCalendarAccessList';
+import { useCalendarAccessRequests } from '@/src/domain/useCalendarAccessRequests';
+import { useOwnerCalendar } from '@/src/domain/useOwnerCalendar';
+import type { AccessRequestStatus } from '@/src/domain/types';
 
 export default function CalendarAccessScreen() {
   const { user, loading: authLoading } = useAuth();
@@ -71,7 +71,6 @@ export default function CalendarAccessScreen() {
         calendarId: calendar.id,
         ownerId: user.uid,
         granteeEmail: trimmedEmail,
-        status: 'approved',
       });
       setEmailInput('');
       setMessage(t('access.saved'));
@@ -226,13 +225,13 @@ export default function CalendarAccessScreen() {
                     justifyContent: 'space-between',
                     gap: theme.spacing[12],
                   }}>
-                  <Text style={[uiStyles.bodyText, { flex: 1 }]}>{record.granteeEmail}</Text>
+                  <Text style={[uiStyles.bodyText, { flex: 1 }]}>{record.email}</Text>
                   <Pressable
-                    onPress={() => confirmRemoveAccess(record.granteeEmail)}
-                    disabled={processingEmail === record.granteeEmail}
+                    onPress={() => confirmRemoveAccess(record.email)}
+                    disabled={processingEmail === record.email}
                     accessibilityRole="button"
                     accessibilityLabel="Freigabe aufheben"
-                    style={{ opacity: processingEmail === record.granteeEmail ? 0.45 : 1 }}>
+                    style={{ opacity: processingEmail === record.email ? 0.45 : 1 }}>
                     <Feather name="trash-2" size={18} color={theme.colors.textSecondary} />
                   </Pressable>
                 </View>

@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
-import { getDayKey } from '../../src/features/mvp/calendar-utils';
+import { getDayKey } from '../../src/domain/calendar-utils';
 import { AppScreenHeader } from '../../src/components/app-screen-header';
-import { bookSharedCalendarSlot } from '../../src/features/mvp/repository';
-import { useCalendar } from '../../src/features/mvp/useCalendar';
-import { useOwnerSlots } from '../../src/features/mvp/useOwnerSlots';
+import { bookSharedCalendarSlot } from '../../src/domain/repository';
+import { useCalendar } from '../../src/domain/useCalendar';
+import { useOwnerSlots } from '../../src/domain/useOwnerSlots';
 import { useAuth } from '../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppTheme, useBottomSafeContentStyle } from '../../src/theme/ui';

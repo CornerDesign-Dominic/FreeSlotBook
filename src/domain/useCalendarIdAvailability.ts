@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   isCalendarPublicSlugAvailable,
   validateCalendarPublicSlugInput,
-} from '@/src/features/mvp/repository';
+} from '@/src/domain/repository';
 
 type AvailabilityState = {
   normalizedValue: string;

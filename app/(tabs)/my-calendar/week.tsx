@@ -11,12 +11,12 @@ import {
   getSlotsForDay,
   parseDayKey,
   startOfWeek,
-} from '../../../src/features/mvp/calendar-utils';
+} from '../../../src/domain/calendar-utils';
 import { AppScreenHeader } from '../../../src/components/app-screen-header';
 import { CalendarNavigationHeader } from '../../../src/components/calendar-navigation-header';
-import { useOwnerCalendar } from '../../../src/features/mvp/useOwnerCalendar';
-import { useOwnerSlots } from '../../../src/features/mvp/useOwnerSlots';
-import type { CalendarSlotRecord, SlotStatus } from '../../../src/features/mvp/types';
+import { useOwnerCalendar } from '../../../src/domain/useOwnerCalendar';
+import { useOwnerSlots } from '../../../src/domain/useOwnerSlots';
+import type { CalendarSlotRecord, SlotStatus } from '../../../src/domain/types';
 import { useAuth } from '../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppSettings } from '@/src/settings/provider';

@@ -8,7 +8,7 @@ import { Platform, View } from 'react-native';
 import 'react-native-reanimated';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
-import { useNotificationSetup } from '@/src/features/mvp/useNotificationSetup';
+import { useNotificationSetup } from '@/src/domain/useNotificationSetup';
 import { I18nProvider } from '@/src/i18n/provider';
 import { AppSettingsProvider, useAppSettings } from '@/src/settings/provider';
 import { getThemeColors, theme as designTheme } from '@/src/theme/ui';

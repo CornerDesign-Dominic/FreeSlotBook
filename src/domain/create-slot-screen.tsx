@@ -295,7 +295,7 @@ export function CreateSlotScreen() {
     resetFormForNewSlot(result.startsAt);
   };
 
-  const approvedAccessRecords = accessRecords.filter((record) => record.status === 'approved');
+  const approvedAccessRecords = accessRecords.filter((record) => record.role === 'member');
   const monthGrid = buildMonthGrid(pickerMonth, weekStartsOn);
   const weekdayLabels = getWeekdayLabels(language, weekStartsOn);
 
@@ -390,13 +390,13 @@ export function CreateSlotScreen() {
 
             {approvedAccessRecords.length ? (
               approvedAccessRecords.map((record) => {
-                const isSelected = selectedAssigneeEmail === record.granteeEmail;
+                const isSelected = selectedAssigneeEmail === record.email;
 
                 return (
                   <Pressable
                     key={record.id}
                     onPress={() =>
-                      setSelectedAssigneeEmail(isSelected ? null : record.granteeEmail)
+                      setSelectedAssigneeEmail(isSelected ? null : record.email)
                     }
                     style={{
                       borderTopWidth: 1,
@@ -405,7 +405,7 @@ export function CreateSlotScreen() {
                       marginTop: theme.spacing[12],
                       backgroundColor: isSelected ? theme.colors.accentSoft : theme.colors.surface,
                     }}>
-                    <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4] }]}>{record.granteeEmail}</Text>
+                    <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4] }]}>{record.email}</Text>
                     <Text style={uiStyles.secondaryText}>
                       {isSelected ? t('createSlot.assignedDirectly') : t('createSlot.tapToSelect')}
                     </Text>

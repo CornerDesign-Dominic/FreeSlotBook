@@ -20,7 +20,7 @@ export function useConnectedCalendars(user: { uid: string; email: string | null 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user?.uid || !user.email) {
+    if (!user?.uid) {
       setCalendars([]);
       setFavoriteCalendarIds([]);
       setError(null);
@@ -40,7 +40,7 @@ export function useConnectedCalendars(user: { uid: string; email: string | null 
     };
 
     const unsubscribeCalendars = subscribeToJoinedCalendars(
-      user.email,
+      user.uid,
       (nextCalendars) => {
         setCalendars(nextCalendars);
         joinedReady = true;
@@ -71,7 +71,7 @@ export function useConnectedCalendars(user: { uid: string; email: string | null 
       unsubscribeCalendars();
       unsubscribeFavorites();
     };
-  }, [user?.email, user?.uid]);
+  }, [user?.uid]);
 
   const records = useMemo<ConnectedCalendarItem[]>(
     () =>
@@ -95,14 +95,14 @@ export function useConnectedCalendars(user: { uid: string; email: string | null 
   };
 
   const disconnectCalendar = async (calendarId: string) => {
-    if (!user?.uid || !user.email) {
+    if (!user?.uid) {
       throw new Error('Du musst eingeloggt sein.');
     }
 
     await removeConnectedCalendar({
       ownerUid: user.uid,
       calendarId,
-      granteeEmail: user.email,
+      granteeEmail: user.email ?? '',
     });
   };
 

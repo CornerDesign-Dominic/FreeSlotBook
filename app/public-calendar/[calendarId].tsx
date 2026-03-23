@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { PublicCalendarScreenContent } from '../../src/features/mvp/public-calendar-screen';
+import { PublicCalendarScreenContent } from '../../src/domain/public-calendar-screen';
 
 export default function PublicCalendarByIdScreen() {
   const params = useLocalSearchParams<{ calendarId?: string | string[] }>();

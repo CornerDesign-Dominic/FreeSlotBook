@@ -1,10 +1,9 @@
 export type IdentityType = 'email';
 export type SubscriptionTier = 'free' | 'pro';
 
-export type CalendarVisibility = 'restricted' | 'public';
-
-export type AccessStatus = 'approved' | 'revoked';
-
+export type CalendarVisibility = 'private' | 'public';
+export type CalendarAccessRole = 'owner' | 'member';
+export type InviteStatus = 'pending' | 'accepted' | 'rejected';
 export type AccessRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 export type SlotStatus = 'available' | 'inactive' | 'booked';
@@ -18,7 +17,7 @@ export type SlotEventType =
   | 'cancelled_by_owner'
   | 'reactivated';
 
-export type SlotEventActorRole = 'owner' | 'contact' | 'system';
+export type SlotEventActorRole = 'owner' | 'member' | 'guest' | 'system';
 
 export type SlotRepeatMode = 'once' | 'daily' | 'weekly_day';
 
@@ -47,8 +46,9 @@ export interface OwnerProfile {
   uid: string;
   email: string;
   emailKey: string;
-  calendarId: string;
+  username: string | null;
   slotlymeId: string | null;
+  defaultCalendarId: string | null;
   subscriptionTier: SubscriptionTier;
   primaryIdentityType: IdentityType;
   createdAt: Date | null;
@@ -57,13 +57,17 @@ export interface OwnerProfile {
 
 export interface CalendarRecord {
   id: string;
+  ownerUid: string;
   ownerId: string;
   ownerEmail: string;
-  ownerEmailKey: string;
+  ownerUsername: string | null;
+  title: string;
   visibility: CalendarVisibility;
+  calendarSlug: string | null;
   publicSlug: string | null;
   description: string | null;
   notifyOnNewSlotsAvailable: boolean;
+  isArchived: boolean;
   createdAt: Date | null;
   updatedAt: Date | null;
 }
@@ -71,23 +75,36 @@ export interface CalendarRecord {
 export interface CalendarAccessRecord {
   id: string;
   calendarId: string;
-  ownerId: string;
-  granteeEmail: string;
-  granteeEmailKey: string;
-  phoneNumber: string | null;
+  uid: string;
+  role: CalendarAccessRole;
+  email: string;
+  username: string | null;
   displayName: string | null;
-  status: AccessStatus;
+  addedAt: Date | null;
+  updatedAt: Date | null;
+}
+
+export interface CalendarInviteRecord {
+  id: string;
+  calendarId: string;
+  invitedUid: string;
+  invitedEmail: string;
+  invitedUsername: string | null;
+  invitedByUid: string;
+  status: InviteStatus;
   createdAt: Date | null;
   updatedAt: Date | null;
+  respondedAt: Date | null;
 }
 
 export interface CalendarAccessRequestRecord {
   id: string;
   calendarId: string;
   calendarSlug: string | null;
-  requesterUserId: string | null;
+  requesterUid: string;
+  requesterUserId: string;
   requesterEmail: string;
-  requesterEmailKey: string;
+  requesterUsername: string | null;
   status: AccessRequestStatus;
   createdAt: Date | null;
   updatedAt: Date | null;
@@ -96,6 +113,7 @@ export interface CalendarAccessRequestRecord {
 export interface CalendarSlotRecord {
   id: string;
   calendarId: string;
+  ownerUid: string;
   ownerId: string;
   startsAt: Date | null;
   endsAt: Date | null;
@@ -113,6 +131,7 @@ export interface CalendarSlotEventRecord {
   actorUid?: string | null;
   actorRole: SlotEventActorRole;
   targetEmail?: string | null;
+  targetUid?: string | null;
   statusAfter?: SlotStatus | null;
   note?: string | null;
   createdAt: Date | null;
@@ -122,8 +141,10 @@ export interface AppointmentRecord {
   id: string;
   calendarId: string;
   slotId?: string | null;
+  ownerUid: string;
   ownerId: string;
   bookedByUserId: string | null;
+  participantUid: string | null;
   participantName: string | null;
   participantPhone: string | null;
   bookedByEmail: string;
@@ -154,6 +175,7 @@ export interface NotificationRecord {
   calendarId: string;
   appointmentId?: string | null;
   slotId?: string | null;
+  recipientUid: string | null;
   recipientEmail: string;
   recipientEmailKey: string;
   channel: NotificationChannel;
