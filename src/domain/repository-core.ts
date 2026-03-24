@@ -97,6 +97,18 @@ export function validateCalendarPublicSlugInput(slug: string) {
 }
 
 export function validateSlotlymeUserIdInput(slotlymeId: string) {
+  if (!slotlymeId.trim()) {
+    return '';
+  }
+
+  if (slotlymeId !== slotlymeId.trim()) {
+    throw new Error('Die Slotlyme ID darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten.');
+  }
+
+  if (slotlymeId !== slotlymeId.toLowerCase()) {
+    throw new Error('Die Slotlyme ID darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten.');
+  }
+
   return validateSlotlymeUserId(slotlymeId);
 }
 

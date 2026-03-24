@@ -14,8 +14,10 @@ type SlotlymeIdAvailabilityState = {
   isValid: boolean;
 };
 
+const AVAILABILITY_DEBOUNCE_MS = 1500;
+
 export function useSlotlymeIdAvailability(value: string) {
-  const normalizedValue = useMemo(() => value.trim().toLowerCase(), [value]);
+  const normalizedValue = useMemo(() => value, [value]);
   const [debouncedValue, setDebouncedValue] = useState(normalizedValue);
   const [availabilityMessage, setAvailabilityMessage] = useState<string | null>(null);
   const [isAvailable, setIsAvailable] = useState(false);
@@ -23,7 +25,7 @@ export function useSlotlymeIdAvailability(value: string) {
   const [isRequestPending, setIsRequestPending] = useState(false);
 
   const formatError = useMemo(() => {
-    if (!normalizedValue) {
+    if (!normalizedValue.trim()) {
       return null;
     }
 
@@ -38,7 +40,7 @@ export function useSlotlymeIdAvailability(value: string) {
   useEffect(() => {
     const timeout = setTimeout(() => {
       setDebouncedValue(normalizedValue);
-    }, 250);
+    }, AVAILABILITY_DEBOUNCE_MS);
 
     return () => {
       clearTimeout(timeout);
@@ -94,10 +96,7 @@ export function useSlotlymeIdAvailability(value: string) {
     };
   }, [debouncedValue, formatError]);
 
-  const isChecking =
-    Boolean(normalizedValue) &&
-    !formatError &&
-    (normalizedValue !== debouncedValue || isRequestPending);
+  const isChecking = Boolean(normalizedValue.trim()) && !formatError && isRequestPending;
   const hasCurrentAvailabilityResult = checkedValue === normalizedValue;
   const currentAvailabilityMessage = isChecking
     ? 'Slotlyme ID wird geprueft ...'
@@ -111,6 +110,6 @@ export function useSlotlymeIdAvailability(value: string) {
     availabilityMessage: currentAvailabilityMessage,
     isAvailable: hasCurrentAvailabilityResult && isAvailable,
     isChecking,
-    isValid: Boolean(normalizedValue) && !formatError,
+    isValid: Boolean(normalizedValue.trim()) && !formatError,
   } satisfies SlotlymeIdAvailabilityState;
 }

@@ -24,10 +24,6 @@ function isValidEmail(email: string) {
   return /\S+@\S+\.\S+/.test(email);
 }
 
-function sanitizeSlotlymeIdInput(value: string) {
-  return value.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9-]/g, '');
-}
-
 export default function RegisterScreen() {
   const { t } = useTranslation();
   const { theme } = useAppTheme();
@@ -178,10 +174,7 @@ export default function RegisterScreen() {
                 placeholderTextColor={theme.colors.textSecondary}
                 value={slotlymeId}
                 onChangeText={(nextValue) => {
-                  const sanitizedValue = sanitizeSlotlymeIdInput(nextValue);
-                  setSlotlymeId((currentValue) =>
-                    currentValue === sanitizedValue ? currentValue : sanitizedValue
-                  );
+                  setSlotlymeId(nextValue);
                   setMessage('');
                 }}
                 autoCapitalize="none"
