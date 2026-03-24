@@ -133,6 +133,72 @@ Semantics:
 - approving a request creates membership
 - open invite, open request, and active membership must not conflict for the same user/calendar pair
 
+## Calendar Access Flows
+
+In Slotlyme koennen Nutzer Zugriff auf fremde Kalender auf zwei Arten erhalten:
+
+### 1. Access Request (User -> Owner)
+
+Ein Nutzer oeffnet einen privaten Kalender ueber einen Link:
+
+```text
+slotlyme.app/calendar/<calendarSlug>
+```
+
+Wenn er noch keinen Zugriff hat, kann er eine Anfrage senden.
+
+Diese wird gespeichert unter:
+
+```text
+calendars/{calendarId}/accessRequests/{uid}
+```
+
+Der Kalenderinhaber sieht die Anfrage unter:
+
+```text
+Calendar Settings -> Freigaben -> Eingehende Anfragen
+```
+
+Der Owner kann:
+
+- approve -> Nutzer wird Mitglied
+- reject -> Anfrage wird entfernt
+
+### 2. Calendar Invite (Owner -> User)
+
+Der Kalenderinhaber kann einen Nutzer ueber dessen User-Link einladen:
+
+```text
+slotlyme.app/user/<username>
+```
+
+Die Einladung wird gespeichert unter:
+
+```text
+calendars/{calendarId}/invites/{uid}
+```
+
+Der eingeladene Nutzer sieht sie im Dashboard unter:
+
+```text
+Verbundene Kalender -> Kalendereinladungen
+```
+
+Er kann:
+
+- accept -> erhaelt Zugriff
+- reject -> Einladung verschwindet
+
+### Access Source of Truth
+
+Der tatsaechliche Zugriff auf einen Kalender wird ausschliesslich hier gespeichert:
+
+```text
+calendars/{calendarId}/access/{uid}
+```
+
+`accessRequests` und `invites` sind nur Workflow-Zustaende.
+
 ## Slot And Booking Model
 
 Scheduling is calendar-local.

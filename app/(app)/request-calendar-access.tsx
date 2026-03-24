@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
@@ -16,26 +17,20 @@ function extractCalendarSlug(value: string) {
     return '';
   }
 
-  if (!trimmedValue.includes('://')) {
-    return trimmedValue.replace(/^\/+|\/+$/g, '');
-  }
+  const normalizedValue = trimmedValue
+    .replace(/^https?:\/\//i, '')
+    .replace(/^www\./i, '')
+    .replace(/^slotlyme\.app\/?/i, '')
+    .replace(/^\/+|\/+$/g, '')
+    .replace(/^calendar\//i, '')
+    .replace(/^\/+|\/+$/g, '');
 
-  try {
-    const parsedUrl = new URL(trimmedValue);
-    const pathSegments = parsedUrl.pathname.split('/').filter(Boolean);
-
-    if (!pathSegments.length) {
-      return '';
-    }
-
-    if (pathSegments[0] === 'calendar' && pathSegments[1]) {
-      return pathSegments[1];
-    }
-
-    return pathSegments[pathSegments.length - 1] ?? '';
-  } catch {
+  if (!normalizedValue) {
     return '';
   }
+
+  const pathSegments = normalizedValue.split('/').filter(Boolean);
+  return pathSegments[pathSegments.length - 1] ?? '';
 }
 
 function getFirestoreIndexErrorDetails(error: string | null) {
@@ -58,13 +53,20 @@ export default function RequestCalendarAccessScreen() {
   const { user, loading } = useAuth();
   const { t } = useTranslation();
   const { theme, uiStyles } = useAppTheme();
+  const params = useLocalSearchParams<{ calendarSlug?: string | string[] }>();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
+  const initialCalendarSlug =
+    typeof params.calendarSlug === 'string'
+      ? params.calendarSlug
+      : Array.isArray(params.calendarSlug)
+        ? params.calendarSlug[0] ?? ''
+        : '';
   const {
     records: pendingRequests,
     loading: pendingRequestsLoading,
     error: pendingRequestsError,
   } = usePendingCalendarAccessRequests(user?.uid ?? null);
-  const [calendarLinkInput, setCalendarLinkInput] = useState('');
+  const [calendarLinkInput, setCalendarLinkInput] = useState(initialCalendarSlug);
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [cancellingRequestKey, setCancellingRequestKey] = useState<string | null>(null);
@@ -140,7 +142,10 @@ export default function RequestCalendarAccessScreen() {
         <TextInput
           placeholder={t('requestAccess.placeholder')}
           value={calendarLinkInput}
-          onChangeText={setCalendarLinkInput}
+          onChangeText={(nextValue) => {
+            setCalendarLinkInput(nextValue);
+            setMessage(null);
+          }}
           autoCapitalize="none"
           placeholderTextColor={theme.colors.textSecondary}
           style={[uiStyles.input, { marginBottom: theme.spacing[12] }]}
@@ -194,8 +199,11 @@ export default function RequestCalendarAccessScreen() {
         ) : pendingRequests.length ? (
           pendingRequests.map(({ request, calendar }) => {
             const requestKey = `${request.calendarId}:${request.requesterUid}`;
-            const calendarLabel =
-              request.calendarSlug || calendar?.calendarSlug || calendar?.ownerEmail || request.calendarId;
+            const ownerLabel = calendar?.ownerUsername || calendar?.ownerEmail || request.calendarId;
+            const calendarReference =
+              calendar?.publicSlug || calendar?.calendarSlug
+                ? `slotlyme.app/calendar/${calendar?.publicSlug || calendar?.calendarSlug}`
+                : calendar?.title || 'Mein Kalender';
 
             return (
               <View key={requestKey} style={uiStyles.listItem}>
@@ -208,9 +216,9 @@ export default function RequestCalendarAccessScreen() {
                   }}>
                   <View style={{ flex: 1 }}>
                     <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4] }]}>
-                      {calendarLabel}
+                      {ownerLabel}
                     </Text>
-                    <Text style={uiStyles.secondaryText}>Anfrage ausstehend</Text>
+                    <Text style={uiStyles.secondaryText}>{calendarReference}</Text>
                   </View>
 
                   <Pressable

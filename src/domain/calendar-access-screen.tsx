@@ -8,11 +8,12 @@ import { useAuth } from '@/src/firebase/useAuth';
 import { useAppTheme, useBottomSafeContentStyle } from '@/src/theme/ui';
 import {
   approveCalendarAccessRequest,
+  createCalendarInvite,
   rejectCalendarAccessRequest,
   removeCalendarAccess,
-  upsertCalendarAccess,
 } from '@/src/domain/repository';
 import { useCalendarAccessList } from '@/src/domain/useCalendarAccessList';
+import { useCalendarInvites } from '@/src/domain/useCalendarInvites';
 import { useCalendarAccessRequests } from '@/src/domain/useCalendarAccessRequests';
 import { useOwnerCalendar } from '@/src/domain/useOwnerCalendar';
 import type { AccessRequestStatus } from '@/src/domain/types';
@@ -27,16 +28,29 @@ export default function CalendarAccessScreen() {
   );
   const { records: accessRecords, loading: accessLoading, error: accessError } =
     useCalendarAccessList(calendar?.id ?? null);
+  const { records: inviteRecords, loading: invitesLoading, error: invitesError } =
+    useCalendarInvites(calendar?.id ?? null);
   const { records: requestRecords, loading: requestsLoading, error: requestsError } =
     useCalendarAccessRequests(calendar?.id ?? null);
-  const [emailInput, setEmailInput] = useState('');
+  const [inviteIdentifier, setInviteIdentifier] = useState('');
   const [message, setMessage] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [processingEmail, setProcessingEmail] = useState<string | null>(null);
+  const [submittingInvite, setSubmittingInvite] = useState(false);
+  const [processingRequestUid, setProcessingRequestUid] = useState<string | null>(null);
+  const [processingMemberUid, setProcessingMemberUid] = useState<string | null>(null);
   const [sharedPeopleExpanded, setSharedPeopleExpanded] = useState(true);
+  const [invitesExpanded, setInvitesExpanded] = useState(true);
   const [requestsExpanded, setRequestsExpanded] = useState(true);
 
-  const pendingRequests = requestRecords.filter((record) => record.status === 'pending');
+  const accessUids = new Set(accessRecords.map((record) => record.uid));
+  const pendingInvites = inviteRecords.filter(
+    (record) => record.status === 'pending' && !accessUids.has(record.invitedUid)
+  );
+  const pendingRequests = requestRecords.filter(
+    (record) =>
+      record.status === 'pending' &&
+      record.requesterUid !== user?.uid &&
+      !accessUids.has(record.requesterUid)
+  );
 
   const formatRequestStatus = (status: AccessRequestStatus) => {
     if (status === 'approved') {
@@ -49,103 +63,125 @@ export default function CalendarAccessScreen() {
 
     return t('access.statusOpen');
   };
+  const getIdentityLabel = (username: string | null, email: string) => username || email;
 
-  const handleGrantAccess = async () => {
+  const handleCreateInvite = async () => {
     if (!calendar || !user) {
       setMessage(t('access.noCalendar'));
       return;
     }
 
-    const trimmedEmail = emailInput.trim();
+    const trimmedIdentifier = inviteIdentifier.trim();
 
-    if (!trimmedEmail) {
-      setMessage(t('access.emailRequired'));
+    if (!trimmedIdentifier) {
+      setMessage(t('invite.identifierRequired'));
       return;
     }
 
-    setSubmitting(true);
+    setSubmittingInvite(true);
     setMessage(null);
 
     try {
-      await upsertCalendarAccess({
+      await createCalendarInvite({
         calendarId: calendar.id,
-        ownerId: user.uid,
-        granteeEmail: trimmedEmail,
+        ownerUid: user.uid,
+        inviteeIdentifier: trimmedIdentifier,
       });
-      setEmailInput('');
-      setMessage(t('access.saved'));
+      setInviteIdentifier('');
+      setMessage(t('invite.created'));
     } catch (nextError) {
-      setMessage(nextError instanceof Error ? nextError.message : t('access.error'));
+      setMessage(nextError instanceof Error ? nextError.message : t('invite.createError'));
     } finally {
-      setSubmitting(false);
+      setSubmittingInvite(false);
     }
   };
 
-  const handleApproveRequest = async (requesterEmail: string) => {
+  const handleApproveRequest = async (
+    requesterUid: string,
+    requesterEmail: string,
+    requesterUsername: string | null
+  ) => {
     if (!calendar || !user) {
       return;
     }
 
-    setProcessingEmail(requesterEmail);
+    setProcessingRequestUid(requesterUid);
     setMessage(null);
 
     try {
       await approveCalendarAccessRequest({
         calendarId: calendar.id,
         ownerId: user.uid,
-        requesterEmail,
+        requesterUid,
       });
-      setMessage(t('access.approvedMessage', { email: requesterEmail }));
+      setMessage(
+        t('access.approvedMessage', {
+          email: getIdentityLabel(requesterUsername, requesterEmail),
+        })
+      );
     } catch (nextError) {
       setMessage(nextError instanceof Error ? nextError.message : t('access.approveError'));
     } finally {
-      setProcessingEmail(null);
+      setProcessingRequestUid(null);
     }
   };
 
-  const handleRejectRequest = async (requesterEmail: string) => {
+  const handleRejectRequest = async (
+    requesterUid: string,
+    requesterEmail: string,
+    requesterUsername: string | null
+  ) => {
     if (!calendar) {
       return;
     }
 
-    setProcessingEmail(requesterEmail);
+    setProcessingRequestUid(requesterUid);
     setMessage(null);
 
     try {
       await rejectCalendarAccessRequest({
         calendarId: calendar.id,
-        requesterEmail,
+        ownerId: user?.uid,
+        requesterUid,
       });
-      setMessage(t('access.rejectedMessage', { email: requesterEmail }));
+      setMessage(
+        t('access.rejectedMessage', {
+          email: getIdentityLabel(requesterUsername, requesterEmail),
+        })
+      );
     } catch (nextError) {
       setMessage(nextError instanceof Error ? nextError.message : t('access.rejectError'));
     } finally {
-      setProcessingEmail(null);
+      setProcessingRequestUid(null);
     }
   };
 
-  const handleRemoveAccess = async (granteeEmail: string) => {
+  const handleRemoveAccess = async (memberUid: string, granteeEmail: string, granteeUsername: string | null) => {
     if (!calendar) {
       return;
     }
 
-    setProcessingEmail(granteeEmail);
+    setProcessingMemberUid(memberUid);
     setMessage(null);
 
     try {
       await removeCalendarAccess({
         calendarId: calendar.id,
-        granteeEmail,
+        memberUid,
       });
-      setMessage(t('access.removedMessage', { email: granteeEmail }));
+      setMessage(
+        t('access.removedMessage', {
+          email: getIdentityLabel(granteeUsername, granteeEmail),
+        })
+      );
     } catch (nextError) {
       setMessage(nextError instanceof Error ? nextError.message : t('access.removeError'));
     } finally {
-      setProcessingEmail(null);
+      setProcessingMemberUid(null);
     }
   };
 
-  const confirmRemoveAccess = (granteeEmail: string) => {
+  const confirmRemoveAccess = (memberUid: string, granteeEmail: string, granteeUsername: string | null) => {
     Alert.alert(
       'Freigabe aufheben?',
       'Der Nutzer verliert sofort den Zugriff auf diesen Kalender.',
@@ -155,14 +191,14 @@ export default function CalendarAccessScreen() {
           text: 'Freigabe aufheben',
           style: 'destructive',
           onPress: () => {
-            void handleRemoveAccess(granteeEmail);
+            void handleRemoveAccess(memberUid, granteeEmail, granteeUsername);
           },
         },
       ]
     );
   };
 
-  if (authLoading || loading || accessLoading || requestsLoading) {
+  if (authLoading || loading || accessLoading || invitesLoading || requestsLoading) {
     return (
       <View style={uiStyles.centeredLoading}>
         <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
@@ -175,32 +211,36 @@ export default function CalendarAccessScreen() {
       <AppScreenHeader title={t('access.title')} />
 
       <View style={uiStyles.panel}>
-        <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>Neue Freigabe</Text>
+        <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>
+          {t('invite.title')}
+        </Text>
+        <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
+          {t('invite.ownerHint')}
+        </Text>
         <TextInput
-          placeholder={t('access.placeholder')}
-          value={emailInput}
-          onChangeText={setEmailInput}
+          placeholder={t('invite.placeholder')}
+          value={inviteIdentifier}
+          onChangeText={(nextValue) => {
+            setInviteIdentifier(nextValue);
+            setMessage(null);
+          }}
           autoCapitalize="none"
-          keyboardType="email-address"
+          autoCorrect={false}
           placeholderTextColor={theme.colors.textSecondary}
           style={[uiStyles.input, { marginBottom: theme.spacing[12] }]}
         />
         <Pressable
-          onPress={handleGrantAccess}
-          disabled={submitting || !calendar}
+          onPress={() => void handleCreateInvite()}
+          disabled={submittingInvite || !calendar}
           style={[
             uiStyles.button,
             uiStyles.buttonActive,
-            { opacity: submitting ? 0.6 : 1 },
+            { opacity: submittingInvite ? 0.6 : 1 },
           ]}>
           <Text style={[uiStyles.buttonText, { color: theme.colors.textPrimary, fontWeight: '600' }]}>
-            {submitting ? t('access.adding') : 'Nutzer freigeben'}
+            {submittingInvite ? t('invite.creating') : t('invite.submit')}
           </Text>
         </Pressable>
-        {message ? <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>{message}</Text> : null}
-        {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
-        {accessError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{accessError}</Text> : null}
-        {requestsError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{requestsError}</Text> : null}
       </View>
 
       <View style={uiStyles.panel}>
@@ -225,13 +265,20 @@ export default function CalendarAccessScreen() {
                     justifyContent: 'space-between',
                     gap: theme.spacing[12],
                   }}>
-                  <Text style={[uiStyles.bodyText, { flex: 1 }]}>{record.email}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4] }]}>
+                      {getIdentityLabel(record.username, record.email)}
+                    </Text>
+                    {record.username ? (
+                      <Text style={uiStyles.secondaryText}>{record.email}</Text>
+                    ) : null}
+                  </View>
                   <Pressable
-                    onPress={() => confirmRemoveAccess(record.email)}
-                    disabled={processingEmail === record.email}
+                    onPress={() => confirmRemoveAccess(record.uid, record.email, record.username)}
+                    disabled={processingMemberUid === record.uid}
                     accessibilityRole="button"
                     accessibilityLabel="Freigabe aufheben"
-                    style={{ opacity: processingEmail === record.email ? 0.45 : 1 }}>
+                    style={{ opacity: processingMemberUid === record.uid ? 0.45 : 1 }}>
                     <Feather name="trash-2" size={18} color={theme.colors.textSecondary} />
                   </Pressable>
                 </View>
@@ -239,6 +286,38 @@ export default function CalendarAccessScreen() {
             ))
           ) : (
             <Text style={uiStyles.secondaryText}>{t('access.peopleEmpty')}</Text>
+          )
+        ) : null}
+      </View>
+
+      <View style={uiStyles.panel}>
+        <Pressable
+          onPress={() => setInvitesExpanded((currentValue) => !currentValue)}
+          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={uiStyles.sectionTitle}>{`Kalendereinladungen (${pendingInvites.length})`}</Text>
+          <Feather
+            name={invitesExpanded ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={theme.colors.textPrimary}
+          />
+        </Pressable>
+        {invitesExpanded ? (
+          pendingInvites.length ? (
+            pendingInvites.map((record) => (
+              <View key={record.id} style={uiStyles.listItem}>
+                <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4] }]}>
+                  {getIdentityLabel(record.invitedUsername, record.invitedEmail)}
+                </Text>
+                {record.invitedUsername ? (
+                  <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[4] }]}>
+                    {record.invitedEmail}
+                  </Text>
+                ) : null}
+                <Text style={uiStyles.secondaryText}>{t('invite.statusPending')}</Text>
+              </View>
+            ))
+          ) : (
+            <Text style={uiStyles.secondaryText}>{t('invite.ownerEmpty')}</Text>
           )
         ) : null}
       </View>
@@ -258,22 +337,41 @@ export default function CalendarAccessScreen() {
           pendingRequests.length ? (
             pendingRequests.map((record) => (
               <View key={record.id} style={uiStyles.listItem}>
-                <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4] }]}>{record.requesterEmail}</Text>
+                <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4] }]}>
+                  {getIdentityLabel(record.requesterUsername, record.requesterEmail)}
+                </Text>
+                {record.requesterUsername ? (
+                  <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[4] }]}>
+                    {record.requesterEmail}
+                  </Text>
+                ) : null}
                 <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[8] }]}>
                   {t('common.status')}: {formatRequestStatus(record.status)}
                 </Text>
                 <View style={{ flexDirection: 'row' }}>
                   <Pressable
-                    onPress={() => handleApproveRequest(record.requesterEmail)}
-                    disabled={processingEmail === record.requesterEmail}
+                    onPress={() =>
+                      handleApproveRequest(
+                        record.requesterUid,
+                        record.requesterEmail,
+                        record.requesterUsername
+                      )
+                    }
+                    disabled={processingRequestUid === record.requesterUid}
                     style={{ marginRight: 16 }}>
                     <Text style={uiStyles.linkText}>
                       {t('access.approve')}
                     </Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => handleRejectRequest(record.requesterEmail)}
-                    disabled={processingEmail === record.requesterEmail}>
+                    onPress={() =>
+                      handleRejectRequest(
+                        record.requesterUid,
+                        record.requesterEmail,
+                        record.requesterUsername
+                      )
+                    }
+                    disabled={processingRequestUid === record.requesterUid}>
                     <Text style={uiStyles.linkText}>
                       {t('access.reject')}
                     </Text>
@@ -286,6 +384,12 @@ export default function CalendarAccessScreen() {
           )
         ) : null}
       </View>
+
+      {message ? <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[4] }]}>{message}</Text> : null}
+      {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
+      {accessError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{accessError}</Text> : null}
+      {invitesError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{invitesError}</Text> : null}
+      {requestsError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{requestsError}</Text> : null}
     </ScrollView>
   );
 }

@@ -5,6 +5,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  updateDoc,
   writeBatch,
 } from 'firebase/firestore';
 import { describe, expect, test } from 'vitest';
@@ -194,6 +195,99 @@ describe('Firestore core flows', () => {
 
     const accessSnapshot = await expectDocExists(memberContext, ['calendars', ownerCalendarId, 'access', memberUser.uid]);
     expect(accessSnapshot.data()?.role).toBe('member');
+  });
+
+  test('Owner rejection keeps access request out of membership and marks it as rejected', async () => {
+    const ownerContext = await getAuthenticatedContext({
+      uid: ownerUser.uid,
+      email: ownerUser.email,
+    });
+    const memberContext = await getAuthenticatedContext({
+      uid: memberUser.uid,
+      email: memberUser.email,
+    });
+    const ownerDb = firestoreOf(ownerContext);
+    const memberDb = firestoreOf(memberContext);
+
+    await bootstrapOwnerCalendar(ownerContext);
+    await bootstrapMemberUser(memberContext);
+
+    await assertSucceeds(
+      setDoc(doc(memberDb, 'calendars', ownerCalendarId, 'accessRequests', memberUser.uid), {
+        calendarId: ownerCalendarId,
+        uid: memberUser.uid,
+        requesterUid: memberUser.uid,
+        requesterEmail: memberUser.email,
+        requesterUsername: memberUser.username,
+        calendarSlug: ownerCalendarSlug,
+        status: 'pending',
+        createdAt: Timestamp.fromDate(new Date('2026-03-24T08:00:00.000Z')),
+        updatedAt: Timestamp.fromDate(new Date('2026-03-24T08:00:00.000Z')),
+      })
+    );
+
+    await assertSucceeds(
+      updateDoc(doc(ownerDb, 'calendars', ownerCalendarId, 'accessRequests', memberUser.uid), {
+        status: 'rejected',
+        updatedAt: Timestamp.fromDate(new Date('2026-03-24T08:05:00.000Z')),
+      })
+    );
+
+    await expectDocMissing(ownerContext, ['calendars', ownerCalendarId, 'access', memberUser.uid]);
+    const requestSnapshot = await expectDocExists(ownerContext, [
+      'calendars',
+      ownerCalendarId,
+      'accessRequests',
+      memberUser.uid,
+    ]);
+    expect(requestSnapshot.data()?.status).toBe('rejected');
+  });
+
+  test('Member rejection keeps invite out of membership and marks it as rejected', async () => {
+    const ownerContext = await getAuthenticatedContext({
+      uid: ownerUser.uid,
+      email: ownerUser.email,
+    });
+    const memberContext = await getAuthenticatedContext({
+      uid: memberUser.uid,
+      email: memberUser.email,
+    });
+    const ownerDb = firestoreOf(ownerContext);
+    const memberDb = firestoreOf(memberContext);
+
+    await bootstrapOwnerCalendar(ownerContext);
+    await bootstrapMemberUser(memberContext);
+
+    await assertSucceeds(
+      setDoc(doc(ownerDb, 'calendars', ownerCalendarId, 'invites', memberUser.uid), {
+        calendarId: ownerCalendarId,
+        invitedUid: memberUser.uid,
+        invitedEmail: memberUser.email,
+        invitedUsername: memberUser.username,
+        invitedByUid: ownerUser.uid,
+        status: 'pending',
+        createdAt: Timestamp.fromDate(new Date('2026-03-24T08:30:00.000Z')),
+        updatedAt: Timestamp.fromDate(new Date('2026-03-24T08:30:00.000Z')),
+        respondedAt: null,
+      })
+    );
+
+    await assertSucceeds(
+      updateDoc(doc(memberDb, 'calendars', ownerCalendarId, 'invites', memberUser.uid), {
+        status: 'rejected',
+        respondedAt: Timestamp.fromDate(new Date('2026-03-24T08:35:00.000Z')),
+        updatedAt: Timestamp.fromDate(new Date('2026-03-24T08:35:00.000Z')),
+      })
+    );
+
+    await expectDocMissing(ownerContext, ['calendars', ownerCalendarId, 'access', memberUser.uid]);
+    const inviteSnapshot = await expectDocExists(ownerContext, [
+      'calendars',
+      ownerCalendarId,
+      'invites',
+      memberUser.uid,
+    ]);
+    expect(inviteSnapshot.data()?.status).toBe('rejected');
   });
 
   test('Member can leave own calendar membership but owner cannot leave own owner access', async () => {

@@ -22,6 +22,7 @@ import {
   calendarAccessDoc,
   calendarAccessRequestDoc,
   calendarAccessRequestsCollection,
+  calendarInvitesCollection,
   calendarInviteDoc,
   mapAccess,
   mapAccessRequest,
@@ -148,18 +149,6 @@ export async function createCalendarInvite(params: {
     },
     { merge: true }
   );
-}
-
-export async function upsertCalendarAccess(params: {
-  calendarId: string;
-  ownerId: string;
-  granteeEmail: string;
-}) {
-  await createCalendarInvite({
-    calendarId: params.calendarId,
-    ownerUid: params.ownerId,
-    inviteeIdentifier: params.granteeEmail,
-  });
 }
 
 export async function leaveCalendarAsMember(params: { calendarId: string; memberUid: string }) {
@@ -343,6 +332,26 @@ export function subscribeToPendingCalendarInvitesByUser(
   );
 }
 
+export function subscribeToCalendarInvites(
+  calendarId: string,
+  onData: (records: CalendarInviteRecord[]) => void,
+  onError: (error: Error) => void
+) {
+  return onSnapshot(
+    query(calendarInvitesCollection(calendarId)),
+    (snapshot) => {
+      onData(
+        snapshot.docs
+          .map((documentSnapshot) =>
+            mapInvite(documentSnapshot.id, documentSnapshot.data() as Record<string, unknown>)
+          )
+          .sort((left, right) => (right.createdAt?.getTime() ?? 0) - (left.createdAt?.getTime() ?? 0))
+      );
+    },
+    onError
+  );
+}
+
 export async function requestCalendarAccessBySlug(params: {
   slug: string;
   requesterUid: string;
@@ -421,10 +430,15 @@ export async function approveCalendarAccessRequest(params: {
     throw new Error('Die ausgewaehlte Anfrage konnte nicht aufgeloest werden.');
   }
 
-  const [requestSnapshot, requesterProfile] = await Promise.all([
+  const [ownerMembership, requestSnapshot, requesterProfile] = await Promise.all([
+    getMembership(params.calendarId, params.ownerId),
     getDoc(calendarAccessRequestDoc(params.calendarId, requesterUid)),
     getOwnerProfile(requesterUid),
   ]);
+
+  if (!ownerMembership || ownerMembership.role !== 'owner') {
+    throw new Error('Nur der Kalenderinhaber kann Zugriffsanfragen bearbeiten.');
+  }
 
   if (!requestSnapshot.exists()) {
     throw new Error('Die ausgewaehlte Anfrage existiert nicht mehr.');
@@ -460,6 +474,7 @@ export async function approveCalendarAccessRequest(params: {
       {
         status: 'approved',
         updatedAt: serverTimestamp(),
+        respondedAt: serverTimestamp(),
       },
       { merge: true }
     );
@@ -468,6 +483,7 @@ export async function approveCalendarAccessRequest(params: {
 
 export async function rejectCalendarAccessRequest(params: {
   calendarId: string;
+  ownerId?: string;
   requesterUid?: string;
   requesterEmail?: string;
 }) {
@@ -482,11 +498,20 @@ export async function rejectCalendarAccessRequest(params: {
     throw new Error('Die ausgewaehlte Anfrage konnte nicht aufgeloest werden.');
   }
 
+  if (params.ownerId) {
+    const ownerMembership = await getMembership(params.calendarId, params.ownerId);
+
+    if (!ownerMembership || ownerMembership.role !== 'owner') {
+      throw new Error('Nur der Kalenderinhaber kann Zugriffsanfragen bearbeiten.');
+    }
+  }
+
   await setDoc(
     calendarAccessRequestDoc(params.calendarId, requesterUid),
     {
       status: 'rejected',
       updatedAt: serverTimestamp(),
+      respondedAt: serverTimestamp(),
     },
     { merge: true }
   );
