@@ -423,6 +423,13 @@ export const en = {
   'requestAccess.hint':
     'You will receive a notification as soon as your request is confirmed.',
 
+  'calendarSearch.title': 'Calendar search',
+  'calendarSearch.searchSection': 'Calendar search',
+  'calendarSearch.pendingRequests': 'Pending requests',
+  'calendarSearch.pendingRequestsEmpty': 'No open requests',
+  'calendarSearch.pendingInvites': 'Incoming calendar invitations',
+  'calendarSearch.pendingInvitesEmpty': 'There are currently no open calendar invitations.',
+
   'access.title': 'Manage access',
   'access.newGrant': 'Grant access by email',
   'access.placeholder': 'contact@example.com',

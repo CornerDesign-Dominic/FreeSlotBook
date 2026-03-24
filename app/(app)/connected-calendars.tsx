@@ -3,9 +3,7 @@ import { Feather } from '@expo/vector-icons';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { AppScreenHeader } from '@/src/components/app-screen-header';
-import { acceptCalendarInvite, rejectCalendarInvite } from '@/src/domain/repository';
 import { useConnectedCalendars } from '@/src/domain/useConnectedCalendars';
-import { usePendingCalendarInvites } from '@/src/domain/usePendingCalendarInvites';
 import { useAuth } from '@/src/firebase/useAuth';
 import { useAppTheme, useBottomSafeContentStyle } from '@/src/theme/ui';
 
@@ -16,16 +14,10 @@ export default function ConnectedCalendarsScreen() {
   const { records, loading, error, toggleFavorite, disconnectCalendar } = useConnectedCalendars(
     user ? { uid: user.uid, email: user.email } : null
   );
-  const {
-    records: inviteRecords,
-    loading: invitesLoading,
-    error: invitesError,
-  } = usePendingCalendarInvites(user?.uid ?? null);
   const [expandedCalendarIds, setExpandedCalendarIds] = useState<string[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [processingFavoriteCalendarId, setProcessingFavoriteCalendarId] = useState<string | null>(null);
   const [removingCalendarId, setRemovingCalendarId] = useState<string | null>(null);
-  const [processingInviteCalendarId, setProcessingInviteCalendarId] = useState<string | null>(null);
 
   const favoriteCount = useMemo(
     () => records.filter((record) => record.isFavorite).length,
@@ -56,7 +48,7 @@ export default function ConnectedCalendarsScreen() {
   const confirmDisconnectCalendar = (calendarId: string) => {
     Alert.alert(
       'Verbindung entfernen?',
-      'Der Zugriff auf diesen Kalender wird entfernt. FÃ¼r einen erneuten Zugriff muss eine neue Anfrage gesendet werden.',
+      'Der Zugriff auf diesen Kalender wird entfernt. Fuer einen erneuten Zugriff muss eine neue Anfrage gesendet werden.',
       [
         { text: 'Abbrechen', style: 'cancel' },
         {
@@ -84,43 +76,7 @@ export default function ConnectedCalendarsScreen() {
     }
   };
 
-  const handleAcceptInvite = async (calendarId: string) => {
-    if (!user?.uid) {
-      return;
-    }
-
-    setProcessingInviteCalendarId(calendarId);
-    setMessage(null);
-
-    try {
-      await acceptCalendarInvite({ calendarId, invitedUid: user.uid });
-      setMessage('Einladung angenommen');
-    } catch (nextError) {
-      setMessage(nextError instanceof Error ? nextError.message : 'Einladung konnte nicht angenommen werden.');
-    } finally {
-      setProcessingInviteCalendarId(null);
-    }
-  };
-
-  const handleRejectInvite = async (calendarId: string) => {
-    if (!user?.uid) {
-      return;
-    }
-
-    setProcessingInviteCalendarId(calendarId);
-    setMessage(null);
-
-    try {
-      await rejectCalendarInvite({ calendarId, invitedUid: user.uid });
-      setMessage('Einladung abgelehnt');
-    } catch (nextError) {
-      setMessage(nextError instanceof Error ? nextError.message : 'Einladung konnte nicht abgelehnt werden.');
-    } finally {
-      setProcessingInviteCalendarId(null);
-    }
-  };
-
-  if (authLoading || loading || invitesLoading) {
+  if (authLoading || loading) {
     return (
       <View style={uiStyles.centeredLoading}>
         <Text style={uiStyles.secondaryText}>Wird geladen</Text>
@@ -131,53 +87,6 @@ export default function ConnectedCalendarsScreen() {
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
       <AppScreenHeader title="Verbundene Kalender" />
-
-      <View style={uiStyles.panel}>
-        <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>
-          Kalendereinladungen
-        </Text>
-        {inviteRecords.length ? (
-          inviteRecords.map(({ invite, calendar }) => {
-            const inviteLabel = calendar?.ownerUsername || calendar?.ownerEmail || invite.calendarId;
-            const slugLabel = calendar?.publicSlug || null;
-            const isProcessing = processingInviteCalendarId === invite.calendarId;
-
-            return (
-              <View key={`${invite.calendarId}:${invite.invitedUid}`} style={uiStyles.listItem}>
-                <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4] }]}>{inviteLabel}</Text>
-                {slugLabel ? (
-                  <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[4] }]}>
-                    /calendar/{slugLabel}
-                  </Text>
-                ) : null}
-                {calendar?.ownerEmail && calendar.ownerEmail !== inviteLabel ? (
-                  <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[8] }]}>
-                    {calendar.ownerEmail}
-                  </Text>
-                ) : null}
-                <View style={{ flexDirection: 'row', gap: theme.spacing[12] }}>
-                  <Pressable
-                    onPress={() => void handleAcceptInvite(invite.calendarId)}
-                    disabled={isProcessing}
-                    style={[uiStyles.button, uiStyles.buttonActive, { flex: 1, opacity: isProcessing ? 0.6 : 1 }]}>
-                    <Text style={[uiStyles.buttonText, { color: theme.colors.textPrimary, fontWeight: '600' }]}>
-                      Einladung annehmen
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => void handleRejectInvite(invite.calendarId)}
-                    disabled={isProcessing}
-                    style={[uiStyles.button, { flex: 1, opacity: isProcessing ? 0.6 : 1 }]}>
-                    <Text style={uiStyles.buttonText}>Einladung ablehnen</Text>
-                  </Pressable>
-                </View>
-              </View>
-            );
-          })
-        ) : (
-          <Text style={uiStyles.secondaryText}>Aktuell liegen keine offenen Kalendereinladungen vor.</Text>
-        )}
-      </View>
 
       {records.length ? (
         records.map(({ calendar, isFavorite }) => {
@@ -220,7 +129,7 @@ export default function ConnectedCalendarsScreen() {
                     accessibilityLabel="Favorit umschalten"
                     style={{ opacity: processingFavoriteCalendarId === calendar.id ? 0.45 : 1 }}>
                     <Feather
-                      name={isFavorite ? 'star' : 'star'}
+                      name="star"
                       size={18}
                       color={isFavorite ? theme.colors.accent : theme.colors.textSecondary}
                     />
@@ -229,8 +138,7 @@ export default function ConnectedCalendarsScreen() {
                   <Pressable
                     onPress={() => toggleExpanded(calendar.id)}
                     accessibilityRole="button"
-                    accessibilityLabel="Kalenderdetails Ã¶ffnen"
-                  >
+                    accessibilityLabel="Kalenderdetails oeffnen">
                     <Feather
                       name={isExpanded ? 'chevron-up' : 'chevron-down'}
                       size={18}
@@ -281,7 +189,6 @@ export default function ConnectedCalendarsScreen() {
       {favoriteCount > 5 ? <Text style={uiStyles.secondaryText}>Maximal 5 Favoriten</Text> : null}
       {message ? <Text style={uiStyles.bodyText}>{message}</Text> : null}
       {error ? <Text style={uiStyles.secondaryText}>{error}</Text> : null}
-      {invitesError ? <Text style={uiStyles.secondaryText}>{invitesError}</Text> : null}
     </ScrollView>
   );
 }

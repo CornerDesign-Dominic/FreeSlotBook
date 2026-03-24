@@ -42,6 +42,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="calendar-search"
+        options={{
+          title: 'Kalender Suche',
+          tabBarIcon: ({ color, focused }) => (
+            <Feather name="search" size={22} color={color} style={{ opacity: focused ? 1 : 0.8 }} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="my-appointments"
         options={{
           title: 'Termin-Kalender',

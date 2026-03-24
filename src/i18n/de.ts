@@ -425,6 +425,13 @@ export const de = {
   'requestAccess.hint':
     'Du erhältst eine Benachrichtigung, sobald deine Anfrage bestätigt wurde.',
 
+  'calendarSearch.title': 'Kalender Suche',
+  'calendarSearch.searchSection': 'Kalendersuche',
+  'calendarSearch.pendingRequests': 'Ausstehende Anfragen',
+  'calendarSearch.pendingRequestsEmpty': 'Keine offenen Anfragen',
+  'calendarSearch.pendingInvites': 'Eingehende Kalendereinladungen',
+  'calendarSearch.pendingInvitesEmpty': 'Aktuell liegen keine offenen Kalendereinladungen vor.',
+
   'access.title': 'Freigaben verwalten',
   'access.newGrant': 'Neue Freigabe per E-Mail',
   'access.placeholder': 'kontakt@beispiel.de',

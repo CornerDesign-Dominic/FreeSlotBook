@@ -5,8 +5,8 @@ import { useIsFocused } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { SlotCalendarCard } from '@/src/components/slot/slot-calendar-card';
 import { DashboardAppointmentTimeline } from '../../../src/features/dashboard/dashboard-appointment-timeline';
-import { DashboardSlotTimeline } from '../../../src/features/dashboard/dashboard-slot-timeline';
 import {
   createRelativeTimelineWindow,
   getInitialTimelineOffset,
@@ -45,7 +45,6 @@ export default function HomeScreen() {
     loading: appointmentsLoading,
     error: appointmentsError,
   } = useAppointmentCalendar(authUser);
-  const visibleJoinedCalendars = data.joinedCalendars.slice(0, 3);
   const publicSlug = activeOwnerCalendar?.publicSlug ?? null;
   const publicCalendarUrl = publicSlug ? `https://slotlyme.app/calendar/${publicSlug}` : null;
   const username =
@@ -61,12 +60,22 @@ export default function HomeScreen() {
   const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
   const { logout: handleLogout, isLoggingOut } = useLogout();
   const timelineWindow = useMemo(() => createRelativeTimelineWindow(timelineNow), [timelineNow]);
-  const slotTimelineRef = useRef<ScrollView | null>(null);
   const appointmentTimelineRef = useRef<ScrollView | null>(null);
-  const ignoreNextScrollRef = useRef<{ slots: boolean; appointments: boolean }>({
-    slots: false,
-    appointments: false,
-  });
+  const todaySlotCount = useMemo(() => {
+    const now = new Date();
+
+    return slots.filter((slot) => {
+      if (!slot.startsAt) {
+        return false;
+      }
+
+      return (
+        slot.startsAt.getFullYear() === now.getFullYear() &&
+        slot.startsAt.getMonth() === now.getMonth() &&
+        slot.startsAt.getDate() === now.getDate()
+      );
+    }).length;
+  }, [slots]);
 
   useEffect(() => {
     if (!isFocused) {
@@ -108,13 +117,12 @@ export default function HomeScreen() {
         return;
       }
 
-      if (!slotTimelineRef.current || !appointmentTimelineRef.current) {
+      if (!appointmentTimelineRef.current) {
         frameHandle = requestAnimationFrame(scrollToNow);
         return;
       }
 
       const initialOffset = getInitialTimelineOffset(timelineWindow, timelineViewportWidth);
-      slotTimelineRef.current.scrollTo({ x: initialOffset, animated: false });
       appointmentTimelineRef.current.scrollTo({ x: initialOffset, animated: false });
     };
 
@@ -142,24 +150,6 @@ export default function HomeScreen() {
 
       return width;
     });
-  };
-
-  const syncTimelineScroll = (source: 'slots' | 'appointments', x: number) => {
-    if (ignoreNextScrollRef.current[source]) {
-      ignoreNextScrollRef.current[source] = false;
-      return;
-    }
-
-    const target = source === 'slots' ? 'appointments' : 'slots';
-    const targetRef =
-      target === 'slots' ? slotTimelineRef.current : appointmentTimelineRef.current;
-
-    if (!targetRef) {
-      return;
-    }
-
-    ignoreNextScrollRef.current[target] = true;
-    targetRef.scrollTo({ x, animated: false });
   };
 
   const handleCopyPublicLink = async () => {
@@ -211,7 +201,7 @@ export default function HomeScreen() {
             fontWeight: '700',
             letterSpacing: -0.2,
           }}>
-          {t('dashboard.title')}
+          Slotlyme
         </Text>
         <Link href="/settings" asChild>
           <Pressable
@@ -231,60 +221,6 @@ export default function HomeScreen() {
       </View>
 
       <View style={uiStyles.panel}>
-        <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>
-          Slot-Kalender
-        </Text>
-        {publicSlug ? (
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: theme.spacing[12],
-              marginBottom: theme.spacing[8],
-            }}>
-            <Text
-              style={[
-                uiStyles.secondaryText,
-                {
-                  flex: 1,
-                  fontSize: 14,
-                },
-              ]}>
-              {`Kalender-Link: /calendar/${publicSlug}`}
-            </Text>
-            <Pressable
-              onPress={() => void handleCopyPublicLink()}
-              accessibilityRole="button"
-              accessibilityLabel="Link kopieren">
-              <Feather
-                name={copyFeedbackVisible ? 'check' : 'copy'}
-                size={16}
-                color={theme.colors.textSecondary}
-              />
-            </Pressable>
-          </View>
-        ) : null}
-        <View onLayout={(event) => handleTimelineViewportLayout(event.nativeEvent.layout.width)}>
-          <DashboardSlotTimeline
-            slots={slots}
-            loading={slotsLoading}
-            error={slotsError}
-            window={timelineWindow}
-            scrollRef={slotTimelineRef}
-            onScroll={(x) => syncTimelineScroll('slots', x)}
-          />
-        </View>
-        <Link href="/calendar-settings" asChild>
-          <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
-            <Text style={uiStyles.linkText}>
-              Kalender-Einstellungen
-            </Text>
-          </Pressable>
-        </Link>
-      </View>
-
-      <View style={uiStyles.panel}>
         <Text style={[uiStyles.sectionTitle, { marginBottom: 0 }]}>Termin-Kalender</Text>
         <View
           style={{ marginTop: theme.spacing[12] }}
@@ -295,7 +231,7 @@ export default function HomeScreen() {
             error={appointmentsError}
             window={timelineWindow}
             scrollRef={appointmentTimelineRef}
-            onScroll={(x) => syncTimelineScroll('appointments', x)}
+            onScroll={() => {}}
           />
         </View>
         <Link href="/appointment-calendar-settings" asChild>
@@ -305,34 +241,31 @@ export default function HomeScreen() {
         </Link>
       </View>
 
+      <SlotCalendarCard
+        mode="compact"
+        publicSlug={publicSlug}
+        copyFeedbackVisible={copyFeedbackVisible}
+        onCopyPublicLink={() => {
+          void handleCopyPublicLink();
+        }}
+        slots={slots}
+        slotsLoading={slotsLoading}
+        slotsError={slotsError}
+        todaySlotCount={todaySlotCount}
+        timelineWindow={timelineWindow}
+        slotTimelineRef={{ current: null }}
+        onSlotTimelineScroll={() => {}}
+        overviewHref="/my-slot-calendars"
+      />
+
       <View style={[uiStyles.panel, { marginBottom: theme.spacing[24] }]}>
         <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[4] }]}>
           {t('dashboard.sharedCalendars')}
         </Text>
-        {data.joinedCalendars.length ? (
-          visibleJoinedCalendars.map((calendar) => (
-            <Link key={calendar.id} href={`/shared-calendar/${calendar.id}`} asChild>
-              <Pressable style={{ marginTop: theme.spacing[12] }}>
-                <Text style={uiStyles.linkText}>
-                  {calendar.ownerEmail || t('dashboard.noOwnerEmail')}
-                </Text>
-              </Pressable>
-            </Link>
-          ))
-        ) : (
-          <Text style={uiStyles.secondaryText}>{t('dashboard.noJoinedCalendars')}</Text>
-        )}
         <Link href="/connected-calendars" asChild>
           <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
             <Text style={uiStyles.linkText}>
-              Alle anzeigen
-            </Text>
-          </Pressable>
-        </Link>
-        <Link href="/request-calendar-access" asChild>
-          <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
-            <Text style={uiStyles.linkText}>
-              {t('dashboard.requestAccess')}
+              Zu den Kalendern
             </Text>
           </Pressable>
         </Link>
