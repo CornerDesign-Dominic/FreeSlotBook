@@ -67,9 +67,9 @@ Folgende Eingaben werden akzeptiert:
 
 Das System extrahiert automatisch den korrekten Kalender-Slug.
 
-### Termin-Kalender Swipe-Navigation
+### Geplante Erweiterung
 
-Die Swipe-Navigation fuer Termin-Kalender-Ansichten ist jetzt implementiert.
+Swipe-Navigation fuer Termin-Kalender-Ansichten wurde konzeptionell vorbereitet, ist aktuell aber nicht implementiert.
 
 Zielstruktur:
 
@@ -77,9 +77,3 @@ Zielstruktur:
 - Links: Wochenansicht
 - Rechts: Monatsansicht
 - Oben: Tagesansicht
-
-Rueckrichtungen:
-
-- Wochenansicht per Swipe nach rechts zurueck
-- Monatsansicht per Swipe nach links zurueck
-- Tagesansicht per Swipe nach unten zurueck

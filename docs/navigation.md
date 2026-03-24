@@ -85,5 +85,4 @@ Das System extrahiert intern den Kalender-Slug.
 ## Geplante Erweiterungen
 - weitere Slot-Kalender / Kalender koennen spaeter ergaenzt werden
 
-Hinweis:
-- Die Swipe-Navigation fuer den Termin-Kalender ist im aktuellen Stand bereits implementiert und deshalb nicht mehr nur geplant.
+- Swipe-Navigation fuer den Termin-Kalender ist aktuell nur geplant, noch nicht implementiert
