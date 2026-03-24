@@ -53,19 +53,13 @@ export default function TabLayout() {
       <Tabs.Screen
         name="my-appointments"
         options={{
-          title: 'Termin-Kalender',
-          tabBarIcon: ({ color, focused }) => (
-            <Feather name="calendar" size={22} color={color} style={{ opacity: focused ? 1 : 0.8 }} />
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
         name="my-calendar"
         options={{
-          title: 'Slot-Kalender',
-          tabBarIcon: ({ color, focused }) => (
-            <Feather name="grid" size={22} color={color} style={{ opacity: focused ? 1 : 0.8 }} />
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
@@ -100,6 +94,24 @@ export default function TabLayout() {
         name="calendar-access"
         options={{
           href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="my-appointment-calendar"
+        options={{
+          title: 'Termin-Kalender',
+          tabBarIcon: ({ color, focused }) => (
+            <Feather name="calendar" size={22} color={color} style={{ opacity: focused ? 1 : 0.8 }} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="my-slot-calendars"
+        options={{
+          title: 'Slot-Kalender',
+          tabBarIcon: ({ color, focused }) => (
+            <Feather name="grid" size={22} color={color} style={{ opacity: focused ? 1 : 0.8 }} />
+          ),
         }}
       />
     </Tabs>
