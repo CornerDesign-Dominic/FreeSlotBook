@@ -184,11 +184,7 @@ export default function MyAppointmentsMonthScreen() {
           <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>
             {t('appointments.emptyMonth')}
           </Text>
-        ) : (
-          <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>
-            {t('appointments.monthHint')}
-          </Text>
-        )}
+        ) : null}
 
         {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
       </View>

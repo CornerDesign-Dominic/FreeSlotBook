@@ -13,7 +13,6 @@ import {
 } from '../../../src/features/dashboard/dashboard-timeline-utils';
 import { useDashboardData } from '../../../src/domain/useDashboardData';
 import { useOwnerCalendar } from '../../../src/domain/useOwnerCalendar';
-import { useOwnerProfile } from '../../../src/domain/useOwnerProfile';
 import { useOwnerSlots } from '../../../src/domain/useOwnerSlots';
 import { useAppointmentCalendar } from '../../../src/domain/useAppointmentCalendar';
 import { useAuth } from '../../../src/firebase/useAuth';
@@ -37,7 +36,6 @@ export default function HomeScreen() {
   const {
     calendar: ownerCalendar,
   } = useOwnerCalendar(authUser);
-  const { profile: ownerProfile } = useOwnerProfile(authUser);
   const activeOwnerCalendar = ownerCalendar ?? data.ownerCalendar;
   const { slots, loading: slotsLoading, error: slotsError } = useOwnerSlots(
     activeOwnerCalendar?.id ?? null
@@ -50,18 +48,14 @@ export default function HomeScreen() {
   const visibleJoinedCalendars = data.joinedCalendars.slice(0, 3);
   const publicSlug = activeOwnerCalendar?.publicSlug ?? null;
   const publicCalendarUrl = publicSlug ? `https://slotlyme.app/calendar/${publicSlug}` : null;
-  const profileIdentifier =
-    typeof ownerProfile?.slotlymeId === 'string' && ownerProfile.slotlymeId.trim()
-      ? ownerProfile.slotlymeId.trim()
-      : typeof ownerProfile?.username === 'string' && ownerProfile.username.trim()
-        ? ownerProfile.username.trim()
-        : userUid;
-  const profileIdentifierLabel =
-    profileIdentifier === userUid ? 'User ID' : 'Slotlyme ID';
+  const username =
+    typeof data.ownerProfile?.slotlymeId === 'string'
+      ? data.ownerProfile.slotlymeId.trim()
+      : null;
+  const publicUserLink = username ? `slotlyme.app/${username}` : null;
   const [timelineNow, setTimelineNow] = useState(() => new Date());
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
   const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
-  const [profileCopyFeedbackVisible, setProfileCopyFeedbackVisible] = useState(false);
   const { logout: handleLogout, isLoggingOut } = useLogout();
   const timelineWindow = useMemo(() => createRelativeTimelineWindow(timelineNow), [timelineNow]);
   const slotTimelineRef = useRef<ScrollView | null>(null);
@@ -90,18 +84,6 @@ export default function HomeScreen() {
 
     return () => clearTimeout(timeout);
   }, [copyFeedbackVisible]);
-
-  useEffect(() => {
-    if (!profileCopyFeedbackVisible) {
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      setProfileCopyFeedbackVisible(false);
-    }, 1800);
-
-    return () => clearTimeout(timeout);
-  }, [profileCopyFeedbackVisible]);
 
   useEffect(() => {
     if (
@@ -186,13 +168,12 @@ export default function HomeScreen() {
     setCopyFeedbackVisible(true);
   };
 
-  const handleCopyProfileIdentifier = async () => {
-    if (!profileIdentifier) {
+  const handleCopyPublicUserLink = async () => {
+    if (!publicUserLink) {
       return;
     }
 
-    await Clipboard.setStringAsync(profileIdentifier);
-    setProfileCopyFeedbackVisible(true);
+    await Clipboard.setStringAsync(publicUserLink);
   };
 
   if (loading || dashboardLoading) {
@@ -357,7 +338,7 @@ export default function HomeScreen() {
       {user.email ? (
         <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>{user.email}</Text>
       ) : null}
-      {profileIdentifier ? (
+      {publicUserLink ? (
         <View
           style={{
             flexDirection: 'row',
@@ -374,14 +355,14 @@ export default function HomeScreen() {
                 fontSize: 14,
               },
             ]}>
-            {`${profileIdentifierLabel}: ${profileIdentifier}`}
+            {publicUserLink}
           </Text>
           <Pressable
-            onPress={() => void handleCopyProfileIdentifier()}
+            onPress={() => void handleCopyPublicUserLink()}
             accessibilityRole="button"
-            accessibilityLabel="Profil-ID kopieren">
+            accessibilityLabel="User-Link kopieren">
             <Feather
-              name={profileCopyFeedbackVisible ? 'check' : 'copy'}
+              name="copy"
               size={16}
               color={theme.colors.textSecondary}
             />
