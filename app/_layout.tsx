@@ -93,7 +93,7 @@ function RootLayoutContent() {
       return;
     }
 
-    if (isInAppGroup || isEntryRoute) {
+    if (isInAppGroup) {
       router.replace('/(auth)/login');
     }
   }, [isEntryRoute, isInAppGroup, isInAuthGroup, loading, rootNavigationState?.key, router, user]);

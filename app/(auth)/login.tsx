@@ -186,6 +186,12 @@ export default function LoginScreen() {
                 </Pressable>
               </Link>
 
+              <Link href="/register" asChild>
+                <Pressable>
+                  <Text style={authUiStyles.linkText}>Noch kein Konto? Registrieren</Text>
+                </Pressable>
+              </Link>
+
               {message ? (
                 <View style={authUiStyles.messageBox}>
                   <Text style={authUiStyles.messageText}>{message}</Text>

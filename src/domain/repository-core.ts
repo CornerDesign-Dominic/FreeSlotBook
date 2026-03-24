@@ -299,6 +299,7 @@ export async function ensureOwnerAccountSetup(params: {
           email: trimmedEmail,
           emailKey,
           username: nextUsername,
+          slotlymeId: nextUsername,
           subscriptionTier:
             userSnapshot.exists() && userSnapshot.data().subscriptionTier === 'pro' ? 'pro' : 'free',
           defaultCalendarId: calendarId,

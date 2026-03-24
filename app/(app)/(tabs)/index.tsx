@@ -49,10 +49,13 @@ export default function HomeScreen() {
   const publicSlug = activeOwnerCalendar?.publicSlug ?? null;
   const publicCalendarUrl = publicSlug ? `https://slotlyme.app/calendar/${publicSlug}` : null;
   const username =
-    typeof data.ownerProfile?.slotlymeId === 'string'
-      ? data.ownerProfile.slotlymeId.trim()
-      : null;
-  const publicUserLink = username ? `slotlyme.app/${username}` : null;
+    typeof data.ownerProfile?.username === 'string' && data.ownerProfile.username.trim()
+      ? data.ownerProfile.username.trim()
+      : typeof data.ownerProfile?.slotlymeId === 'string' && data.ownerProfile.slotlymeId.trim()
+        ? data.ownerProfile.slotlymeId.trim()
+        : null;
+  const publicUserLink = username ? `slotlyme.app/user/${username}` : null;
+  const publicUserLinkCopyValue = username ? `https://slotlyme.app/user/${username}` : null;
   const [timelineNow, setTimelineNow] = useState(() => new Date());
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
   const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
@@ -169,11 +172,11 @@ export default function HomeScreen() {
   };
 
   const handleCopyPublicUserLink = async () => {
-    if (!publicUserLink) {
+    if (!publicUserLinkCopyValue) {
       return;
     }
 
-    await Clipboard.setStringAsync(publicUserLink);
+    await Clipboard.setStringAsync(publicUserLinkCopyValue);
   };
 
   if (loading || dashboardLoading) {
