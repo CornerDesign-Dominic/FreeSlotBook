@@ -20,7 +20,6 @@ import type {
   DashboardData,
 } from './types';
 import {
-  normalizeExistingCalendarSlug,
   normalizeExistingUsername,
   resolveStableCalendarSlug,
 } from './calendar-slug-policy';
@@ -227,7 +226,6 @@ export async function ensureOwnerAccountSetup(params: {
   const emailKey = normalizeEmail(trimmedEmail);
   const normalizedUsername = params.slotlymeId ? validateSlotlymeUserId(params.slotlymeId) : '';
   const calendarId = params.uid;
-  const calendarSlug = normalizedUsername;
   const setupKey = `${params.uid}:${emailKey}:${normalizedUsername}`;
   const existingPromise = ownerSetupInFlight.get(setupKey);
 
@@ -244,13 +242,9 @@ export async function ensureOwnerAccountSetup(params: {
       ]);
 
       let usernameSnapshot = null;
-      let slugSnapshot = null;
 
       if (normalizedUsername) {
-        [usernameSnapshot, slugSnapshot] = await Promise.all([
-          transaction.get(usernameDoc(normalizedUsername)),
-          transaction.get(calendarSlugDoc(calendarSlug)),
-        ]);
+        usernameSnapshot = await transaction.get(usernameDoc(normalizedUsername));
       }
 
       const claimedUsernameUid =
@@ -259,10 +253,6 @@ export async function ensureOwnerAccountSetup(params: {
           : null;
       const claimedEmailUid =
         emailSnapshot.exists() && typeof emailSnapshot.data().uid === 'string' ? emailSnapshot.data().uid : null;
-      const claimedCalendarId =
-        slugSnapshot && slugSnapshot.exists() && typeof slugSnapshot.data().calendarId === 'string'
-          ? slugSnapshot.data().calendarId
-          : null;
 
       if (claimedUsernameUid && claimedUsernameUid !== params.uid) {
         throw new Error('Diese Slotlyme ID ist bereits vergeben.');
@@ -272,21 +262,10 @@ export async function ensureOwnerAccountSetup(params: {
         throw new Error('Fuer diese E-Mail-Adresse existiert bereits ein anderes Konto.');
       }
 
-      if (claimedCalendarId && claimedCalendarId !== calendarId) {
-        throw new Error('Der Standard-Kalender-Link ist bereits vergeben.');
-      }
-
       const existingUsername = normalizeExistingUsername(
         userSnapshot.exists() ? userSnapshot.data().username : null
       );
       const nextUsername = normalizedUsername || existingUsername || null;
-      const existingCalendarSlug = normalizeExistingCalendarSlug(
-        calendarSnapshot.exists() ? calendarSnapshot.data().calendarSlug : null
-      );
-      const nextCalendarSlug = resolveStableCalendarSlug({
-        currentCalendarSlug: existingCalendarSlug,
-        requestedCalendarSlug: normalizedUsername || null,
-      });
       const existingOwnerUsername =
         calendarSnapshot.exists() && typeof calendarSnapshot.data().ownerUsername === 'string'
           ? calendarSnapshot.data().ownerUsername
@@ -310,7 +289,7 @@ export async function ensureOwnerAccountSetup(params: {
         { merge: true }
       );
 
-      if (normalizedUsername && usernameSnapshot && slugSnapshot) {
+      if (normalizedUsername && usernameSnapshot) {
         transaction.set(
           usernameDoc(normalizedUsername),
           {
@@ -320,18 +299,6 @@ export async function ensureOwnerAccountSetup(params: {
               usernameSnapshot.exists()
                 ? usernameSnapshot.data().createdAt ?? serverTimestamp()
                 : serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
-
-        transaction.set(
-          calendarSlugDoc(calendarSlug),
-          {
-            calendarSlug,
-            calendarId,
-            createdAt:
-              slugSnapshot.exists() ? slugSnapshot.data().createdAt ?? serverTimestamp() : serverTimestamp(),
             updatedAt: serverTimestamp(),
           },
           { merge: true }
@@ -362,7 +329,10 @@ export async function ensureOwnerAccountSetup(params: {
               ? calendarSnapshot.data().title
               : 'Mein Kalender',
           visibility: calendarSnapshot.exists() ? calendarSnapshot.data().visibility ?? 'private' : 'private',
-          calendarSlug: nextCalendarSlug,
+          calendarSlug:
+            calendarSnapshot.exists() && typeof calendarSnapshot.data().calendarSlug === 'string'
+              ? calendarSnapshot.data().calendarSlug
+              : null,
           description:
             calendarSnapshot.exists() && typeof calendarSnapshot.data().description === 'string'
               ? calendarSnapshot.data().description

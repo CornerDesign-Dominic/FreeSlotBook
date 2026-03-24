@@ -1,4 +1,4 @@
-Mar 24, 2026 1:42:45 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketServer start
+Mar 24, 2026 1:57:27 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketServer start
 INFO: Started WebSocket server on ws://127.0.0.1:9150
 
 API endpoint: http://127.0.0.1:8081
@@ -16,16 +16,16 @@ If you are running a Firestore in Datastore Mode project, run:
 Note: Support for Datastore Mode is in preview. If you encounter any bugs please file at https://github.com/firebase/firebase-tools/issues.
 Dev App Server is now running.
 
-Mar 24, 2026 1:42:50 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+Mar 24, 2026 1:57:28 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
 INFO: Detected HTTP/2 connection.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-1, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-1, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
-Mar 24, 2026 1:42:52 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+Mar 24, 2026 1:57:30 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
 INFO: Detected HTTP/2 connection.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-2, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-2, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-2, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
-Mar 24, 2026 1:42:52 PM com.google.cloud.datastore.emulator.impl.util.WrappedStreamObserver onError
+Mar 24, 2026 1:57:31 PM com.google.cloud.datastore.emulator.impl.util.WrappedStreamObserver onError
 WARNING: Operation failed: 
 false for 'create' @ L160, false for 'update' @ L160
 com.google.cloud.datastore.core.exception.DatastoreException: 
@@ -56,31 +56,31 @@ false for 'create' @ L160, false for 'update' @ L160
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
 	at java.base/java.lang.Thread.run(Thread.java:1583)
 
-Mar 24, 2026 1:42:52 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+Mar 24, 2026 1:57:31 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
 INFO: Detected HTTP/2 connection.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-3, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-3, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
-Mar 24, 2026 1:42:53 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+Mar 24, 2026 1:57:31 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
 INFO: Detected HTTP/2 connection.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-4, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-4, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
-Mar 24, 2026 1:42:53 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+Mar 24, 2026 1:57:32 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
 INFO: Detected HTTP/2 connection.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-5, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-5, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-5, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-5, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
-Mar 24, 2026 1:42:53 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+Mar 24, 2026 1:57:32 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
 INFO: Detected HTTP/2 connection.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-6, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-6, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-6, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
-Mar 24, 2026 1:42:54 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+Mar 24, 2026 1:57:32 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
 INFO: Detected HTTP/2 connection.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-7, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-7, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-7, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
-Mar 24, 2026 1:42:54 PM com.google.cloud.datastore.emulator.impl.util.WrappedStreamObserver onError
+Mar 24, 2026 1:57:32 PM com.google.cloud.datastore.emulator.impl.util.WrappedStreamObserver onError
 WARNING: Operation failed: 
 evaluation error at L205:26 for 'delete' @ L205, false for 'delete' @ L205
 com.google.cloud.datastore.core.exception.DatastoreException: 
@@ -111,23 +111,23 @@ evaluation error at L205:26 for 'delete' @ L205, false for 'delete' @ L205
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
 	at java.base/java.lang.Thread.run(Thread.java:1583)
 
-Mar 24, 2026 1:42:54 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+Mar 24, 2026 1:57:32 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
 INFO: Detected HTTP/2 connection.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-8, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-8, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-8, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
-Mar 24, 2026 1:42:54 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+Mar 24, 2026 1:57:33 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
 INFO: Detected HTTP/2 connection.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-9, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-9, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-9, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-9, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
-Mar 24, 2026 1:42:54 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+Mar 24, 2026 1:57:33 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
 INFO: Detected HTTP/2 connection.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-10, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-10, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
 Multiple projectIds are not recommended in single project mode. Requested project ID slotly-firestore-tests-10, but the emulator is configured for slotly-firestore-tests. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
-Mar 24, 2026 1:42:54 PM com.google.cloud.datastore.emulator.impl.util.WrappedStreamObserver onError
+Mar 24, 2026 1:57:33 PM com.google.cloud.datastore.emulator.impl.util.WrappedStreamObserver onError
 WARNING: Operation failed: 
 evaluation error at L270:26 for 'create' @ L270, evaluation error at L294:34 for 'update' @ L294, evaluation error at L243:26 for 'update' @ L243, false for 'create' @ L270, false for 'update' @ L243
 com.google.cloud.datastore.core.exception.DatastoreException: 
