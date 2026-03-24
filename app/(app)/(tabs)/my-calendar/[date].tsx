@@ -9,7 +9,6 @@ import {
   ScrollView,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -31,7 +30,7 @@ import {
 import { useOwnerCalendar } from '../../../../src/domain/useOwnerCalendar';
 import { useOwnerDaySlots } from '../../../../src/domain/useOwnerDaySlots';
 import { useOwnerSlotDetail } from '../../../../src/domain/useOwnerSlotDetail';
-import type { CalendarSlotEventRecord, SlotStatus } from '../../../../src/domain/types';
+import type { SlotStatus } from '../../../../src/domain/types';
 import { useAuth } from '../../../../src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppTheme, useBottomSafeContentStyle } from '../../../../src/theme/ui';
@@ -73,7 +72,6 @@ export default function CalendarDayScreen() {
   const previousVisibleDayKeyRef = useRef<string | null>(visibleDayKey);
   const timelineScrollRef = useRef<ScrollView>(null);
   const lastAutoScrollSignatureRef = useRef<string | null>(null);
-  const { height: screenHeight } = useWindowDimensions();
   const { user, loading: authLoading } = useAuth();
   const { calendar, loading, error } = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
@@ -100,7 +98,6 @@ export default function CalendarDayScreen() {
   const [assigneeName, setAssigneeName] = useState('');
   const [assigneeEmail, setAssigneeEmail] = useState('');
   const [assigneePhone, setAssigneePhone] = useState('');
-  const [historyExpanded, setHistoryExpanded] = useState(false);
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const [timelineReadyDayKey, setTimelineReadyDayKey] = useState<string | null>(null);
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
@@ -113,8 +110,6 @@ export default function CalendarDayScreen() {
 
   const {
     slot: selectedSlot,
-    events,
-    loading: slotDetailLoading,
     error: slotDetailError,
   } = useOwnerSlotDetail(calendar?.id ?? null, selectedSlotId);
 
@@ -131,14 +126,12 @@ export default function CalendarDayScreen() {
     setVisibleDate(routeDate);
     setSelectedSlotId(initialSlotId);
     setActionMessage(null);
-    setHistoryExpanded(false);
   }, [initialSlotId, routeDate, routeDayKey]);
 
   useEffect(() => {
     if (previousVisibleDayKeyRef.current !== visibleDayKey) {
       setSelectedSlotId(null);
       setActionMessage(null);
-      setHistoryExpanded(false);
       previousVisibleDayKeyRef.current = visibleDayKey;
     }
   }, [visibleDayKey]);
@@ -273,14 +266,6 @@ export default function CalendarDayScreen() {
     });
   };
 
-  const formatDateTime = (value: Date | null) => {
-    if (!value) {
-      return t('day.dateTimeUnavailable');
-    }
-
-    return value.toLocaleString(locale);
-  };
-
   const formatSlotStatus = (status: SlotStatus) => {
     switch (status) {
       case 'inactive':
@@ -289,33 +274,6 @@ export default function CalendarDayScreen() {
         return t('day.statusBooked');
       default:
         return t('day.statusAvailable');
-    }
-  };
-
-  const formatEventText = (event: CalendarSlotEventRecord) => {
-    const actorLabel =
-      event.actorRole === 'owner'
-        ? t('day.eventActorOwner')
-        : event.actorRole === 'member' || event.actorRole === 'guest'
-          ? t('day.eventActorContact')
-          : t('day.eventActorSystem');
-    const target = event.targetEmail ?? actorLabel;
-
-    switch (event.type) {
-      case 'booked':
-        return t('day.eventBooked', { actor: target });
-      case 'assigned_by_owner':
-        return t('day.eventAssigned', { actor: target });
-      case 'set_inactive':
-        return t('day.eventSetInactive');
-      case 'cancelled_by_owner':
-        return t('day.eventCancelled', { actor: actorLabel });
-      case 'reactivated':
-        return t('day.eventReactivated');
-      case 'edited':
-        return t('day.eventEdited');
-      default:
-        return t('day.eventCreated', { actor: actorLabel });
     }
   };
 
@@ -503,7 +461,6 @@ export default function CalendarDayScreen() {
     );
   }
 
-  const historyPanelMaxHeight = Math.max(Math.min(screenHeight * 0.33, 260), 180);
   const selectedSlotCanDeactivate =
     selectedSlot?.status === 'available' && !selectedSlot.appointmentId;
   const selectedSlotCanReactivate =
@@ -712,59 +669,14 @@ export default function CalendarDayScreen() {
 
           {selectedSlot ? (
             <View style={{ marginTop: theme.spacing[4] }}>
-              <Pressable
-                onPress={() => setHistoryExpanded((currentValue) => !currentValue)}
-                style={{ alignSelf: 'flex-start', paddingVertical: theme.spacing[4] }}>
-                <Text style={uiStyles.linkText}>
-                  {historyExpanded ? 'Historie ausblenden' : 'Historie anzeigen'}
-                </Text>
-              </Pressable>
+              <Link
+                href={{
+                  pathname: '/slot-history',
+                  params: { slotId: selectedSlot.id, date: visibleDayKey },
+                }}>
+                <Text style={uiStyles.linkText}>Historie ansehen</Text>
+              </Link>
             </View>
-          ) : null}
-
-          {historyExpanded ? (
-            <ScrollView style={{ maxHeight: historyPanelMaxHeight, marginTop: theme.spacing[12] }}>
-              {selectedSlot ? (
-                slotDetailLoading ? (
-                  <Text style={uiStyles.secondaryText}>{t('day.historyLoading')}</Text>
-                ) : events.length ? (
-                  events.map((event) => (
-                    <View
-                      key={event.id}
-                      style={{
-                        borderTopWidth: 1,
-                        borderColor: theme.colors.border,
-                        paddingTop: theme.spacing[12],
-                        marginTop: theme.spacing[12],
-                      }}>
-                      <Text style={[uiStyles.bodyText, { marginBottom: 4 }]}>{formatEventText(event)}</Text>
-                      <Text style={[uiStyles.secondaryText, { marginBottom: 4 }]}>
-                        {t('day.eventTime', { time: formatDateTime(event.createdAt) })}
-                      </Text>
-                      {event.statusAfter ? (
-                        <Text style={[uiStyles.secondaryText, { marginBottom: 4 }]}>
-                          {t('day.eventStatusAfter', {
-                            status: formatSlotStatus(event.statusAfter),
-                          })}
-                        </Text>
-                      ) : null}
-                      {event.targetEmail ? (
-                        <Text style={[uiStyles.secondaryText, { marginBottom: 4 }]}>
-                          {t('day.eventReference', { email: event.targetEmail })}
-                        </Text>
-                      ) : null}
-                      {event.note ? (
-                        <Text style={uiStyles.secondaryText}>
-                          {t('day.eventNote', { note: event.note })}
-                        </Text>
-                      ) : null}
-                    </View>
-                  ))
-                ) : (
-                  <Text style={uiStyles.secondaryText}>{t('day.historyEmpty')}</Text>
-                )
-              ) : null}
-            </ScrollView>
           ) : null}
 
           {slotDetailError ? (

@@ -114,6 +114,12 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="slot-history"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
