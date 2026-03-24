@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ScrollView as ScrollViewType } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Link } from 'expo-router';
 
 import { AppScreenHeader } from '@/src/components/app-screen-header';
 import { SlotCalendarCard } from '@/src/components/slot/slot-calendar-card';
+import { getDayKey } from '@/src/domain/calendar-utils';
 import {
   createRelativeTimelineWindow,
   getInitialTimelineOffset,
@@ -26,6 +28,7 @@ export default function MySlotCalendarsScreen() {
   const { slots, loading: slotsLoading, error: slotsError } = useOwnerSlots(calendar?.id ?? null);
   const publicSlug = calendar?.publicSlug ?? null;
   const publicCalendarUrl = publicSlug ? `https://slotlyme.app/calendar/${publicSlug}` : null;
+  const todayKey = getDayKey(new Date());
   const [timelineNow, setTimelineNow] = useState(() => new Date());
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
   const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
@@ -125,6 +128,26 @@ export default function MySlotCalendarsScreen() {
         onTimelineViewportLayout={handleTimelineViewportLayout}
         settingsHref="/calendar-settings"
       />
+
+      <View style={uiStyles.panel}>
+        <View style={{ gap: 12 }}>
+          <Link href={`/my-calendar/${todayKey}`} asChild>
+            <Pressable style={uiStyles.button}>
+              <Text style={uiStyles.buttonText}>Tagesansicht</Text>
+            </Pressable>
+          </Link>
+          <Link href={`/my-calendar/week?date=${todayKey}`} asChild>
+            <Pressable style={uiStyles.button}>
+              <Text style={uiStyles.buttonText}>Wochenansicht</Text>
+            </Pressable>
+          </Link>
+          <Link href="/my-calendar" asChild>
+            <Pressable style={uiStyles.button}>
+              <Text style={uiStyles.buttonText}>Monatsansicht</Text>
+            </Pressable>
+          </Link>
+        </View>
+      </View>
     </ScrollView>
   );
 }
