@@ -16,50 +16,60 @@ type SlotlymeIdAvailabilityState = {
 
 export function useSlotlymeIdAvailability(value: string) {
   const normalizedValue = useMemo(() => value.trim().toLowerCase(), [value]);
-  const [formatError, setFormatError] = useState<string | null>(null);
+  const [debouncedValue, setDebouncedValue] = useState(normalizedValue);
   const [availabilityMessage, setAvailabilityMessage] = useState<string | null>(null);
   const [isAvailable, setIsAvailable] = useState(false);
-  const [isChecking, setIsChecking] = useState(false);
+  const [checkedValue, setCheckedValue] = useState('');
+  const [isRequestPending, setIsRequestPending] = useState(false);
 
-  useEffect(() => {
-    let isCancelled = false;
-
+  const formatError = useMemo(() => {
     if (!normalizedValue) {
-      setFormatError(null);
-      setAvailabilityMessage(null);
-      setIsAvailable(false);
-      setIsChecking(false);
-      return () => {
-        isCancelled = true;
-      };
+      return null;
     }
 
     try {
       validateSlotlymeUserIdInput(normalizedValue);
-      setFormatError(null);
+      return null;
     } catch (error) {
-      setFormatError(error instanceof Error ? error.message : 'Bitte prüfe deine Slotlyme ID.');
+      return error instanceof Error ? error.message : 'Bitte pruefe deine Slotlyme ID.';
+    }
+  }, [normalizedValue]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedValue(normalizedValue);
+    }, 250);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [normalizedValue]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    if (!debouncedValue || formatError) {
       setAvailabilityMessage(null);
       setIsAvailable(false);
-      setIsChecking(false);
+      setCheckedValue('');
+      setIsRequestPending(false);
       return () => {
         isCancelled = true;
       };
     }
 
-    setIsChecking(true);
-    setAvailabilityMessage('Slotlyme ID wird geprüft ...');
-    setIsAvailable(false);
+    setIsRequestPending(true);
 
-    void isSlotlymeUserIdAvailable(normalizedValue)
+    void isSlotlymeUserIdAvailable(debouncedValue)
       .then((available) => {
         if (isCancelled) {
           return;
         }
 
+        setCheckedValue(debouncedValue);
         setIsAvailable(available);
         setAvailabilityMessage(
-          available ? 'Diese Slotlyme ID ist verfügbar.' : 'Diese Slotlyme ID ist bereits vergeben.'
+          available ? 'Diese Slotlyme ID ist verfuegbar.' : 'Diese Slotlyme ID ist bereits vergeben.'
         );
       })
       .catch(() => {
@@ -67,27 +77,39 @@ export function useSlotlymeIdAvailability(value: string) {
           return;
         }
 
+        setCheckedValue(debouncedValue);
         setIsAvailable(false);
-        setAvailabilityMessage('Die Verfügbarkeit konnte gerade nicht geprüft werden.');
+        setAvailabilityMessage('Die Verfuegbarkeit konnte gerade nicht geprueft werden.');
       })
       .finally(() => {
         if (isCancelled) {
           return;
         }
 
-        setIsChecking(false);
+        setIsRequestPending(false);
       });
 
     return () => {
       isCancelled = true;
     };
-  }, [normalizedValue]);
+  }, [debouncedValue, formatError]);
+
+  const isChecking =
+    Boolean(normalizedValue) &&
+    !formatError &&
+    (normalizedValue !== debouncedValue || isRequestPending);
+  const hasCurrentAvailabilityResult = checkedValue === normalizedValue;
+  const currentAvailabilityMessage = isChecking
+    ? 'Slotlyme ID wird geprueft ...'
+    : hasCurrentAvailabilityResult
+      ? availabilityMessage
+      : null;
 
   return {
     normalizedValue,
     formatError,
-    availabilityMessage,
-    isAvailable,
+    availabilityMessage: currentAvailabilityMessage,
+    isAvailable: hasCurrentAvailabilityResult && isAvailable,
     isChecking,
     isValid: Boolean(normalizedValue) && !formatError,
   } satisfies SlotlymeIdAvailabilityState;

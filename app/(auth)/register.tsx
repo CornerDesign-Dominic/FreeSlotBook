@@ -24,6 +24,10 @@ function isValidEmail(email: string) {
   return /\S+@\S+\.\S+/.test(email);
 }
 
+function sanitizeSlotlymeIdInput(value: string) {
+  return value.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9-]/g, '');
+}
+
 export default function RegisterScreen() {
   const { t } = useTranslation();
   const { theme } = useAppTheme();
@@ -174,11 +178,17 @@ export default function RegisterScreen() {
                 placeholderTextColor={theme.colors.textSecondary}
                 value={slotlymeId}
                 onChangeText={(nextValue) => {
-                  setSlotlymeId(nextValue.toLowerCase());
+                  const sanitizedValue = sanitizeSlotlymeIdInput(nextValue);
+                  setSlotlymeId((currentValue) =>
+                    currentValue === sanitizedValue ? currentValue : sanitizedValue
+                  );
                   setMessage('');
                 }}
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="off"
+                textContentType="none"
+                importantForAutofill="no"
                 style={authUiStyles.input}
               />
               {slotlymeIdAvailability.formatError ? (
