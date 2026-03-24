@@ -234,9 +234,9 @@ export default function HomeScreen() {
             onScroll={() => {}}
           />
         </View>
-        <Link href="/appointment-calendar-settings" asChild>
+        <Link href="/my-appointment-calendar" asChild>
           <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
-            <Text style={uiStyles.linkText}>Termin-Kalender-Einstellungen</Text>
+            <Text style={uiStyles.linkText}>Zum Termin-Kalender</Text>
           </Pressable>
         </Link>
       </View>
