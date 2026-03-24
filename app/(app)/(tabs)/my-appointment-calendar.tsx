@@ -81,9 +81,6 @@ export default function MyAppointmentCalendarScreen() {
       </View>
 
       <View style={uiStyles.panel}>
-        <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[12] }]}>
-          Kalenderansichten
-        </Text>
         <View style={{ gap: theme.spacing[12] }}>
           <Link href="/my-appointments" asChild>
             <Pressable style={uiStyles.button}>
@@ -95,13 +92,14 @@ export default function MyAppointmentCalendarScreen() {
               <Text style={uiStyles.buttonText}>Wochenansicht</Text>
             </Pressable>
           </Link>
-          <Link href="/appointment-calendar-settings" asChild>
-            <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[4] }}>
-              <Text style={uiStyles.linkText}>Termin-Kalender-Einstellungen</Text>
-            </Pressable>
-          </Link>
         </View>
       </View>
+
+      <Link href="/appointment-calendar-settings" asChild>
+        <Pressable style={{ alignSelf: 'flex-start' }}>
+          <Text style={uiStyles.secondaryText}>Termin-Kalender-Einstellungen</Text>
+        </Pressable>
+      </Link>
     </ScrollView>
   );
 }
