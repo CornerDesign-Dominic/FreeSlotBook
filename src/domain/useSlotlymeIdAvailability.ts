@@ -71,7 +71,7 @@ export function useSlotlymeIdAvailability(value: string) {
         setCheckedValue(debouncedValue);
         setIsAvailable(available);
         setAvailabilityMessage(
-          available ? 'Diese Slotlyme ID ist verfuegbar.' : 'Diese Slotlyme ID ist bereits vergeben.'
+          available ? 'Diese Slotlyme ID ist verfügbar.' : 'Diese Slotlyme ID ist bereits vergeben.'
         );
       })
       .catch(() => {
@@ -81,7 +81,7 @@ export function useSlotlymeIdAvailability(value: string) {
 
         setCheckedValue(debouncedValue);
         setIsAvailable(false);
-        setAvailabilityMessage('Die Verfuegbarkeit konnte gerade nicht geprueft werden.');
+        setAvailabilityMessage('Die Verfügbarkeit konnte gerade nicht geprüft werden.');
       })
       .finally(() => {
         if (isCancelled) {

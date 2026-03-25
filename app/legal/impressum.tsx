@@ -16,7 +16,7 @@ export default function LegalImprintScreen() {
           Impressum
         </Text>
         <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[12] }]}>
-          Dieses Impressum ist aktuell ein Platzhalter fuer die spaetere finale Anbieterkennzeichnung.
+        Dieses Impressum ist aktuell ein Platzhalter für die spätere finale Anbieterkennzeichnung.
         </Text>
         <Text style={uiStyles.secondaryText}>
           Firmenname, Anschrift, Kontaktangaben und weitere rechtlich erforderliche Informationen

@@ -14,11 +14,13 @@ import {
 import { useOwnerCalendar } from '@/src/domain/useOwnerCalendar';
 import { useOwnerSlots } from '@/src/domain/useOwnerSlots';
 import { useAuth } from '@/src/firebase/useAuth';
+import { useTranslation } from '@/src/i18n/provider';
 import { useAppTheme, useBottomSafeContentStyle } from '@/src/theme/ui';
 
 export default function MySlotCalendarsScreen() {
   const { user, loading: authLoading } = useAuth();
   const { uiStyles } = useAppTheme();
+  const { t } = useTranslation();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const authUser = useMemo(
     () => (user?.uid ? { uid: user.uid, email: user.email } : null),
@@ -103,14 +105,14 @@ export default function MySlotCalendarsScreen() {
   if (authLoading || calendarLoading) {
     return (
       <View style={uiStyles.centeredLoading}>
-        <Text style={uiStyles.secondaryText}>Wird geladen...</Text>
+        <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
       </View>
     );
   }
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
-      <AppScreenHeader title="Meine Slot-Kalender" />
+      <AppScreenHeader title={t('calendar.myCalendarsTitle')} />
 
       <SlotCalendarCard
         mode="full"
@@ -133,17 +135,17 @@ export default function MySlotCalendarsScreen() {
         <View style={{ gap: 12 }}>
           <Link href={`/my-calendar/${todayKey}`} asChild>
             <Pressable style={uiStyles.button}>
-              <Text style={uiStyles.buttonText}>Tagesansicht</Text>
+              <Text style={uiStyles.buttonText}>{t('calendar.dayView')}</Text>
             </Pressable>
           </Link>
           <Link href={`/my-calendar/week?date=${todayKey}`} asChild>
             <Pressable style={uiStyles.button}>
-              <Text style={uiStyles.buttonText}>Wochenansicht</Text>
+              <Text style={uiStyles.buttonText}>{t('calendar.weekView')}</Text>
             </Pressable>
           </Link>
           <Link href="/my-calendar" asChild>
             <Pressable style={uiStyles.button}>
-              <Text style={uiStyles.buttonText}>Monatsansicht</Text>
+              <Text style={uiStyles.buttonText}>{t('calendar.monthView')}</Text>
             </Pressable>
           </Link>
         </View>

@@ -561,7 +561,7 @@ export async function assignCalendarSlotByOwner(params: {
 
   if (params.createNewSlot) {
     if (!params.startsAt || !params.endsAt) {
-      throw new Error('Fuer die direkte Zuweisung muessen gueltige Slotzeiten gesetzt sein.');
+    throw new Error('Für die direkte Zuweisung müssen gültige Slotzeiten gesetzt sein.');
     }
 
     if (params.endsAt <= params.startsAt) {
@@ -589,7 +589,7 @@ export async function assignCalendarSlotByOwner(params: {
     const calendarSnapshot = await transaction.get(calendarRef);
 
     if (!calendarSnapshot.exists()) {
-      throw new Error('Der Kalender ist nicht mehr verfuegbar.');
+    throw new Error('Der Kalender ist nicht mehr verfügbar.');
     }
 
     let startsAt = params.startsAt ?? null;
@@ -605,11 +605,11 @@ export async function assignCalendarSlotByOwner(params: {
       const slot = mapSlot(slotSnapshot.id, slotSnapshot.data() as Record<string, unknown>);
 
       if (!slot.startsAt || !slot.endsAt) {
-        throw new Error('Fuer diesen Slot fehlen gueltige Zeitangaben.');
+    throw new Error('Für diesen Slot fehlen gültige Zeitangaben.');
       }
 
       if (slot.status !== 'available' || slot.appointmentId) {
-        throw new Error('Dieser Slot ist nicht mehr verfuegbar.');
+    throw new Error('Dieser Slot ist nicht mehr verfügbar.');
       }
 
       startsAt = slot.startsAt;
@@ -617,7 +617,7 @@ export async function assignCalendarSlotByOwner(params: {
     }
 
     if (!startsAt || !endsAt) {
-      throw new Error('Fuer diesen Slot fehlen gueltige Zeitangaben.');
+    throw new Error('Für diesen Slot fehlen gültige Zeitangaben.');
     }
 
     if (params.createNewSlot) {
@@ -826,7 +826,7 @@ export async function createAppointment(params: {
   const trimmedEmail = params.participantEmail.trim();
 
   if (!trimmedEmail) {
-    throw new Error('Fuer den Termin ist eine E-Mail-Adresse erforderlich.');
+    throw new Error('Für den Termin ist eine E-Mail-Adresse erforderlich.');
   }
 
   const appointmentRef = await addDoc(calendarAppointmentsCollection(params.calendarId), {
@@ -871,7 +871,7 @@ export async function bookSharedCalendarSlot(params: {
   const trimmedEmail = params.bookedByEmail.trim();
 
   if (!trimmedEmail) {
-    throw new Error('Fuer die Buchung ist eine E-Mail-Adresse erforderlich.');
+    throw new Error('Für die Buchung ist eine E-Mail-Adresse erforderlich.');
   }
 
   const slotRef = calendarSlotDoc(params.calendarId, params.slotId);
@@ -914,11 +914,11 @@ export async function bookSharedCalendarSlot(params: {
     }
 
     if (!slot.startsAt || !slot.endsAt) {
-      throw new Error('Fuer diesen Slot fehlen gueltige Zeitangaben.');
+    throw new Error('Für diesen Slot fehlen gültige Zeitangaben.');
     }
 
     if (slot.status !== 'available' || slot.appointmentId) {
-      throw new Error('Dieser Slot ist nicht mehr verfuegbar.');
+    throw new Error('Dieser Slot ist nicht mehr verfügbar.');
     }
 
     transaction.set(appointmentRef, {
@@ -1051,15 +1051,15 @@ export async function bookPublicCalendarSlot(params: {
     const slot = mapSlot(slotSnapshot.id, slotSnapshot.data() as Record<string, unknown>);
 
     if (calendar.visibility !== 'public') {
-      throw new Error('Dieser Kalender kann nicht oeffentlich gebucht werden.');
+    throw new Error('Dieser Kalender kann nicht öffentlich gebucht werden.');
     }
 
     if (!slot.startsAt || !slot.endsAt) {
-      throw new Error('Fuer diesen Slot fehlen gueltige Zeitangaben.');
+    throw new Error('Für diesen Slot fehlen gültige Zeitangaben.');
     }
 
     if (slot.status !== 'available' || slot.appointmentId) {
-      throw new Error('Dieser Slot ist nicht mehr verfuegbar.');
+    throw new Error('Dieser Slot ist nicht mehr verfügbar.');
     }
 
     transaction.set(appointmentRef, {
@@ -1303,7 +1303,7 @@ export async function createNotificationRecord(params: {
   const trimmedEmail = params.recipientEmail.trim();
 
   if (!trimmedEmail) {
-    throw new Error('Fuer die Benachrichtigung ist eine E-Mail-Adresse erforderlich.');
+    throw new Error('Für die Benachrichtigung ist eine E-Mail-Adresse erforderlich.');
   }
 
   await createNotification({

@@ -84,7 +84,7 @@ export default function SlotHistoryScreen() {
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
-      <AppScreenHeader title="Slot Historie" />
+      <AppScreenHeader title={t('nav.slotHistory')} />
 
       <View style={uiStyles.panel}>
         {slot ? (

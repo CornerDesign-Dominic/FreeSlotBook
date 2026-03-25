@@ -73,7 +73,7 @@ export function isMissingFirestoreIndexError(error: unknown) {
 
 export function getDashboardLoadErrorMessage(error: unknown) {
   if (isMissingFirestoreIndexError(error)) {
-    return 'Fuer diese Ansicht fehlt noch ein Firestore-Index.';
+    return 'Für diese Ansicht fehlt noch ein Firestore-Index.';
   }
 
   return getFirestoreErrorMessage(error) ?? 'Das Dashboard konnte nicht geladen werden.';
@@ -81,7 +81,7 @@ export function getDashboardLoadErrorMessage(error: unknown) {
 
 export function getAppointmentLoadErrorMessage(error: unknown) {
   if (isMissingFirestoreIndexError(error)) {
-    return 'Der Termin-Kalender ist gerade nicht verfuegbar.';
+  return 'Der Termin-Kalender ist gerade nicht verfügbar.';
   }
 
   return getFirestoreErrorMessage(error) ?? 'Termine konnten nicht geladen werden.';
@@ -467,7 +467,7 @@ export function buildNotificationContent(params: {
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-    }) ?? 'Zeitpunkt nicht verfuegbar';
+  }) ?? 'Zeitpunkt nicht verfügbar';
 
   switch (params.type) {
     case 'slot_assigned':
@@ -481,9 +481,9 @@ export function buildNotificationContent(params: {
     case 'appointment_cancelled':
       return { title: 'Termin storniert', body: `Termin bei ${ownerLabel} storniert` };
     case 'booking_confirmation':
-      return { title: 'Buchung bestaetigt', body: `Deine Buchung am ${dateTimeLabel} wurde gespeichert` };
+    return { title: 'Buchung bestätigt', body: `Deine Buchung am ${dateTimeLabel} wurde gespeichert` };
     case 'account_creation_invite':
-      return { title: 'Konto vorbereiten', body: `Bestaetige deine E-Mail fuer ein spaeteres Konto bei ${ownerLabel}` };
+    return { title: 'Konto vorbereiten', body: `Bestätige deine E-Mail für ein späteres Konto bei ${ownerLabel}` };
     default:
       return { title: 'Neue Buchung', body: `${ownerLabel} hat eine neue Buchung erhalten` };
   }

@@ -7,6 +7,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { DashboardSlotTimeline } from '@/src/features/dashboard/dashboard-slot-timeline';
 import type { TimelineWindow } from '@/src/features/dashboard/dashboard-timeline-utils';
 import type { CalendarSlotRecord } from '@/src/domain/types';
+import { useTranslation } from '@/src/i18n/provider';
 import { useAppTheme } from '@/src/theme/ui';
 
 export function SlotCalendarCard(props: {
@@ -26,16 +27,20 @@ export function SlotCalendarCard(props: {
   overviewHref?: Href;
 }) {
   const { theme, uiStyles } = useAppTheme();
+  const { t } = useTranslation();
+  const todayCount = props.todaySlotCount ?? 0;
 
   return (
     <View style={uiStyles.panel}>
       <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>
-        Slot-Kalender
+        {t('calendar.title')}
       </Text>
       {props.mode === 'compact' ? (
         <>
           <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4] }]}>
-            {`${props.todaySlotCount ?? 0} Slots heute`}
+            {t(todayCount === 1 ? 'calendar.todayCount.one' : 'calendar.todayCount.other', {
+              count: todayCount,
+            })}
           </Text>
           {props.slotsError ? (
             <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[8] }]}>
@@ -61,12 +66,12 @@ export function SlotCalendarCard(props: {
                 fontSize: 14,
               },
             ]}>
-            {`Kalender-Link: /calendar/${props.publicSlug}`}
+            {t('calendar.linkLabel', { slug: props.publicSlug })}
           </Text>
           <Pressable
             onPress={() => props.onCopyPublicLink()}
             accessibilityRole="button"
-            accessibilityLabel="Link kopieren">
+            accessibilityLabel={t('calendar.copyLink')}>
             <Feather
               name={props.copyFeedbackVisible ? 'check' : 'copy'}
               size={16}
@@ -93,14 +98,14 @@ export function SlotCalendarCard(props: {
       {props.mode === 'full' && props.settingsHref ? (
         <Link href={props.settingsHref} asChild>
           <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
-            <Text style={uiStyles.linkText}>Kalender-Einstellungen</Text>
+            <Text style={uiStyles.linkText}>{t('calendar.settingsLink')}</Text>
           </Pressable>
         </Link>
       ) : null}
       {props.overviewHref ? (
         <Link href={props.overviewHref} asChild>
           <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
-            <Text style={uiStyles.linkText}>Zum Slot-Kalender</Text>
+            <Text style={uiStyles.linkText}>{t('calendar.openOverview')}</Text>
           </Pressable>
         </Link>
       ) : null}

@@ -201,7 +201,7 @@ export default function HomeScreen() {
             fontWeight: '700',
             letterSpacing: -0.2,
           }}>
-          Slotlyme
+          {t('dashboard.homeTitle')}
         </Text>
         <Link href="/settings" asChild>
           <Pressable
@@ -221,7 +221,9 @@ export default function HomeScreen() {
       </View>
 
       <View style={uiStyles.panel}>
-        <Text style={[uiStyles.sectionTitle, { marginBottom: 0 }]}>Termin-Kalender</Text>
+        <Text style={[uiStyles.sectionTitle, { marginBottom: 0 }]}>
+          {t('appointments.title')}
+        </Text>
         <View
           style={{ marginTop: theme.spacing[12] }}
           onLayout={(event) => handleTimelineViewportLayout(event.nativeEvent.layout.width)}>
@@ -236,7 +238,7 @@ export default function HomeScreen() {
         </View>
         <Link href="/my-appointment-calendar" asChild>
           <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
-            <Text style={uiStyles.linkText}>Zum Termin-Kalender</Text>
+            <Text style={uiStyles.linkText}>{t('dashboard.openAppointmentCalendar')}</Text>
           </Pressable>
         </Link>
       </View>
@@ -264,9 +266,7 @@ export default function HomeScreen() {
         </Text>
         <Link href="/connected-calendars" asChild>
           <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
-            <Text style={uiStyles.linkText}>
-              Zu den Kalendern
-            </Text>
+            <Text style={uiStyles.linkText}>{t('dashboard.openConnectedCalendars')}</Text>
           </Pressable>
         </Link>
       </View>
@@ -296,7 +296,7 @@ export default function HomeScreen() {
           <Pressable
             onPress={() => void handleCopyPublicUserLink()}
             accessibilityRole="button"
-            accessibilityLabel="User-Link kopieren">
+            accessibilityLabel={t('dashboard.copyUserLink')}>
             <Feather
               name="copy"
               size={16}

@@ -91,7 +91,7 @@ export default function UserProfileRouteScreen() {
       {calendar?.visibility === 'public' && calendar.publicSlug ? (
         <View style={uiStyles.panel}>
           <Text style={uiStyles.bodyText}>
-            Der Standardkalender dieses Nutzers ist aktuell oeffentlich erreichbar.
+            Der Standardkalender dieses Nutzers ist aktuell öffentlich erreichbar.
           </Text>
           <Link href={`/calendar/${calendar.publicSlug}`} asChild>
             <Text style={uiStyles.linkText}>Zum Kalender-Link</Text>

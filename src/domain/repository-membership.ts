@@ -99,14 +99,14 @@ async function ensureNoPendingInviteOrRequest(calendarId: string, uid: string) {
   if (inviteSnapshot.exists()) {
     const invite = mapInvite(inviteSnapshot.id, inviteSnapshot.data() as Record<string, unknown>);
     if (invite.status === 'pending') {
-      throw new Error('Fuer diese Person ist bereits eine Einladung offen.');
+    throw new Error('Für diese Person ist bereits eine Einladung offen.');
     }
   }
 
   if (requestSnapshot.exists()) {
     const request = mapAccessRequest(requestSnapshot.id, requestSnapshot.data() as Record<string, unknown>);
     if (request.status === 'pending') {
-      throw new Error('Fuer diese Person liegt bereits eine offene Zugriffsanfrage vor.');
+    throw new Error('Für diese Person liegt bereits eine offene Zugriffsanfrage vor.');
     }
   }
 }
@@ -220,7 +220,7 @@ export async function upsertCalendarAccessRequest(params: {
   const requesterUid = params.requesterUid?.trim();
 
   if (!requesterUid) {
-    throw new Error('Fuer die Anfrage ist eine Nutzer-ID erforderlich.');
+    throw new Error('Für die Anfrage ist eine Nutzer-ID erforderlich.');
   }
 
   await setDoc(
@@ -364,11 +364,11 @@ export async function requestCalendarAccessBySlug(params: {
   }
 
   if (calendar.ownerUid === params.requesterUid) {
-    throw new Error('Fuer den eigenen Kalender musst du keine Anfrage stellen.');
+    throw new Error('Für den eigenen Kalender musst du keine Anfrage stellen.');
   }
 
   if (calendar.visibility !== 'private') {
-    throw new Error('Anfragen sind aktuell nur fuer private Kalender verfuegbar.');
+    throw new Error('Anfragen sind aktuell nur für private Kalender verfügbar.');
   }
 
   const requesterProfile = await getOwnerProfile(params.requesterUid);
@@ -388,7 +388,7 @@ export async function requestCalendarAccessBySlug(params: {
   if (pendingInvite.exists()) {
     const invite = mapInvite(pendingInvite.id, pendingInvite.data() as Record<string, unknown>);
     if (invite.status === 'pending') {
-      throw new Error('Fuer dich liegt bereits eine offene Einladung zu diesem Kalender vor.');
+    throw new Error('Für dich liegt bereits eine offene Einladung zu diesem Kalender vor.');
     }
   }
 

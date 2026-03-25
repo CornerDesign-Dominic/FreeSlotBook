@@ -93,7 +93,7 @@ export default function CalendarIdCreateScreen() {
         <View style={uiStyles.panel}>
           {hasFixedCalendarSlug ? (
             <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>
-              Fuer diesen Kalender ist bereits ein fester Kalender-Link hinterlegt.
+            Für diesen Kalender ist bereits ein fester Kalender-Link hinterlegt.
             </Text>
           ) : null}
           <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>
@@ -155,7 +155,7 @@ export default function CalendarIdCreateScreen() {
 
         <Text style={uiStyles.secondaryText}>
           Erlaubt sind Kleinbuchstaben von a bis z, Zahlen von 0 bis 9 und Bindestriche. Deine
-          Kalender-ID muss zwischen 3 und 30 Zeichen lang sein und wird fÃ¼r deinen Ã¶ffentlichen
+              Kalender-ID muss zwischen 3 und 30 Zeichen lang sein und wird für deinen öffentlichen
           Kalenderlink verwendet.
         </Text>
       </View>

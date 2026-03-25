@@ -5,11 +5,13 @@ import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { AppScreenHeader } from '@/src/components/app-screen-header';
 import { useConnectedCalendars } from '@/src/domain/useConnectedCalendars';
 import { useAuth } from '@/src/firebase/useAuth';
+import { useTranslation } from '@/src/i18n/provider';
 import { useAppTheme, useBottomSafeContentStyle } from '@/src/theme/ui';
 
 export default function ConnectedCalendarsScreen() {
   const { user, loading: authLoading } = useAuth();
   const { theme, uiStyles } = useAppTheme();
+  const { t } = useTranslation();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const { records, loading, error, toggleFavorite, disconnectCalendar } = useConnectedCalendars(
     user ? { uid: user.uid, email: user.email } : null
@@ -39,7 +41,7 @@ export default function ConnectedCalendarsScreen() {
     try {
       await toggleFavorite(calendarId, nextIsFavorite);
     } catch (nextError) {
-      setMessage(nextError instanceof Error ? nextError.message : 'Favorit konnte nicht gespeichert werden.');
+      setMessage(nextError instanceof Error ? nextError.message : t('nav.favoriteSaveError'));
     } finally {
       setProcessingFavoriteCalendarId(null);
     }
@@ -47,12 +49,12 @@ export default function ConnectedCalendarsScreen() {
 
   const confirmDisconnectCalendar = (calendarId: string) => {
     Alert.alert(
-      'Verbindung entfernen?',
-      'Der Zugriff auf diesen Kalender wird entfernt. Fuer einen erneuten Zugriff muss eine neue Anfrage gesendet werden.',
+      t('nav.disconnectCalendarTitle'),
+      t('nav.disconnectCalendarBody'),
       [
-        { text: 'Abbrechen', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Entfernen',
+          text: t('nav.disconnectCalendar'),
           style: 'destructive',
           onPress: () => {
             void handleDisconnectCalendar(calendarId);
@@ -70,7 +72,7 @@ export default function ConnectedCalendarsScreen() {
       await disconnectCalendar(calendarId);
       setExpandedCalendarIds((currentIds) => currentIds.filter((currentId) => currentId !== calendarId));
     } catch (nextError) {
-      setMessage(nextError instanceof Error ? nextError.message : 'Verbindung konnte nicht entfernt werden.');
+      setMessage(nextError instanceof Error ? nextError.message : t('nav.disconnectCalendarError'));
     } finally {
       setRemovingCalendarId(null);
     }
@@ -79,14 +81,14 @@ export default function ConnectedCalendarsScreen() {
   if (authLoading || loading) {
     return (
       <View style={uiStyles.centeredLoading}>
-        <Text style={uiStyles.secondaryText}>Wird geladen</Text>
+        <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
       </View>
     );
   }
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
-      <AppScreenHeader title="Verbundene Kalender" />
+      <AppScreenHeader title={t('nav.connectedCalendars')} />
 
       {records.length ? (
         records.map(({ calendar, isFavorite }) => {
@@ -107,7 +109,7 @@ export default function ConnectedCalendarsScreen() {
                   onPress={() => toggleExpanded(calendar.id)}
                   style={{ flex: 1 }}
                   accessibilityRole="button"
-                  accessibilityLabel="Kalenderdetails ein- oder ausklappen">
+                  accessibilityLabel={t('nav.toggleCalendarDetails')}>
                   <Text style={[uiStyles.sectionTitle, { marginBottom: ownerLabel || slugLabel ? theme.spacing[4] : 0 }]}>
                     {ownerLabel || slugLabel || calendar.id}
                   </Text>
@@ -126,7 +128,7 @@ export default function ConnectedCalendarsScreen() {
                     onPress={() => void handleToggleFavorite(calendar.id, !isFavorite)}
                     disabled={processingFavoriteCalendarId === calendar.id}
                     accessibilityRole="button"
-                    accessibilityLabel="Favorit umschalten"
+                    accessibilityLabel={t('nav.toggleFavorite')}
                     style={{ opacity: processingFavoriteCalendarId === calendar.id ? 0.45 : 1 }}>
                     <Feather
                       name="star"
@@ -138,7 +140,7 @@ export default function ConnectedCalendarsScreen() {
                   <Pressable
                     onPress={() => toggleExpanded(calendar.id)}
                     accessibilityRole="button"
-                    accessibilityLabel="Kalenderdetails oeffnen">
+                    accessibilityLabel={t('nav.openCalendarDetails')}>
                     <Feather
                       name={isExpanded ? 'chevron-up' : 'chevron-down'}
                       size={18}
@@ -168,7 +170,7 @@ export default function ConnectedCalendarsScreen() {
                       uiStyles.button,
                       { opacity: removingCalendarId === calendar.id ? 0.6 : 1 },
                     ]}>
-                    <Text style={uiStyles.buttonText}>Entfernen</Text>
+                    <Text style={uiStyles.buttonText}>{t('nav.disconnectCalendar')}</Text>
                   </Pressable>
                 </View>
               ) : null}
@@ -178,15 +180,13 @@ export default function ConnectedCalendarsScreen() {
       ) : (
         <View style={uiStyles.panel}>
           <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[4] }]}>
-            Keine verbundenen Kalender
+            {t('nav.connectedCalendarsEmptyTitle')}
           </Text>
-          <Text style={uiStyles.secondaryText}>
-            Du hast aktuell keinen Zugriff auf fremde Kalender.
-          </Text>
+          <Text style={uiStyles.secondaryText}>{t('nav.connectedCalendarsEmptyDescription')}</Text>
         </View>
       )}
 
-      {favoriteCount > 5 ? <Text style={uiStyles.secondaryText}>Maximal 5 Favoriten</Text> : null}
+      {favoriteCount > 5 ? <Text style={uiStyles.secondaryText}>{t('nav.maxFavorites')}</Text> : null}
       {message ? <Text style={uiStyles.bodyText}>{message}</Text> : null}
       {error ? <Text style={uiStyles.secondaryText}>{error}</Text> : null}
     </ScrollView>

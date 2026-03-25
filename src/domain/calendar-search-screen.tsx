@@ -46,10 +46,10 @@ function getFirestoreIndexErrorDetails(error: string | null) {
   const match = error.match(/https:\/\/console\.firebase\.google\.com\/\S+/);
 
   return {
-    title: 'Firestore Index erforderlich',
+    title: 'Firestore-Index erforderlich',
     message: match
-      ? 'Fuer diese Abfrage wird ein Firestore-Index benoetigt.'
-      : 'Firestore Index erforderlich. Bitte im Firebase Console Index erstellen.',
+      ? 'Für diese Abfrage wird ein Firestore-Index benötigt.'
+      : 'Firestore-Index erforderlich. Bitte in der Firebase Console anlegen.',
     indexUrl: match?.[0] ?? null,
   };
 }
@@ -141,9 +141,9 @@ export function CalendarSearchScreen({ initialCalendarSlug = '' }: CalendarSearc
 
     try {
       await acceptCalendarInvite({ calendarId, invitedUid: user.uid });
-      setMessage('Einladung angenommen');
+      setMessage(t('invite.accepted'));
     } catch (nextError) {
-      setMessage(nextError instanceof Error ? nextError.message : 'Einladung konnte nicht angenommen werden.');
+      setMessage(nextError instanceof Error ? nextError.message : t('invite.acceptError'));
     } finally {
       setProcessingInviteCalendarId(null);
     }
@@ -159,9 +159,9 @@ export function CalendarSearchScreen({ initialCalendarSlug = '' }: CalendarSearc
 
     try {
       await rejectCalendarInvite({ calendarId, invitedUid: user.uid });
-      setMessage('Einladung abgelehnt');
+      setMessage(t('invite.rejected'));
     } catch (nextError) {
-      setMessage(nextError instanceof Error ? nextError.message : 'Einladung konnte nicht abgelehnt werden.');
+      setMessage(nextError instanceof Error ? nextError.message : t('invite.rejectError'));
     } finally {
       setProcessingInviteCalendarId(null);
     }
@@ -224,10 +224,10 @@ export function CalendarSearchScreen({ initialCalendarSlug = '' }: CalendarSearc
           <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
         ) : pendingRequestsIndexError ? (
           <View style={{ marginTop: theme.spacing[4] }}>
-            <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4], fontWeight: '600' }]}>
-              {pendingRequestsIndexError.title}
+              <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4], fontWeight: '600' }]}>
+              {t('calendarSearch.indexRequiredTitle')}
             </Text>
-            <Text style={uiStyles.secondaryText}>{pendingRequestsIndexError.message}</Text>
+            <Text style={uiStyles.secondaryText}>{t('calendarSearch.indexRequiredMessage')}</Text>
             {__DEV__ && pendingRequestsIndexError.indexUrl ? (
               <Pressable
                 onPress={() => {
@@ -236,7 +236,7 @@ export function CalendarSearchScreen({ initialCalendarSlug = '' }: CalendarSearc
                   }
                 }}
                 style={[uiStyles.outlineAction, { marginTop: theme.spacing[12], alignSelf: 'flex-start' }]}>
-                <Text style={uiStyles.buttonText}>Index in Firebase oeffnen</Text>
+                <Text style={uiStyles.buttonText}>{t('calendarSearch.openIndex')}</Text>
               </Pressable>
             ) : null}
           </View>
@@ -267,7 +267,7 @@ export function CalendarSearchScreen({ initialCalendarSlug = '' }: CalendarSearc
                     onPress={() => void handleCancelRequest(request.calendarId, request.requesterUid)}
                     disabled={cancellingRequestKey === requestKey}
                     accessibilityRole="button"
-                    accessibilityLabel="Anfrage zurueckziehen"
+                    accessibilityLabel={t('requestAccess.cancel')}
                     style={{ opacity: cancellingRequestKey === requestKey ? 0.45 : 1 }}>
                     <Feather name="trash-2" size={18} color={theme.colors.textSecondary} />
                   </Pressable>
@@ -308,14 +308,14 @@ export function CalendarSearchScreen({ initialCalendarSlug = '' }: CalendarSearc
                     disabled={isProcessing}
                     style={[uiStyles.button, uiStyles.buttonActive, { flex: 1, opacity: isProcessing ? 0.6 : 1 }]}>
                     <Text style={[uiStyles.buttonText, { color: theme.colors.textPrimary, fontWeight: '600' }]}>
-                      Einladung annehmen
+                      {t('invite.accept')}
                     </Text>
                   </Pressable>
                   <Pressable
                     onPress={() => void handleRejectInvite(invite.calendarId)}
                     disabled={isProcessing}
                     style={[uiStyles.button, { flex: 1, opacity: isProcessing ? 0.6 : 1 }]}>
-                    <Text style={uiStyles.buttonText}>Einladung ablehnen</Text>
+                    <Text style={uiStyles.buttonText}>{t('invite.reject')}</Text>
                   </Pressable>
                 </View>
               </View>

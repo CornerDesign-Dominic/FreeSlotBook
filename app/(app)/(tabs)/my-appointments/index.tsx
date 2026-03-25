@@ -84,7 +84,7 @@ export default function MyAppointmentsMonthScreen() {
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
-      <AppScreenHeader title="Termin-Kalender" />
+      <AppScreenHeader title={t('appointments.title')} />
 
       <View style={uiStyles.panel}>
         <CalendarNavigationHeader

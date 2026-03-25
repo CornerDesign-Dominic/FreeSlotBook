@@ -5,10 +5,12 @@ import { AppScreenHeader } from '@/src/components/app-screen-header';
 import { getDayKey } from '@/src/domain/calendar-utils';
 import { useAppointmentCalendar } from '@/src/domain/useAppointmentCalendar';
 import { useAuth } from '@/src/firebase/useAuth';
+import { useTranslation } from '@/src/i18n/provider';
 import { useAppTheme, useBottomSafeContentStyle } from '@/src/theme/ui';
 
 export default function MyAppointmentCalendarScreen() {
   const { theme, uiStyles } = useAppTheme();
+  const { t } = useTranslation();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const { user, loading: authLoading } = useAuth();
   const today = new Date();
@@ -22,7 +24,7 @@ export default function MyAppointmentCalendarScreen() {
 
   const formatTimeLabel = (date: Date | null) => {
     if (!date) {
-      return 'Zeit offen';
+      return t('day.timeUnavailable');
     }
 
     return date.toLocaleTimeString('de-DE', {
@@ -34,18 +36,18 @@ export default function MyAppointmentCalendarScreen() {
   if (authLoading || appointmentsLoading) {
     return (
       <View style={uiStyles.centeredLoading}>
-        <Text style={uiStyles.secondaryText}>Wird geladen...</Text>
+        <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
       </View>
     );
   }
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
-      <AppScreenHeader title="Mein Termin-Kalender" />
+      <AppScreenHeader title={t('appointments.title')} />
 
       <View style={uiStyles.panel}>
         <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>
-          Heute
+          {t('appointments.todaySection')}
         </Text>
         {todaysAppointments.length ? (
           <View style={{ gap: theme.spacing[12] }}>
@@ -53,7 +55,7 @@ export default function MyAppointmentCalendarScreen() {
               const appointmentLabel =
                 appointment.participantName?.trim() ||
                 appointment.participantEmail ||
-                'Termin';
+                t('appointments.fallbackName');
 
               return (
                 <View key={appointment.id} style={uiStyles.listItem}>
@@ -67,12 +69,12 @@ export default function MyAppointmentCalendarScreen() {
           </View>
         ) : (
           <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
-            Heute sind keine Termine eingetragen.
+            {t('appointments.todayEmpty')}
           </Text>
         )}
         <Link href={`/my-appointments/${todayKey}`} asChild>
           <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
-            <Text style={uiStyles.linkText}>Termine bearbeiten</Text>
+            <Text style={uiStyles.linkText}>{t('appointments.manageToday')}</Text>
           </Pressable>
         </Link>
         {error ? (
@@ -84,12 +86,12 @@ export default function MyAppointmentCalendarScreen() {
         <View style={{ gap: theme.spacing[12] }}>
           <Link href="/my-appointments" asChild>
             <Pressable style={uiStyles.button}>
-              <Text style={uiStyles.buttonText}>Monatsansicht</Text>
+              <Text style={uiStyles.buttonText}>{t('calendar.monthView')}</Text>
             </Pressable>
           </Link>
           <Link href={`/my-appointments/week?date=${todayKey}`} asChild>
             <Pressable style={uiStyles.button}>
-              <Text style={uiStyles.buttonText}>Wochenansicht</Text>
+              <Text style={uiStyles.buttonText}>{t('calendar.weekView')}</Text>
             </Pressable>
           </Link>
         </View>
@@ -97,7 +99,7 @@ export default function MyAppointmentCalendarScreen() {
 
       <Link href="/appointment-calendar-settings" asChild>
         <Pressable style={{ alignSelf: 'flex-start' }}>
-          <Text style={uiStyles.secondaryText}>Termin-Kalender-Einstellungen</Text>
+          <Text style={uiStyles.secondaryText}>{t('appointments.settingsLink')}</Text>
         </Pressable>
       </Link>
     </ScrollView>

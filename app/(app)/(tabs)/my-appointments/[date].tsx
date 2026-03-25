@@ -170,7 +170,7 @@ export default function MyAppointmentsDayScreen() {
   return (
     <View style={uiStyles.screen}>
       <ScrollView contentContainerStyle={contentContainerStyle}>
-        <AppScreenHeader title="Termin-Kalender" />
+      <AppScreenHeader title={t('appointments.title')} />
 
         <View style={uiStyles.panel}>
           <CalendarNavigationHeader

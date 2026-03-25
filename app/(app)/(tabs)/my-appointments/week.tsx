@@ -213,7 +213,7 @@ export default function MyAppointmentsWeekScreen() {
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
-      <AppScreenHeader title="Termin-Kalender" />
+      <AppScreenHeader title={t('appointments.title')} />
 
       <View style={{ marginBottom: theme.spacing[8] }}>
         <CalendarNavigationHeader

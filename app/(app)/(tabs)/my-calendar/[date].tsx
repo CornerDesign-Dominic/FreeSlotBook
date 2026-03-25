@@ -480,7 +480,7 @@ export default function CalendarDayScreen() {
     <View style={uiStyles.screen}>
       <ScrollView
         contentContainerStyle={contentContainerStyle}>
-        <AppScreenHeader title="Slot-Kalender" />
+        <AppScreenHeader title={t('calendar.title')} />
 
         <View style={uiStyles.panel}>
           <CalendarNavigationHeader
@@ -674,7 +674,7 @@ export default function CalendarDayScreen() {
                   pathname: '/slot-history',
                   params: { slotId: selectedSlot.id, date: visibleDayKey },
                 }}>
-                <Text style={uiStyles.linkText}>Historie ansehen</Text>
+                <Text style={uiStyles.linkText}>{t('day.viewHistory')}</Text>
               </Link>
             </View>
           ) : null}
@@ -741,7 +741,7 @@ export default function CalendarDayScreen() {
                 ) : null}
               </>
             ) : (
-              <Text style={uiStyles.secondaryText}>Slot auswÃ¤hlen</Text>
+              <Text style={uiStyles.secondaryText}>{t('day.selectSlotPrompt')}</Text>
             )}
           </View>
         </View>

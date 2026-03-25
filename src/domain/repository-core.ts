@@ -232,7 +232,7 @@ export async function ensureOwnerAccountSetup(params: {
   const trimmedEmail = params.email.trim();
 
   if (!trimmedEmail) {
-    throw new Error('Fuer die Einrichtung des Kontos ist eine E-Mail-Adresse erforderlich.');
+    throw new Error('Für die Einrichtung des Kontos ist eine E-Mail-Adresse erforderlich.');
   }
 
   const emailKey = normalizeEmail(trimmedEmail);
@@ -271,7 +271,7 @@ export async function ensureOwnerAccountSetup(params: {
       }
 
       if (claimedEmailUid && claimedEmailUid !== params.uid) {
-        throw new Error('Fuer diese E-Mail-Adresse existiert bereits ein anderes Konto.');
+    throw new Error('Für diese E-Mail-Adresse existiert bereits ein anderes Konto.');
       }
 
       const existingUsername = normalizeExistingUsername(
