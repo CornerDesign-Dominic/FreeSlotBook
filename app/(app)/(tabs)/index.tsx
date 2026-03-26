@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Feather } from '@expo/vector-icons';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
-import { SlotCalendarCard } from '@/src/components/slot/slot-calendar-card';
+import { getDayKey } from '@/src/domain/calendar-utils';
 import { DashboardAppointmentTimeline } from '../../../src/features/dashboard/dashboard-appointment-timeline';
 import {
   createRelativeTimelineWindow,
   getInitialTimelineOffset,
 } from '../../../src/features/dashboard/dashboard-timeline-utils';
 import { useDashboardData } from '../../../src/domain/useDashboardData';
-import { useOwnerCalendar } from '../../../src/domain/useOwnerCalendar';
-import { useOwnerSlots } from '../../../src/domain/useOwnerSlots';
+import { useOwnedCalendars } from '../../../src/domain/useOwnedCalendars';
+import { useOwnedSlotSummary } from '../../../src/domain/useOwnedSlotSummary';
 import { useAppointmentCalendar } from '../../../src/domain/useAppointmentCalendar';
 import { useAuth } from '../../../src/firebase/useAuth';
 import { useLogout } from '../../../src/firebase/useLogout';
@@ -33,20 +33,15 @@ export default function HomeScreen() {
     [userEmail, userUid]
   );
   const { data, loading: dashboardLoading, error } = useDashboardData(authUser);
-  const {
-    calendar: ownerCalendar,
-  } = useOwnerCalendar(authUser);
-  const activeOwnerCalendar = ownerCalendar ?? data.ownerCalendar;
-  const { slots, loading: slotsLoading, error: slotsError } = useOwnerSlots(
-    activeOwnerCalendar?.id ?? null
+  const { records: ownedCalendarRecords, loading: ownedCalendarsLoading } = useOwnedCalendars(authUser);
+  const { summary: ownedSlotSummary, loading: ownedSlotSummaryLoading } = useOwnedSlotSummary(
+    ownedCalendarRecords.map((record) => record.calendar.id)
   );
   const {
     activeAppointments,
     loading: appointmentsLoading,
-    error: appointmentsError,
+      error: appointmentsError,
   } = useAppointmentCalendar(authUser);
-  const publicSlug = activeOwnerCalendar?.publicSlug ?? null;
-  const publicCalendarUrl = publicSlug ? `https://slotlyme.app/calendar/${publicSlug}` : null;
   const username =
     typeof data.ownerProfile?.username === 'string' && data.ownerProfile.username.trim()
       ? data.ownerProfile.username.trim()
@@ -57,25 +52,19 @@ export default function HomeScreen() {
   const publicUserLinkCopyValue = username ? `https://slotlyme.app/user/${username}` : null;
   const [timelineNow, setTimelineNow] = useState(() => new Date());
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
-  const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
+  const [expandedDashboardCard, setExpandedDashboardCard] = useState<'appointments' | 'slots' | null>(null);
   const { logout: handleLogout, isLoggingOut } = useLogout();
   const timelineWindow = useMemo(() => createRelativeTimelineWindow(timelineNow), [timelineNow]);
   const appointmentTimelineRef = useRef<ScrollView | null>(null);
-  const todaySlotCount = useMemo(() => {
-    const now = new Date();
-
-    return slots.filter((slot) => {
-      if (!slot.startsAt) {
-        return false;
-      }
-
-      return (
-        slot.startsAt.getFullYear() === now.getFullYear() &&
-        slot.startsAt.getMonth() === now.getMonth() &&
-        slot.startsAt.getDate() === now.getDate()
-      );
-    }).length;
-  }, [slots]);
+  const todayDateLabel = useMemo(
+    () =>
+      new Date().toLocaleDateString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }),
+    []
+  );
 
   useEffect(() => {
     if (!isFocused) {
@@ -86,23 +75,10 @@ export default function HomeScreen() {
   }, [isFocused]);
 
   useEffect(() => {
-    if (!copyFeedbackVisible) {
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      setCopyFeedbackVisible(false);
-    }, 1800);
-
-    return () => clearTimeout(timeout);
-  }, [copyFeedbackVisible]);
-
-  useEffect(() => {
     if (
       !isFocused ||
       loading ||
       dashboardLoading ||
-      slotsLoading ||
       appointmentsLoading ||
       !timelineViewportWidth
     ) {
@@ -137,7 +113,6 @@ export default function HomeScreen() {
     dashboardLoading,
     isFocused,
     loading,
-    slotsLoading,
     timelineViewportWidth,
     timelineWindow,
   ]);
@@ -152,15 +127,6 @@ export default function HomeScreen() {
     });
   };
 
-  const handleCopyPublicLink = async () => {
-    if (!publicCalendarUrl) {
-      return;
-    }
-
-    await Clipboard.setStringAsync(publicCalendarUrl);
-    setCopyFeedbackVisible(true);
-  };
-
   const handleCopyPublicUserLink = async () => {
     if (!publicUserLinkCopyValue) {
       return;
@@ -169,7 +135,7 @@ export default function HomeScreen() {
     await Clipboard.setStringAsync(publicUserLinkCopyValue);
   };
 
-  if (loading || dashboardLoading) {
+  if (loading || dashboardLoading || ownedCalendarsLoading || ownedSlotSummaryLoading) {
     return (
       <View style={[uiStyles.centeredLoading, { alignItems: 'center' }]}>
         <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
@@ -221,59 +187,122 @@ export default function HomeScreen() {
       </View>
 
       <View style={uiStyles.panel}>
-        <Text style={[uiStyles.sectionTitle, { marginBottom: 0 }]}>
-          {t('appointments.title')}
-        </Text>
-        <View
-          style={{ marginTop: theme.spacing[12] }}
-          onLayout={(event) => handleTimelineViewportLayout(event.nativeEvent.layout.width)}>
-          <DashboardAppointmentTimeline
-            appointments={activeAppointments}
-            loading={appointmentsLoading}
-            error={appointmentsError}
-            window={timelineWindow}
-            scrollRef={appointmentTimelineRef}
-            onScroll={() => {}}
-          />
-        </View>
-        <Link href="/my-appointment-calendar" asChild>
-          <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
-            <Text style={uiStyles.linkText}>{t('dashboard.openAppointmentCalendar')}</Text>
-          </Pressable>
-        </Link>
+        <Pressable
+          onPress={() =>
+            setExpandedDashboardCard((currentValue) =>
+              currentValue === 'appointments' ? null : 'appointments'
+            )
+          }>
+          <Text style={[uiStyles.sectionTitle, { marginBottom: 0 }]}>
+            {t('appointments.title')}
+          </Text>
+          <View
+            style={{ marginTop: theme.spacing[12] }}
+            onLayout={(event) => handleTimelineViewportLayout(event.nativeEvent.layout.width)}>
+            <DashboardAppointmentTimeline
+              appointments={activeAppointments}
+              loading={appointmentsLoading}
+              error={appointmentsError}
+              window={timelineWindow}
+              scrollRef={appointmentTimelineRef}
+              onScroll={() => {}}
+            />
+          </View>
+        </Pressable>
+        {expandedDashboardCard === 'appointments' ? (
+          <View
+            style={{
+              marginTop: theme.spacing[12],
+              paddingTop: theme.spacing[12],
+              borderTopWidth: 1,
+              borderColor: theme.colors.border,
+              gap: theme.spacing[8],
+            }}>
+            <Link href="/my-appointment-calendar" asChild>
+              <Pressable style={uiStyles.button}>
+                <Text style={uiStyles.buttonText}>{t('dashboard.openAppointmentCalendar')}</Text>
+              </Pressable>
+            </Link>
+            <View style={{ flexDirection: 'row', gap: theme.spacing[8] }}>
+              <View style={{ flex: 1 }}>
+                <Link href={`/my-appointments/${getDayKey(new Date())}`} asChild>
+                  <Pressable style={uiStyles.button}>
+                    <Text style={[uiStyles.buttonText, { textAlign: 'center' }]}>Tag</Text>
+                  </Pressable>
+                </Link>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Link href={`/my-appointments/week?date=${getDayKey(new Date())}`} asChild>
+                  <Pressable style={uiStyles.button}>
+                    <Text style={[uiStyles.buttonText, { textAlign: 'center' }]}>Woche</Text>
+                  </Pressable>
+                </Link>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Link href="/my-appointments" asChild>
+                  <Pressable style={uiStyles.button}>
+                    <Text style={[uiStyles.buttonText, { textAlign: 'center' }]}>Monat</Text>
+                  </Pressable>
+                </Link>
+              </View>
+            </View>
+          </View>
+        ) : null}
       </View>
 
-      <SlotCalendarCard
-        mode="compact"
-        publicSlug={publicSlug}
-        copyFeedbackVisible={copyFeedbackVisible}
-        onCopyPublicLink={() => {
-          void handleCopyPublicLink();
-        }}
-        slots={slots}
-        slotsLoading={slotsLoading}
-        slotsError={slotsError}
-        todaySlotCount={todaySlotCount}
-        timelineWindow={timelineWindow}
-        slotTimelineRef={{ current: null }}
-        onSlotTimelineScroll={() => {}}
-        overviewHref="/my-slot-calendars"
-      />
+      <View style={uiStyles.panel}>
+        <Pressable
+          onPress={() =>
+            setExpandedDashboardCard((currentValue) =>
+              currentValue === 'slots' ? null : 'slots'
+            )
+          }>
+          <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>
+            Slots von heute
+          </Text>
+          <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[8] }]}>
+            {todayDateLabel}
+          </Text>
+          <View style={{ gap: theme.spacing[4] }}>
+            <Text style={uiStyles.secondaryText}>{ownedSlotSummary.total} Gesamt</Text>
+            <Text style={uiStyles.secondaryText}>{ownedSlotSummary.available} Offen</Text>
+            <Text style={uiStyles.secondaryText}>{ownedSlotSummary.booked} Gebucht</Text>
+            <Text style={uiStyles.secondaryText}>{ownedSlotSummary.inactive} Deaktiviert</Text>
+          </View>
+        </Pressable>
+        {expandedDashboardCard === 'slots' ? (
+          <View
+            style={{
+              marginTop: theme.spacing[12],
+              paddingTop: theme.spacing[12],
+              borderTopWidth: 1,
+              borderColor: theme.colors.border,
+            }}>
+            <Link href="/my-slot-calendars" asChild>
+              <Pressable style={uiStyles.button}>
+                <Text style={uiStyles.buttonText}>Zum Slotkalender</Text>
+              </Pressable>
+            </Link>
+          </View>
+        ) : null}
+      </View>
 
       <View style={[uiStyles.panel, { marginBottom: theme.spacing[24] }]}>
         <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[4] }]}>
           {t('dashboard.sharedCalendars')}
         </Text>
-        <Link href="/connected-calendars" asChild>
-          <Pressable style={{ alignSelf: 'flex-start', marginTop: theme.spacing[12] }}>
-            <Text style={uiStyles.linkText}>{t('dashboard.openConnectedCalendars')}</Text>
-          </Pressable>
-        </Link>
+        <Pressable
+          onPress={() => router.push('/connected-calendars')}
+          style={[
+            uiStyles.button,
+            { marginTop: theme.spacing[12], alignSelf: 'stretch' },
+          ]}>
+          <Text style={uiStyles.buttonText}>
+            {t('dashboard.openConnectedCalendars')}
+          </Text>
+        </Pressable>
       </View>
 
-      {user.email ? (
-        <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>{user.email}</Text>
-      ) : null}
       {publicUserLink ? (
         <View
           style={{
@@ -305,6 +334,9 @@ export default function HomeScreen() {
           </Pressable>
         </View>
       ) : null}
+      {user.email ? (
+        <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>{user.email}</Text>
+      ) : null}
       {error ? (
         <View style={[uiStyles.subtlePanel, { marginBottom: theme.spacing[12] }]}>
           <Text style={uiStyles.secondaryText}>{error}</Text>
@@ -317,7 +349,7 @@ export default function HomeScreen() {
         }}
         disabled={isLoggingOut}
         style={{ alignSelf: 'flex-start', opacity: isLoggingOut ? 0.6 : 1 }}>
-        <Text style={uiStyles.linkText}>
+        <Text style={uiStyles.secondaryText}>
           {isLoggingOut ? `${t('dashboard.logout')}...` : t('dashboard.logout')}
         </Text>
       </Pressable>

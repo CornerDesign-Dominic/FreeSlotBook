@@ -448,7 +448,7 @@ export const de = {
     'Du erhältst eine Benachrichtigung, sobald über deine Anfrage entschieden wurde.',
   'requestAccess.cancel': 'Anfrage zurückziehen',
 
-  'calendarSearch.title': 'Kalender Suche',
+  'calendarSearch.title': 'Kalendersuche',
   'calendarSearch.searchSection': 'Kalendersuche',
   'calendarSearch.pendingRequests': 'Ausstehende Anfragen',
   'calendarSearch.pendingRequestsEmpty': 'Keine offenen Anfragen',
