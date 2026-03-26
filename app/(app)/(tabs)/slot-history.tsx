@@ -2,6 +2,7 @@ import { Link, useLocalSearchParams } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 
 import { AppScreenHeader } from '@/src/components/app-screen-header';
+import { useCalendar } from '@/src/domain/useCalendar';
 import { useOwnerCalendar } from '@/src/domain/useOwnerCalendar';
 import { useOwnerSlotDetail } from '@/src/domain/useOwnerSlotDetail';
 import type { CalendarSlotEventRecord, SlotStatus } from '@/src/domain/types';
@@ -15,12 +16,16 @@ export default function SlotHistoryScreen() {
   const { theme, uiStyles } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const locale = language === 'de' ? 'de-DE' : 'en-US';
-  const params = useLocalSearchParams<{ slotId?: string | string[]; date?: string | string[] }>();
+  const params = useLocalSearchParams<{ slotId?: string | string[]; date?: string | string[]; calendarId?: string | string[] }>();
   const slotId = Array.isArray(params.slotId) ? params.slotId[0] ?? null : params.slotId ?? null;
   const rawDate = Array.isArray(params.date) ? params.date[0] ?? null : params.date ?? null;
-  const { calendar, loading: calendarLoading } = useOwnerCalendar(
+  const selectedCalendarId = Array.isArray(params.calendarId) ? params.calendarId[0] ?? null : params.calendarId ?? null;
+  const ownerCalendarState = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
   );
+  const selectedCalendarState = useCalendar(selectedCalendarId);
+  const calendar = selectedCalendarId ? selectedCalendarState.calendar : ownerCalendarState.calendar;
+  const calendarLoading = selectedCalendarId ? selectedCalendarState.loading : ownerCalendarState.loading;
   const {
     slot,
     events,
@@ -151,7 +156,11 @@ export default function SlotHistoryScreen() {
         <Link
           href={{
             pathname: '/my-calendar/[date]',
-            params: { date: rawDate, slotId: slotId ?? undefined },
+            params: {
+              date: rawDate,
+              slotId: slotId ?? undefined,
+              calendarId: calendar?.id ?? undefined,
+            },
           }}>
           <Text style={uiStyles.linkText}>{t('day.backToMonth')}</Text>
         </Link>

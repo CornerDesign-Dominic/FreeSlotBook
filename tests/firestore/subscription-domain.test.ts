@@ -488,4 +488,43 @@ describe('Subscription domain logic', () => {
       })
     ).rejects.toThrow('Im Free-Tarif kannst du nur einen privaten Kalender anlegen.');
   });
+
+  test('calendar title updates only the title field and blocks empty values', async () => {
+    const { firestore, repositoryCore } = await loadRepositoryCoreModule();
+    const setCalls: Array<{ path: string; data: Record<string, unknown> }> = [];
+
+    vi.mocked(firestore.runTransaction).mockImplementation(async (_db, updateFn) =>
+      updateFn({
+        get: vi.fn(async () =>
+          documentSnapshot('calendar_1', {
+            ownerUid: 'user_1',
+            ownerEmail: 'user@example.com',
+            title: 'Alter Titel',
+            calendarSlug: 'mein-kalender',
+            visibility: 'private',
+          })
+        ),
+        set: vi.fn((ref, data) => {
+          setCalls.push({ path: (ref as { path: string }).path, data: data as Record<string, unknown> });
+        }),
+      } as never)
+    );
+
+    await repositoryCore.updateCalendarTitle({
+      calendarId: 'calendar_1',
+      title: '  Neuer Titel  ',
+    });
+
+    expect(setCalls).toHaveLength(1);
+    expect(setCalls[0]?.path).toBe('calendars/calendar_1');
+    expect(setCalls[0]?.data.title).toBe('Neuer Titel');
+    expect(setCalls[0]?.data).not.toHaveProperty('calendarSlug');
+
+    await expect(
+      repositoryCore.updateCalendarTitle({
+        calendarId: 'calendar_1',
+        title: '   ',
+      })
+    ).rejects.toThrow('Bitte gib einen Kalendertitel ein.');
+  });
 });

@@ -833,6 +833,38 @@ export async function updateCalendarDescription(params: {
   });
 }
 
+export async function updateCalendarTitle(params: {
+  calendarId: string;
+  title: string;
+}) {
+  const trimmedTitle = params.title.trim();
+
+  if (!trimmedTitle) {
+    throw new Error('Bitte gib einen Kalendertitel ein.');
+  }
+
+  if (trimmedTitle.length > 80) {
+    throw new Error('Der Kalendertitel darf maximal 80 Zeichen lang sein.');
+  }
+
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(calendarDoc(params.calendarId));
+
+    if (!snapshot.exists()) {
+      throw new Error('Der Kalender existiert nicht mehr.');
+    }
+
+    transaction.set(
+      calendarDoc(params.calendarId),
+      {
+        title: trimmedTitle,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  });
+}
+
 export async function updateCalendarNotificationSettings(params: {
   calendarId: string;
   notifyOnNewSlotsAvailable: boolean;

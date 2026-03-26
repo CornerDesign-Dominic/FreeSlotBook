@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Feather } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { AppScreenHeader } from '@/src/components/app-screen-header';
@@ -13,6 +14,7 @@ import {
   removeCalendarAccess,
 } from '@/src/domain/repository';
 import { useCalendarAccessList } from '@/src/domain/useCalendarAccessList';
+import { useCalendar } from '@/src/domain/useCalendar';
 import { useCalendarInvites } from '@/src/domain/useCalendarInvites';
 import { useCalendarAccessRequests } from '@/src/domain/useCalendarAccessRequests';
 import { useOwnerCalendar } from '@/src/domain/useOwnerCalendar';
@@ -22,12 +24,18 @@ import type { AccessRequestStatus } from '@/src/domain/types';
 
 export default function CalendarAccessScreen() {
   const { user, loading: authLoading } = useAuth();
+  const params = useLocalSearchParams<{ calendarId?: string | string[] }>();
   const { t } = useTranslation();
   const { theme, uiStyles } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
-  const { calendar, loading, error } = useOwnerCalendar(
+  const selectedCalendarId = Array.isArray(params.calendarId) ? params.calendarId[0] ?? null : params.calendarId ?? null;
+  const ownerCalendarState = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
   );
+  const selectedCalendarState = useCalendar(selectedCalendarId);
+  const calendar = selectedCalendarId ? selectedCalendarState.calendar : ownerCalendarState.calendar;
+  const loading = selectedCalendarId ? selectedCalendarState.loading : ownerCalendarState.loading;
+  const error = selectedCalendarId ? selectedCalendarState.error : ownerCalendarState.error;
   const { profile } = useOwnerProfile(user ? { uid: user.uid, email: user.email } : null);
   const { records: accessRecords, loading: accessLoading, error: accessError } =
     useCalendarAccessList(calendar?.id ?? null);

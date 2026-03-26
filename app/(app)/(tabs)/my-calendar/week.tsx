@@ -14,6 +14,7 @@ import {
 } from '../../../../src/domain/calendar-utils';
 import { AppScreenHeader } from '../../../../src/components/app-screen-header';
 import { CalendarNavigationHeader } from '../../../../src/components/calendar-navigation-header';
+import { useCalendar } from '../../../../src/domain/useCalendar';
 import { useOwnerCalendar } from '../../../../src/domain/useOwnerCalendar';
 import { useOwnerSlots } from '../../../../src/domain/useOwnerSlots';
 import type { CalendarSlotRecord, SlotStatus } from '../../../../src/domain/types';
@@ -67,8 +68,9 @@ export default function CalendarWeekScreen() {
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const { weekStartsOn } = useAppSettings();
   const locale = language === 'de' ? 'de-DE' : 'en-US';
-  const params = useLocalSearchParams<{ date?: string | string[] }>();
+  const params = useLocalSearchParams<{ date?: string | string[]; calendarId?: string | string[] }>();
   const rawDate = Array.isArray(params.date) ? params.date[0] : params.date ?? '';
+  const selectedCalendarId = Array.isArray(params.calendarId) ? params.calendarId[0] ?? null : params.calendarId ?? null;
   const routeDate = useMemo(() => parseDayKey(rawDate) ?? new Date(), [rawDate]);
   const routeWeekStart = useMemo(() => startOfWeek(routeDate, weekStartsOn), [routeDate, weekStartsOn]);
   const routeWeekKey = useMemo(() => getDayKey(routeWeekStart), [routeWeekStart]);
@@ -78,9 +80,13 @@ export default function CalendarWeekScreen() {
   const timelineScrollRef = useRef<ScrollView>(null);
   const lastAutoScrollSignatureRef = useRef<string | null>(null);
   const { user, loading: authLoading } = useAuth();
-  const { calendar, loading, error } = useOwnerCalendar(
+  const ownerCalendarState = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
   );
+  const selectedCalendarState = useCalendar(selectedCalendarId);
+  const calendar = selectedCalendarId ? selectedCalendarState.calendar : ownerCalendarState.calendar;
+  const loading = selectedCalendarId ? selectedCalendarState.loading : ownerCalendarState.loading;
+  const error = selectedCalendarId ? selectedCalendarState.error : ownerCalendarState.error;
   const { slots, loading: slotsLoading, error: slotsError } = useOwnerSlots(calendar?.id ?? null);
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
   const [timelineReady, setTimelineReady] = useState(false);
@@ -195,7 +201,13 @@ export default function CalendarWeekScreen() {
   };
 
   const openDay = (dayKey: string) => {
-    router.push(`/my-calendar/${dayKey}`);
+    router.push({
+      pathname: '/my-calendar/[date]',
+      params: {
+        date: dayKey,
+        calendarId: calendar?.id ?? undefined,
+      },
+    });
   };
 
   if (authLoading || loading || slotsLoading) {
@@ -417,7 +429,14 @@ export default function CalendarWeekScreen() {
 
       <View style={uiStyles.panel}>
         <View style={{ gap: theme.spacing[12] }}>
-          <Link href="/my-calendar" asChild>
+          <Link
+            href={{
+              pathname: '/my-calendar',
+              params: {
+                calendarId: calendar?.id ?? undefined,
+              },
+            }}
+            asChild>
             <Pressable style={uiStyles.button}>
               <Text style={uiStyles.buttonText}>Monatsansicht</Text>
             </Pressable>

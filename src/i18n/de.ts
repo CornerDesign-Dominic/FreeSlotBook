@@ -147,7 +147,7 @@ export const de = {
   'calendar.slotCount.other': '{{count}} Slots',
   'calendar.notificationActive': 'aktiv',
   'calendar.notificationInactive': 'inaktiv',
-  'calendar.linkLabel': 'Kalender-Link: /calendar/{{slug}}',
+  'calendar.linkLabel': 'Link:  /calendar/{{slug}}',
   'calendar.copyLink': 'Link kopieren',
   'calendar.openOverview': 'Zum Slot-Kalender',
   'calendar.settingsLink': 'Kalender-Einstellungen',

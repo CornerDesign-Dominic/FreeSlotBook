@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'expo-router';
+import { Link, useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
 import { AppScreenHeader } from '../../../../src/components/app-screen-header';
@@ -11,6 +11,7 @@ import {
   getDayKey,
   getWeekdayLabels,
 } from '../../../../src/domain/calendar-utils';
+import { useCalendar } from '../../../../src/domain/useCalendar';
 import { useOwnerCalendar } from '../../../../src/domain/useOwnerCalendar';
 import { useOwnerSlots } from '../../../../src/domain/useOwnerSlots';
 import { useAuth } from '../../../../src/firebase/useAuth';
@@ -20,15 +21,21 @@ import { useAppTheme, useBottomSafeContentStyle } from '../../../../src/theme/ui
 
 export default function MyCalendarScreen() {
   const { user, loading: authLoading } = useAuth();
+  const params = useLocalSearchParams<{ calendarId?: string | string[] }>();
   const { t, language } = useTranslation();
   const { weekStartsOn } = useAppSettings();
   const { theme, uiStyles } = useAppTheme();
   const { width: screenWidth } = useWindowDimensions();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const locale = language === 'de' ? 'de-DE' : 'en-US';
-  const { calendar, loading, error } = useOwnerCalendar(
+  const selectedCalendarId = Array.isArray(params.calendarId) ? params.calendarId[0] ?? null : params.calendarId ?? null;
+  const ownerCalendarState = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
   );
+  const selectedCalendarState = useCalendar(selectedCalendarId);
+  const calendar = selectedCalendarId ? selectedCalendarState.calendar : ownerCalendarState.calendar;
+  const loading = selectedCalendarId ? selectedCalendarState.loading : ownerCalendarState.loading;
+  const error = selectedCalendarId ? selectedCalendarState.error : ownerCalendarState.error;
   const { slots, loading: slotsLoading, error: slotsError } = useOwnerSlots(calendar?.id ?? null);
   const [visibleMonth, setVisibleMonth] = useState(() => {
     const now = new Date();
@@ -140,7 +147,15 @@ export default function MyCalendarScreen() {
 
                 return (
                   <View key={day.key} style={{ width: cellWidth }}>
-                    <Link href={`/my-calendar/${day.key}`} asChild>
+                    <Link
+                      href={{
+                        pathname: '/my-calendar/[date]',
+                        params: {
+                          date: day.key,
+                          calendarId: calendar?.id ?? undefined,
+                        },
+                      }}
+                      asChild>
                       <Pressable
                         style={{
                           borderWidth: 1,
@@ -230,7 +245,14 @@ export default function MyCalendarScreen() {
 
       <View style={uiStyles.panel}>
         <View style={{ gap: theme.spacing[12] }}>
-          <Link href="/my-calendar/week" asChild>
+          <Link
+            href={{
+              pathname: '/my-calendar/week',
+              params: {
+                calendarId: calendar?.id ?? undefined,
+              },
+            }}
+            asChild>
             <Pressable style={uiStyles.button}>
               <Text style={uiStyles.buttonText}>Wochenansicht</Text>
             </Pressable>

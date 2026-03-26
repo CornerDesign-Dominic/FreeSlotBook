@@ -30,6 +30,7 @@ import {
   updateCalendarSlotTimes,
 } from './repository';
 import { useCalendarAccessList } from './useCalendarAccessList';
+import { useCalendar } from './useCalendar';
 import { useOwnerCalendar } from './useOwnerCalendar';
 import { useOwnerSlots } from './useOwnerSlots';
 import { useAuth } from '@/src/firebase/useAuth';
@@ -60,16 +61,21 @@ export function CreateSlotScreen() {
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const pathname = usePathname();
   const locale = language === 'de' ? 'de-DE' : 'en-US';
-  const params = useLocalSearchParams<{ date?: string | string[]; slotId?: string | string[] }>();
+  const params = useLocalSearchParams<{ date?: string | string[]; slotId?: string | string[]; calendarId?: string | string[] }>();
   const preselectedDateParam = Array.isArray(params.date) ? params.date[0] : params.date ?? '';
   const editingSlotId = Array.isArray(params.slotId) ? params.slotId[0] : params.slotId ?? '';
+  const selectedCalendarId = Array.isArray(params.calendarId) ? params.calendarId[0] ?? null : params.calendarId ?? null;
   const preselectedDate = parseDayKey(preselectedDateParam);
   const initialStartDate = preselectedDate ? formatDateInput(preselectedDate) : '';
 
   const { user, loading: authLoading } = useAuth();
-  const { calendar, loading, error } = useOwnerCalendar(
+  const ownerCalendarState = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
   );
+  const selectedCalendarState = useCalendar(selectedCalendarId);
+  const calendar = selectedCalendarId ? selectedCalendarState.calendar : ownerCalendarState.calendar;
+  const loading = selectedCalendarId ? selectedCalendarState.loading : ownerCalendarState.loading;
+  const error = selectedCalendarId ? selectedCalendarState.error : ownerCalendarState.error;
   const { slots, loading: slotsLoading, error: slotsError } = useOwnerSlots(calendar?.id ?? null);
   const {
     records: accessRecords,
@@ -272,7 +278,14 @@ export function CreateSlotScreen() {
       return;
     }
 
-    router.replace(`/my-calendar/${getDayKey(result.startsAt)}?slotId=${result.slotId}`);
+    router.replace({
+      pathname: '/my-calendar/[date]',
+      params: {
+        date: getDayKey(result.startsAt),
+        slotId: result.slotId,
+        calendarId: calendar?.id ?? undefined,
+      },
+    });
   };
 
   const handleCreateSlotAndContinue = async () => {
@@ -284,8 +297,20 @@ export function CreateSlotScreen() {
 
     const dayKey = getDayKey(result.startsAt);
     const resetHref = (pathname.startsWith('/new-slot')
-      ? `/new-slot?date=${dayKey}`
-      : `/my-calendar/create-slot?date=${dayKey}`) as Href;
+      ? {
+          pathname: '/new-slot',
+          params: {
+            date: dayKey,
+            calendarId: calendar?.id ?? undefined,
+          },
+        }
+      : {
+          pathname: '/my-calendar/create-slot',
+          params: {
+            date: dayKey,
+            calendarId: calendar?.id ?? undefined,
+          },
+        }) as Href;
 
     if (isEditing) {
       router.replace(resetHref);

@@ -1,108 +1,152 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ScrollView as ScrollViewType } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { MaterialIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import type { Href } from 'expo-router';
 import { Link } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { AppScreenHeader } from '@/src/components/app-screen-header';
+import { OwnedSlotCalendarPreview } from '@/src/components/slot/owned-slot-calendar-preview';
 import { SlotCalendarCard } from '@/src/components/slot/slot-calendar-card';
 import { getDayKey } from '@/src/domain/calendar-utils';
-import {
-  createRelativeTimelineWindow,
-  getInitialTimelineOffset,
-} from '@/src/features/dashboard/dashboard-timeline-utils';
-import { useOwnerCalendar } from '@/src/domain/useOwnerCalendar';
-import { useOwnerSlots } from '@/src/domain/useOwnerSlots';
+import { createOwnerCalendar } from '@/src/domain/repository';
+import { canCreateAnotherCalendar } from '@/src/domain/subscription-policy';
+import type { CalendarRecord } from '@/src/domain/types';
+import { useOwnedCalendars } from '@/src/domain/useOwnedCalendars';
+import { useOwnerProfile } from '@/src/domain/useOwnerProfile';
 import { useAuth } from '@/src/firebase/useAuth';
 import { useTranslation } from '@/src/i18n/provider';
 import { useAppTheme, useBottomSafeContentStyle } from '@/src/theme/ui';
 
+function CalendarActionLink(props: {
+  href: Href;
+  label: string;
+}) {
+  const { uiStyles } = useAppTheme();
+
+  return (
+    <View style={{ flex: 1 }}>
+      <Link href={props.href} asChild>
+        <Pressable style={uiStyles.button}>
+          <Text style={[uiStyles.buttonText, { textAlign: 'center' }]}>{props.label}</Text>
+        </Pressable>
+      </Link>
+    </View>
+  );
+}
+
 export default function MySlotCalendarsScreen() {
   const { user, loading: authLoading } = useAuth();
-  const { uiStyles } = useAppTheme();
   const { t } = useTranslation();
+  const { theme, uiStyles } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
+  const isFocused = useIsFocused();
   const authUser = useMemo(
     () => (user?.uid ? { uid: user.uid, email: user.email } : null),
     [user?.email, user?.uid]
   );
-  const { calendar, loading: calendarLoading } = useOwnerCalendar(authUser);
-  const { slots, loading: slotsLoading, error: slotsError } = useOwnerSlots(calendar?.id ?? null);
-  const publicSlug = calendar?.publicSlug ?? null;
-  const publicCalendarUrl = publicSlug ? `https://slotlyme.app/calendar/${publicSlug}` : null;
+  const { profile, loading: profileLoading } = useOwnerProfile(authUser);
+  const { records, loading, error, reload, toggleFavorite } = useOwnedCalendars(authUser);
+  const [expandedCalendarId, setExpandedCalendarId] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [copiedCalendarId, setCopiedCalendarId] = useState<string | null>(null);
+  const [processingFavoriteCalendarId, setProcessingFavoriteCalendarId] = useState<string | null>(null);
+  const [addFormVisible, setAddFormVisible] = useState(false);
+  const [newCalendarTitle, setNewCalendarTitle] = useState('');
+  const [isCreatingCalendar, setIsCreatingCalendar] = useState(false);
   const todayKey = getDayKey(new Date());
-  const [timelineNow, setTimelineNow] = useState(() => new Date());
-  const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
-  const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
-  const timelineWindow = useMemo(() => createRelativeTimelineWindow(timelineNow), [timelineNow]);
-  const slotTimelineRef = useRef<ScrollViewType | null>(null);
+  const subscriptionTier = profile?.subscriptionTier ?? 'free';
+  const createCalendarPermission = canCreateAnotherCalendar({
+    tier: subscriptionTier,
+    currentCalendarCount: records.length,
+  });
 
   useEffect(() => {
-    setTimelineNow(new Date());
-  }, []);
+    if (isFocused && authUser?.uid) {
+      reload();
+    }
+  }, [authUser?.uid, isFocused, reload]);
 
   useEffect(() => {
-    if (!copyFeedbackVisible) {
+    if (!profileLoading && authUser?.uid) {
+      reload();
+    }
+  }, [authUser?.uid, profileLoading, reload]);
+
+  useEffect(() => {
+    if (!copiedCalendarId) {
       return;
     }
 
     const timeout = setTimeout(() => {
-      setCopyFeedbackVisible(false);
+      setCopiedCalendarId(null);
     }, 1800);
 
     return () => clearTimeout(timeout);
-  }, [copyFeedbackVisible]);
+  }, [copiedCalendarId]);
 
-  useEffect(() => {
-    if (authLoading || calendarLoading || slotsLoading || !timelineViewportWidth) {
+  const handleToggleFavorite = async (calendarId: string, nextIsFavorite: boolean) => {
+    setProcessingFavoriteCalendarId(calendarId);
+    setMessage(null);
+
+    try {
+      await toggleFavorite(calendarId, nextIsFavorite);
+    } catch (nextError) {
+      setMessage(
+        nextError instanceof Error ? nextError.message : 'Der Favorit konnte nicht gespeichert werden.'
+      );
+    } finally {
+      setProcessingFavoriteCalendarId(null);
+    }
+  };
+
+  const handleCopyCalendarLink = async (calendar: CalendarRecord) => {
+    if (!calendar.publicSlug) {
+      setMessage('Für diesen Kalender ist noch kein Kalender-Link vorhanden.');
       return;
     }
 
-    let cancelled = false;
-    let frameHandle = 0;
-
-    const scrollToNow = () => {
-      if (cancelled) {
-        return;
-      }
-
-      if (!slotTimelineRef.current) {
-        frameHandle = requestAnimationFrame(scrollToNow);
-        return;
-      }
-
-      const initialOffset = getInitialTimelineOffset(timelineWindow, timelineViewportWidth);
-      slotTimelineRef.current.scrollTo({ x: initialOffset, animated: false });
-    };
-
-    frameHandle = requestAnimationFrame(scrollToNow);
-
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(frameHandle);
-    };
-  }, [authLoading, calendarLoading, slotsLoading, timelineViewportWidth, timelineWindow]);
-
-  const handleTimelineViewportLayout = (width: number) => {
-    setTimelineViewportWidth((currentWidth) => {
-      if (Math.abs(currentWidth - width) < 1) {
-        return currentWidth;
-      }
-
-      return width;
-    });
+    try {
+      await Clipboard.setStringAsync(`https://slotlyme.app/calendar/${calendar.publicSlug}`);
+      setCopiedCalendarId(calendar.id);
+      setMessage('Kalender-Link kopiert.');
+    } catch {
+      setMessage('Der Kalender-Link konnte nicht kopiert werden.');
+    }
   };
 
-  const handleCopyPublicLink = async () => {
-    if (!publicCalendarUrl) {
+  const handleCreateCalendar = async () => {
+    if (!user?.uid || !user.email) {
+      setMessage('Du musst eingeloggt sein.');
       return;
     }
 
-    await Clipboard.setStringAsync(publicCalendarUrl);
-    setCopyFeedbackVisible(true);
+    setIsCreatingCalendar(true);
+    setMessage(null);
+
+    try {
+      const result = await createOwnerCalendar({
+        ownerUid: user.uid,
+        ownerEmail: user.email,
+        title: newCalendarTitle,
+      });
+
+      setNewCalendarTitle('');
+      setAddFormVisible(false);
+      setExpandedCalendarId(result.calendarId);
+      setMessage('Kalender erstellt.');
+      reload();
+    } catch (nextError) {
+      setMessage(
+        nextError instanceof Error ? nextError.message : 'Der Kalender konnte nicht erstellt werden.'
+      );
+    } finally {
+      setIsCreatingCalendar(false);
+    }
   };
 
-  if (authLoading || calendarLoading) {
+  if (authLoading || loading || profileLoading) {
     return (
       <View style={uiStyles.centeredLoading}>
         <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
@@ -112,44 +156,144 @@ export default function MySlotCalendarsScreen() {
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
-      <AppScreenHeader title={t('calendar.myCalendarsTitle')} />
+      <AppScreenHeader title="Meine Slot-Kalender" />
 
-      <SlotCalendarCard
-        mode="full"
-        publicSlug={publicSlug}
-        copyFeedbackVisible={copyFeedbackVisible}
-        onCopyPublicLink={() => {
-          void handleCopyPublicLink();
-        }}
-        slots={slots}
-        slotsLoading={slotsLoading}
-        slotsError={slotsError}
-        timelineWindow={timelineWindow}
-        slotTimelineRef={slotTimelineRef}
-        onSlotTimelineScroll={() => {}}
-        onTimelineViewportLayout={handleTimelineViewportLayout}
-        settingsHref="/calendar-settings"
-      />
+      {records.map(({ calendar, isFavorite }) => {
+        const isExpanded = expandedCalendarId === calendar.id;
+
+        return (
+          <SlotCalendarCard
+            key={calendar.id}
+            mode="full"
+            title={calendar.title}
+            publicSlug={calendar.publicSlug}
+            missingLinkLabel="Noch kein Kalender-Link vorhanden"
+            copyFeedbackVisible={copiedCalendarId === calendar.id}
+            onCopyPublicLink={() => {
+              void handleCopyCalendarLink(calendar);
+            }}
+            slots={[]}
+            slotsLoading={false}
+            slotsError={null}
+            expanded={isExpanded}
+            onToggleExpand={() =>
+              setExpandedCalendarId((currentValue) =>
+                currentValue === calendar.id ? null : calendar.id
+              )
+            }
+            panelStyle={
+              isExpanded
+                ? {
+                    borderColor: theme.colors.accent,
+                    backgroundColor: theme.colors.accentSoft,
+                  }
+                : undefined
+            }
+            headerAccessory={
+              <Pressable
+                onPress={() => void handleToggleFavorite(calendar.id, !isFavorite)}
+                disabled={processingFavoriteCalendarId === calendar.id}
+                accessibilityRole="button"
+                accessibilityLabel="Favorit umschalten"
+                style={{ opacity: processingFavoriteCalendarId === calendar.id ? 0.45 : 1 }}>
+                <MaterialIcons
+                  name={isFavorite ? 'star' : 'star-outline'}
+                  size={18}
+                  color={isFavorite ? theme.colors.accent : theme.colors.textSecondary}
+                />
+              </Pressable>
+            }
+            timelineContent={<OwnedSlotCalendarPreview calendarId={calendar.id} />}
+            settingsHref={{
+              pathname: '/calendar-settings',
+              params: { calendarId: calendar.id },
+            }}
+            actions={
+              <View style={{ flexDirection: 'row', gap: theme.spacing[8] }}>
+                <CalendarActionLink
+                  href={{
+                    pathname: '/my-calendar/[date]',
+                    params: { date: todayKey, calendarId: calendar.id },
+                  }}
+                  label="Tag"
+                />
+                <CalendarActionLink
+                  href={{
+                    pathname: '/my-calendar/week',
+                    params: { date: todayKey, calendarId: calendar.id },
+                  }}
+                  label="Woche"
+                />
+                <CalendarActionLink
+                  href={{
+                    pathname: '/my-calendar',
+                    params: { calendarId: calendar.id },
+                  }}
+                  label="Monat"
+                />
+              </View>
+            }
+          />
+        );
+      })}
 
       <View style={uiStyles.panel}>
-        <View style={{ gap: 12 }}>
-          <Link href={`/my-calendar/${todayKey}`} asChild>
-            <Pressable style={uiStyles.button}>
-              <Text style={uiStyles.buttonText}>{t('calendar.dayView')}</Text>
+        {!addFormVisible ? (
+          <View style={{ gap: theme.spacing[12] }}>
+            <Pressable
+              onPress={() => setAddFormVisible(true)}
+              disabled={!createCalendarPermission.allowed}
+              style={[
+                uiStyles.button,
+                uiStyles.buttonActive,
+                !createCalendarPermission.allowed ? { opacity: 0.6 } : null,
+              ]}>
+              <Text style={[uiStyles.buttonText, { color: theme.colors.textPrimary, fontWeight: '600' }]}>
+                Kalender hinzufügen
+              </Text>
             </Pressable>
-          </Link>
-          <Link href={`/my-calendar/week?date=${todayKey}`} asChild>
-            <Pressable style={uiStyles.button}>
-              <Text style={uiStyles.buttonText}>{t('calendar.weekView')}</Text>
-            </Pressable>
-          </Link>
-          <Link href="/my-calendar" asChild>
-            <Pressable style={uiStyles.button}>
-              <Text style={uiStyles.buttonText}>{t('calendar.monthView')}</Text>
-            </Pressable>
-          </Link>
-        </View>
+            {!createCalendarPermission.allowed ? (
+              <Text style={uiStyles.secondaryText}>{createCalendarPermission.reason}</Text>
+            ) : null}
+          </View>
+        ) : (
+          <View style={{ gap: theme.spacing[12] }}>
+            <TextInput
+              value={newCalendarTitle}
+              onChangeText={setNewCalendarTitle}
+              placeholder="Titel für deinen Kalender"
+              placeholderTextColor={theme.colors.textSecondary}
+              style={uiStyles.input}
+            />
+
+            <View style={{ flexDirection: 'row', gap: theme.spacing[8] }}>
+              <Pressable
+                onPress={() => void handleCreateCalendar()}
+                disabled={isCreatingCalendar}
+                style={[
+                  uiStyles.button,
+                  uiStyles.buttonActive,
+                  isCreatingCalendar ? { opacity: 0.6 } : null,
+                ]}>
+                <Text style={[uiStyles.buttonText, { color: theme.colors.textPrimary, fontWeight: '600' }]}>
+                  {isCreatingCalendar ? 'Wird erstellt...' : 'Bestätigen'}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setAddFormVisible(false);
+                  setNewCalendarTitle('');
+                }}
+                style={uiStyles.button}>
+                <Text style={uiStyles.buttonText}>Abbrechen</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
       </View>
+
+      {message ? <Text style={uiStyles.bodyText}>{message}</Text> : null}
+      {error ? <Text style={uiStyles.secondaryText}>{error}</Text> : null}
     </ScrollView>
   );
 }

@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Feather } from '@expo/vector-icons';
-import { Link } from 'expo-router';
+import { Link, useLocalSearchParams } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { AppScreenHeader } from '@/src/components/app-screen-header';
+import { useCalendar } from '@/src/domain/useCalendar';
 import { useOwnerCalendar } from '@/src/domain/useOwnerCalendar';
 import { useOwnerProfile } from '@/src/domain/useOwnerProfile';
 import { getSubscriptionLimits } from '@/src/domain/subscription-policy';
 import {
+  updateCalendarTitle,
   updateCalendarDescription,
   updateCalendarNotificationSettings,
   updateCalendarVisibility,
@@ -19,24 +21,37 @@ import { useAppTheme, useBottomSafeContentStyle } from '@/src/theme/ui';
 
 export default function CalendarSettingsScreen() {
   const { user, loading: authLoading } = useAuth();
+  const params = useLocalSearchParams<{ calendarId?: string | string[] }>();
   const { t } = useTranslation();
   const { theme, uiStyles } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
+  const selectedCalendarId = Array.isArray(params.calendarId) ? params.calendarId[0] ?? null : params.calendarId ?? null;
   const { profile, loading: profileLoading, error: profileError } = useOwnerProfile(
     user ? { uid: user.uid, email: user.email } : null
   );
-  const { calendar, loading, error } = useOwnerCalendar(
+  const ownerCalendarState = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
   );
+  const selectedCalendarState = useCalendar(selectedCalendarId);
+  const calendar = selectedCalendarId ? selectedCalendarState.calendar : ownerCalendarState.calendar;
+  const loading = selectedCalendarId ? selectedCalendarState.loading : ownerCalendarState.loading;
+  const error = selectedCalendarId ? selectedCalendarState.error : ownerCalendarState.error;
   const activeCalendarId = calendar?.id ?? null;
   const [visibilityMessage, setVisibilityMessage] = useState<string | null>(null);
   const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
+  const [titleValue, setTitleValue] = useState('');
+  const [titleMessage, setTitleMessage] = useState<string | null>(null);
   const [descriptionValue, setDescriptionValue] = useState('');
   const [descriptionMessage, setDescriptionMessage] = useState<string | null>(null);
+  const [savingTitle, setSavingTitle] = useState(false);
   const [togglingVisibility, setTogglingVisibility] = useState(false);
   const [togglingNotifications, setTogglingNotifications] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
   const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
+
+  useEffect(() => {
+    setTitleValue(calendar?.title ?? '');
+  }, [calendar?.title]);
 
   useEffect(() => {
     setDescriptionValue(calendar?.description ?? '');
@@ -144,6 +159,37 @@ export default function CalendarSettingsScreen() {
     }
   };
 
+  const handleSaveTitle = async () => {
+    if (!activeCalendarId || savingTitle) {
+      return;
+    }
+
+    setSavingTitle(true);
+    setTitleMessage(null);
+
+    try {
+      await updateCalendarTitle({
+        calendarId: activeCalendarId,
+        title: titleValue,
+      });
+      setTitleMessage('Kalendertitel gespeichert');
+    } catch (nextError) {
+      setTitleMessage(
+        nextError instanceof Error
+          ? nextError.message
+          : 'Der Kalendertitel konnte nicht gespeichert werden.'
+      );
+    } finally {
+      setSavingTitle(false);
+    }
+  };
+
+  const isTitleValid = Boolean(titleValue.trim()) && titleValue.trim().length <= 80;
+  const canSaveTitle =
+    Boolean(activeCalendarId) &&
+    isTitleValid &&
+    !savingTitle &&
+    titleValue.trim() !== (calendar?.title ?? '').trim();
   const isDescriptionValid = descriptionValue.length <= 120;
   const canSaveDescription =
     Boolean(activeCalendarId) &&
@@ -175,7 +221,12 @@ export default function CalendarSettingsScreen() {
               Erstelle jetzt deine Kalender-ID, damit du deinen Kalender teilen kannst und andere ihn
               leichter finden.
             </Text>
-            <Link href="/calendar-id-create" asChild>
+            <Link
+              href={{
+                pathname: '/calendar-id-create',
+                params: activeCalendarId ? { calendarId: activeCalendarId } : undefined,
+              }}
+              asChild>
               <Pressable style={[uiStyles.button, uiStyles.buttonActive]}>
                 <Text style={[uiStyles.buttonText, { color: theme.colors.textPrimary, fontWeight: '600' }]}>
                   Kalender-ID erstellen
@@ -184,6 +235,41 @@ export default function CalendarSettingsScreen() {
             </Link>
           </View>
         ) : null}
+
+        <View style={uiStyles.panel}>
+          <Text style={uiStyles.sectionTitle}>Kalendertitel</Text>
+          <TextInput
+            value={titleValue}
+            onChangeText={(nextValue) => {
+              setTitleValue(nextValue.slice(0, 80));
+              setTitleMessage(null);
+            }}
+            maxLength={80}
+            placeholder="Titel für deinen Kalender"
+            placeholderTextColor={theme.colors.textSecondary}
+            style={[uiStyles.input, { marginBottom: theme.spacing[8] }]}
+          />
+          <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
+            {titleValue.trim().length} / 80
+          </Text>
+          <Pressable
+            onPress={() => void handleSaveTitle()}
+            disabled={!canSaveTitle}
+            style={[
+              uiStyles.button,
+              uiStyles.buttonActive,
+              !canSaveTitle ? { opacity: 0.6 } : null,
+            ]}>
+            <Text style={[uiStyles.buttonText, { color: theme.colors.textPrimary, fontWeight: '600' }]}>
+              {savingTitle ? 'Speichern ...' : 'Speichern'}
+            </Text>
+          </Pressable>
+          {titleMessage ? (
+            <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>
+              {titleMessage}
+            </Text>
+          ) : null}
+        </View>
 
         <View style={uiStyles.panel}>
           <Text style={uiStyles.sectionTitle}>Kalenderdetails</Text>
@@ -281,7 +367,12 @@ export default function CalendarSettingsScreen() {
           <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
             Teile deinen Kalender mit anderen Personen und verwalte bestehende Zugriffe an einer Stelle.
           </Text>
-          <Link href="/calendar-access" asChild>
+          <Link
+            href={{
+              pathname: '/calendar-access',
+              params: activeCalendarId ? { calendarId: activeCalendarId } : undefined,
+            }}
+            asChild>
             <Pressable style={uiStyles.button}>
               <Text style={uiStyles.buttonText}>Freigaben verwalten</Text>
             </Pressable>

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { AppScreenHeader } from '@/src/components/app-screen-header';
 import { saveCalendarPublicSlug } from '@/src/domain/repository';
+import { useCalendar } from '@/src/domain/useCalendar';
 import { useCalendarIdAvailability } from '@/src/domain/useCalendarIdAvailability';
 import { useOwnerCalendar } from '@/src/domain/useOwnerCalendar';
 import { useAuth } from '@/src/firebase/useAuth';
@@ -12,12 +13,18 @@ import { useAppTheme, useBottomSafeContentStyle } from '@/src/theme/ui';
 
 export default function CalendarIdCreateScreen() {
   const { user, loading: authLoading } = useAuth();
+  const params = useLocalSearchParams<{ calendarId?: string | string[] }>();
   const { t } = useTranslation();
   const { theme, uiStyles } = useAppTheme();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
-  const { calendar, loading, error } = useOwnerCalendar(
+  const selectedCalendarId = Array.isArray(params.calendarId) ? params.calendarId[0] ?? null : params.calendarId ?? null;
+  const ownerCalendarState = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
   );
+  const selectedCalendarState = useCalendar(selectedCalendarId);
+  const calendar = selectedCalendarId ? selectedCalendarState.calendar : ownerCalendarState.calendar;
+  const loading = selectedCalendarId ? selectedCalendarState.loading : ownerCalendarState.loading;
+  const error = selectedCalendarId ? selectedCalendarState.error : ownerCalendarState.error;
   const [calendarIdInput, setCalendarIdInput] = useState(calendar?.publicSlug ?? '');
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);

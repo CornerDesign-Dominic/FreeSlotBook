@@ -27,6 +27,7 @@ import {
   setCalendarSlotInactive,
   updateCalendarSlotAvailability,
 } from '../../../../src/domain/repository';
+import { useCalendar } from '../../../../src/domain/useCalendar';
 import { useOwnerCalendar } from '../../../../src/domain/useOwnerCalendar';
 import { useOwnerDaySlots } from '../../../../src/domain/useOwnerDaySlots';
 import { useOwnerSlotDetail } from '../../../../src/domain/useOwnerSlotDetail';
@@ -61,8 +62,9 @@ export default function CalendarDayScreen() {
     padding: theme.spacing[16],
   });
   const locale = language === 'de' ? 'de-DE' : 'en-US';
-  const params = useLocalSearchParams<{ date?: string | string[]; slotId?: string | string[] }>();
+  const params = useLocalSearchParams<{ date?: string | string[]; slotId?: string | string[]; calendarId?: string | string[] }>();
   const rawDate = Array.isArray(params.date) ? params.date[0] : params.date ?? '';
+  const selectedCalendarId = Array.isArray(params.calendarId) ? params.calendarId[0] ?? null : params.calendarId ?? null;
   const routeDate = useMemo(() => parseDayKey(rawDate), [rawDate]);
   const routeDayKey = routeDate ? getDayKey(routeDate) : null;
   const initialSlotId = Array.isArray(params.slotId) ? params.slotId[0] : params.slotId ?? null;
@@ -73,9 +75,13 @@ export default function CalendarDayScreen() {
   const timelineScrollRef = useRef<ScrollView>(null);
   const lastAutoScrollSignatureRef = useRef<string | null>(null);
   const { user, loading: authLoading } = useAuth();
-  const { calendar, loading, error } = useOwnerCalendar(
+  const ownerCalendarState = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
   );
+  const selectedCalendarState = useCalendar(selectedCalendarId);
+  const calendar = selectedCalendarId ? selectedCalendarState.calendar : ownerCalendarState.calendar;
+  const loading = selectedCalendarId ? selectedCalendarState.loading : ownerCalendarState.loading;
+  const error = selectedCalendarId ? selectedCalendarState.error : ownerCalendarState.error;
   const {
     slots,
     loading: slotsLoading,
@@ -281,7 +287,13 @@ export default function CalendarDayScreen() {
     return (
       <View style={uiStyles.centeredLoading}>
         <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[16] }]}>{t('day.invalidDate')}</Text>
-        <Link href="/my-calendar">
+        <Link
+          href={{
+            pathname: '/my-calendar',
+            params: {
+              calendarId: calendar?.id ?? selectedCalendarId ?? undefined,
+            },
+          }}>
           <Text style={uiStyles.linkText}>{t('nav.backToCalendar')}</Text>
         </Link>
       </View>
@@ -672,7 +684,11 @@ export default function CalendarDayScreen() {
               <Link
                 href={{
                   pathname: '/slot-history',
-                  params: { slotId: selectedSlot.id, date: visibleDayKey },
+                  params: {
+                    slotId: selectedSlot.id,
+                    date: visibleDayKey,
+                    calendarId: calendar?.id ?? undefined,
+                  },
                 }}>
                 <Text style={uiStyles.linkText}>{t('day.viewHistory')}</Text>
               </Link>
@@ -692,11 +708,20 @@ export default function CalendarDayScreen() {
             {selectedSlot ? (
               <>
                 {selectedSlotCanEdit ? (
-              <Link href={`/new-slot?date=${visibleDayKey}&slotId=${selectedSlot?.id}`} asChild>
-                <Pressable style={uiStyles.button}>
-                  <Text style={uiStyles.buttonText}>{t('day.editSlot')}</Text>
-                </Pressable>
-              </Link>
+                  <Link
+                    href={{
+                      pathname: '/new-slot',
+                      params: {
+                        date: visibleDayKey,
+                        slotId: selectedSlot?.id,
+                        calendarId: calendar?.id ?? undefined,
+                      },
+                    }}
+                    asChild>
+                    <Pressable style={uiStyles.button}>
+                      <Text style={uiStyles.buttonText}>{t('day.editSlot')}</Text>
+                    </Pressable>
+                  </Link>
                 ) : null}
                 {selectedSlotCanAssign ? (
               <Pressable onPress={handleOpenAssignmentModal} style={uiStyles.button}>
