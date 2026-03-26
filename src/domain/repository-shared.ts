@@ -43,11 +43,11 @@ export function validateOptionalPhoneNumber(phoneNumber?: string | null) {
   }
 
   if (!/^[+\d\s()/.-]{6,20}$/.test(normalizedPhoneNumber)) {
-    throw new Error('Bitte gib eine gueltige Telefonnummer ein oder lasse das Feld leer.');
+    throw new Error('Bitte gib eine gültige Telefonnummer ein oder lasse das Feld leer.');
   }
 
   if (normalizedPhoneNumber.replace(/\D/g, '').length < 6) {
-    throw new Error('Bitte gib eine gueltige Telefonnummer ein oder lasse das Feld leer.');
+    throw new Error('Bitte gib eine gültige Telefonnummer ein oder lasse das Feld leer.');
   }
 
   return normalizedPhoneNumber;
@@ -89,7 +89,7 @@ export function getAppointmentLoadErrorMessage(error: unknown) {
 
 export function getProfileLoadErrorMessage(error: unknown) {
   if (isMissingFirestoreIndexError(error)) {
-    return 'Das Profil konnte gerade nicht vollstaendig geladen werden.';
+    return 'Das Profil konnte gerade nicht vollständig geladen werden.';
   }
 
   return getFirestoreErrorMessage(error) ?? 'Das Profil konnte nicht geladen werden.';
@@ -218,7 +218,8 @@ export function mapOwnerProfile(id: string, data: Record<string, unknown>): Owne
       typeof data.defaultCalendarId === 'string' && data.defaultCalendarId.trim().length
         ? data.defaultCalendarId
         : null,
-    subscriptionTier: data.subscriptionTier === 'pro' ? 'pro' : 'free',
+    subscriptionTier:
+      data.subscriptionTier === 'pro' ? 'pro' : data.subscriptionTier === 'plus' ? 'plus' : 'free',
     primaryIdentityType: 'email',
     createdAt: asDate(data.createdAt),
     updatedAt: asDate(data.updatedAt),

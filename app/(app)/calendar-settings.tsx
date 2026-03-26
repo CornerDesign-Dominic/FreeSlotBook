@@ -7,6 +7,7 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { AppScreenHeader } from '@/src/components/app-screen-header';
 import { useOwnerCalendar } from '@/src/domain/useOwnerCalendar';
 import { useOwnerProfile } from '@/src/domain/useOwnerProfile';
+import { getSubscriptionLimits } from '@/src/domain/subscription-policy';
 import {
   updateCalendarDescription,
   updateCalendarNotificationSettings,
@@ -150,7 +151,8 @@ export default function CalendarSettingsScreen() {
     !savingDescription &&
     descriptionValue !== (calendar?.description ?? '');
   const subscriptionTier = profile?.subscriptionTier ?? 'free';
-  const canManagePublicCalendar = subscriptionTier !== 'free';
+  const subscriptionLimits = getSubscriptionLimits(subscriptionTier);
+  const canManagePublicCalendar = subscriptionLimits.maxPublicCalendars !== 0;
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>

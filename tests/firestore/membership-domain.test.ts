@@ -4,6 +4,7 @@ vi.mock('firebase/firestore', () => ({
   collectionGroup: vi.fn(),
   deleteDoc: vi.fn(),
   getDoc: vi.fn(),
+  getDocs: vi.fn(),
   onSnapshot: vi.fn(),
   query: vi.fn((...args: unknown[]) => ({ type: 'query', args })),
   runTransaction: vi.fn(),
@@ -18,6 +19,7 @@ vi.mock('@/src/firebase/config', () => ({
 
 vi.mock('../../src/domain/repository-core', () => ({
   getCalendarBySlug: vi.fn(),
+  getOwnerCalendar: vi.fn(),
   getOwnerProfile: vi.fn(),
   getUserProfileByEmail: vi.fn(),
   getUserProfileByUsername: vi.fn(),
@@ -164,7 +166,7 @@ describe('Membership domain guards', () => {
         requesterUid: 'member_1',
         requesterEmail: 'member@example.com',
       })
-    ).rejects.toThrow('Fuer dich liegt bereits eine offene Einladung zu diesem Kalender vor.');
+    ).rejects.toThrow('Für dich liegt bereits eine offene Einladung zu diesem Kalender vor.');
 
     expect(firestore.setDoc).not.toHaveBeenCalled();
   });
@@ -185,12 +187,22 @@ describe('Membership domain guards', () => {
         requesterUid: 'member_1',
         requesterEmail: 'member@example.com',
       })
-    ).rejects.toThrow('Fuer den eigenen Kalender musst du keine Anfrage stellen.');
+    ).rejects.toThrow('Für den eigenen Kalender musst du keine Anfrage stellen.');
   });
 
   test('invite flow resolves usernames from user links and stores a pending invite', async () => {
     const { firestore, repositoryCore, repositoryMembership } = await loadMembershipModule();
 
+    vi.mocked(repositoryCore.getOwnerCalendar).mockResolvedValue({
+      id: 'calendar_1',
+      ownerUid: 'owner_1',
+    } as never);
+    vi.mocked(repositoryCore.getOwnerProfile).mockResolvedValue({
+      uid: 'owner_1',
+      username: 'owneruser',
+      email: 'owner@example.com',
+      subscriptionTier: 'free',
+    } as never);
     vi.mocked(repositoryCore.getUserProfileByUsername).mockResolvedValue({
       uid: 'member_1',
       username: 'memberuser',
@@ -200,6 +212,9 @@ describe('Membership domain guards', () => {
       .mockResolvedValueOnce(documentSnapshot())
       .mockResolvedValueOnce(documentSnapshot())
       .mockResolvedValueOnce(documentSnapshot());
+    vi.mocked(firestore.getDocs)
+      .mockResolvedValueOnce({ docs: [] } as never)
+      .mockResolvedValueOnce({ docs: [] } as never);
 
     await repositoryMembership.createCalendarInvite({
       calendarId: 'calendar_1',
@@ -214,6 +229,16 @@ describe('Membership domain guards', () => {
   test('invite flow rejects self invites', async () => {
     const { repositoryCore, repositoryMembership } = await loadMembershipModule();
 
+    vi.mocked(repositoryCore.getOwnerCalendar).mockResolvedValue({
+      id: 'calendar_1',
+      ownerUid: 'owner_1',
+    } as never);
+    vi.mocked(repositoryCore.getOwnerProfile).mockResolvedValue({
+      uid: 'owner_1',
+      username: 'owneruser',
+      email: 'owner@example.com',
+      subscriptionTier: 'free',
+    } as never);
     vi.mocked(repositoryCore.getUserProfileByUsername).mockResolvedValue({
       uid: 'owner_1',
       username: 'owneruser',
@@ -232,6 +257,16 @@ describe('Membership domain guards', () => {
   test('invite flow rejects duplicate pending invites', async () => {
     const { firestore, repositoryCore, repositoryMembership } = await loadMembershipModule();
 
+    vi.mocked(repositoryCore.getOwnerCalendar).mockResolvedValue({
+      id: 'calendar_1',
+      ownerUid: 'owner_1',
+    } as never);
+    vi.mocked(repositoryCore.getOwnerProfile).mockResolvedValue({
+      uid: 'owner_1',
+      username: 'owneruser',
+      email: 'owner@example.com',
+      subscriptionTier: 'free',
+    } as never);
     vi.mocked(repositoryCore.getUserProfileByUsername).mockResolvedValue({
       uid: 'member_1',
       username: 'memberuser',
@@ -255,7 +290,7 @@ describe('Membership domain guards', () => {
         ownerUid: 'owner_1',
         inviteeIdentifier: 'memberuser',
       })
-    ).rejects.toThrow('Fuer diese Person ist bereits eine Einladung offen.');
+    ).rejects.toThrow('Für diese Person ist bereits eine Einladung offen.');
 
     expect(firestore.setDoc).not.toHaveBeenCalled();
   });
@@ -263,6 +298,16 @@ describe('Membership domain guards', () => {
   test('invite flow rejects inviting users with an open pending request', async () => {
     const { firestore, repositoryCore, repositoryMembership } = await loadMembershipModule();
 
+    vi.mocked(repositoryCore.getOwnerCalendar).mockResolvedValue({
+      id: 'calendar_1',
+      ownerUid: 'owner_1',
+    } as never);
+    vi.mocked(repositoryCore.getOwnerProfile).mockResolvedValue({
+      uid: 'owner_1',
+      username: 'owneruser',
+      email: 'owner@example.com',
+      subscriptionTier: 'free',
+    } as never);
     vi.mocked(repositoryCore.getUserProfileByUsername).mockResolvedValue({
       uid: 'member_1',
       username: 'memberuser',
@@ -287,7 +332,7 @@ describe('Membership domain guards', () => {
         ownerUid: 'owner_1',
         inviteeIdentifier: 'memberuser',
       })
-    ).rejects.toThrow('Fuer diese Person liegt bereits eine offene Zugriffsanfrage vor.');
+    ).rejects.toThrow('Für diese Person liegt bereits eine offene Zugriffsanfrage vor.');
 
     expect(firestore.setDoc).not.toHaveBeenCalled();
   });
@@ -295,6 +340,16 @@ describe('Membership domain guards', () => {
   test('invite flow rejects inviting already connected users', async () => {
     const { firestore, repositoryCore, repositoryMembership } = await loadMembershipModule();
 
+    vi.mocked(repositoryCore.getOwnerCalendar).mockResolvedValue({
+      id: 'calendar_1',
+      ownerUid: 'owner_1',
+    } as never);
+    vi.mocked(repositoryCore.getOwnerProfile).mockResolvedValue({
+      uid: 'owner_1',
+      username: 'owneruser',
+      email: 'owner@example.com',
+      subscriptionTier: 'free',
+    } as never);
     vi.mocked(repositoryCore.getUserProfileByUsername).mockResolvedValue({
       uid: 'member_1',
       username: 'memberuser',
@@ -317,5 +372,107 @@ describe('Membership domain guards', () => {
         inviteeIdentifier: 'memberuser',
       })
     ).rejects.toThrow('Diese Person ist bereits Mitglied dieses Kalenders.');
+  });
+
+  test('invite flow blocks new whitelist entries when the free tier limit is reached', async () => {
+    const { firestore, repositoryCore, repositoryMembership } = await loadMembershipModule();
+
+    vi.mocked(repositoryCore.getOwnerCalendar).mockResolvedValue({
+      id: 'calendar_1',
+      ownerUid: 'owner_1',
+      ownerEmail: 'owner@example.com',
+    } as never);
+    vi.mocked(repositoryCore.getOwnerProfile)
+      .mockResolvedValueOnce({
+        uid: 'owner_1',
+        username: 'owneruser',
+        email: 'owner@example.com',
+        subscriptionTier: 'free',
+      } as never);
+    vi.mocked(repositoryCore.getUserProfileByUsername).mockResolvedValue({
+      uid: 'member_1',
+      username: 'memberuser',
+      email: 'member@example.com',
+      subscriptionTier: 'free',
+    } as never);
+    vi.mocked(firestore.getDoc)
+      .mockResolvedValueOnce(documentSnapshot())
+      .mockResolvedValueOnce(documentSnapshot())
+      .mockResolvedValueOnce(documentSnapshot());
+    vi.mocked(firestore.getDocs)
+      .mockResolvedValueOnce({
+        docs: Array.from({ length: 25 }, (_, index) =>
+          documentSnapshot({
+            uid: `member_${index}`,
+            role: 'member',
+            email: `member_${index}@example.com`,
+          })
+        ),
+      } as never)
+      .mockResolvedValueOnce({ docs: [] } as never);
+
+    await expect(
+      repositoryMembership.createCalendarInvite({
+        calendarId: 'calendar_1',
+        ownerUid: 'owner_1',
+        inviteeIdentifier: 'memberuser',
+      })
+    ).rejects.toThrow('Das Whitelist-Limit dieses Kalenders ist erreicht.');
+  });
+
+  test('approving a request is blocked when the calendar whitelist limit is already reached', async () => {
+    const { firestore, repositoryCore, repositoryMembership } = await loadMembershipModule();
+
+    vi.mocked(repositoryCore.getOwnerProfile)
+      .mockResolvedValueOnce({
+        uid: 'member_1',
+        username: 'memberuser',
+        email: 'member@example.com',
+        subscriptionTier: 'free',
+      } as never)
+      .mockResolvedValueOnce({
+        uid: 'owner_1',
+        username: 'owneruser',
+        email: 'owner@example.com',
+        subscriptionTier: 'free',
+      } as never);
+    vi.mocked(firestore.getDoc)
+      .mockResolvedValueOnce(
+        documentSnapshot({
+          calendarId: 'calendar_1',
+          uid: 'owner_1',
+          role: 'owner',
+          email: 'owner@example.com',
+          username: 'owneruser',
+        })
+      )
+      .mockResolvedValueOnce(
+        documentSnapshot({
+          calendarId: 'calendar_1',
+          requesterUid: 'member_1',
+          requesterEmail: 'member@example.com',
+          requesterUsername: 'memberuser',
+          status: 'pending',
+        })
+      );
+    vi.mocked(firestore.getDocs)
+      .mockResolvedValueOnce({
+        docs: Array.from({ length: 25 }, (_, index) =>
+          documentSnapshot({
+            uid: `member_${index}`,
+            role: 'member',
+            email: `member_${index}@example.com`,
+          })
+        ),
+      } as never)
+      .mockResolvedValueOnce({ docs: [] } as never);
+
+    await expect(
+      repositoryMembership.approveCalendarAccessRequest({
+        calendarId: 'calendar_1',
+        ownerId: 'owner_1',
+        requesterUid: 'member_1',
+      })
+    ).rejects.toThrow('Das Whitelist-Limit dieses Kalenders ist erreicht.');
   });
 });

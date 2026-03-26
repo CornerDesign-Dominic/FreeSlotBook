@@ -1,5 +1,5 @@
 export type IdentityType = 'email';
-export type SubscriptionTier = 'free' | 'pro';
+export type SubscriptionTier = 'free' | 'plus' | 'pro';
 
 export type CalendarVisibility = 'private' | 'public';
 export type CalendarAccessRole = 'owner' | 'member';

@@ -1,4 +1,5 @@
 import {
+  collection,
   collectionGroup,
   doc,
   getDoc,
@@ -18,7 +19,12 @@ import type {
   AppointmentCalendarSettings,
   CalendarRecord,
   DashboardData,
+  SubscriptionTier,
 } from './types';
+import {
+  canCreateAnotherCalendar,
+  canEnablePublicCalendar,
+} from './subscription-policy';
 import {
   normalizeExistingUsername,
   resolveStableCalendarSlug,
@@ -47,6 +53,18 @@ import {
 } from './repository-shared';
 
 const ownerSetupInFlight = new Map<string, Promise<{ calendarId: string }>>();
+
+function normalizeSubscriptionTier(value: unknown): SubscriptionTier {
+  return value === 'pro' ? 'pro' : value === 'plus' ? 'plus' : 'free';
+}
+
+function mapActiveOwnedCalendarsFromSnapshots(
+  snapshots: { id: string; data: () => Record<string, unknown> | undefined }[]
+) {
+  return snapshots
+    .map((snapshot) => mapCalendar(snapshot.id, (snapshot.data() ?? {}) as Record<string, unknown>))
+    .filter((calendar) => !calendar.isArchived);
+}
 
 function validateSlotlymeUserId(username: string) {
   const normalizedUsername = normalizeUsername(username);
@@ -232,7 +250,7 @@ export async function ensureOwnerAccountSetup(params: {
   const trimmedEmail = params.email.trim();
 
   if (!trimmedEmail) {
-    throw new Error('Für die Einrichtung des Kontos ist eine E-Mail-Adresse erforderlich.');
+    throw new Error('FÃ¼r die Einrichtung des Kontos ist eine E-Mail-Adresse erforderlich.');
   }
 
   const emailKey = normalizeEmail(trimmedEmail);
@@ -271,7 +289,7 @@ export async function ensureOwnerAccountSetup(params: {
       }
 
       if (claimedEmailUid && claimedEmailUid !== params.uid) {
-    throw new Error('Für diese E-Mail-Adresse existiert bereits ein anderes Konto.');
+    throw new Error('FÃ¼r diese E-Mail-Adresse existiert bereits ein anderes Konto.');
       }
 
       const existingUsername = normalizeExistingUsername(
@@ -291,8 +309,9 @@ export async function ensureOwnerAccountSetup(params: {
           emailKey,
           username: nextUsername,
           slotlymeId: nextUsername,
-          subscriptionTier:
-            userSnapshot.exists() && userSnapshot.data().subscriptionTier === 'pro' ? 'pro' : 'free',
+          subscriptionTier: normalizeSubscriptionTier(
+            userSnapshot.exists() ? userSnapshot.data().subscriptionTier : null
+          ),
           defaultCalendarId: calendarId,
           isActive: true,
           createdAt: userSnapshot.exists() ? userSnapshot.data().createdAt ?? serverTimestamp() : serverTimestamp(),
@@ -456,6 +475,110 @@ export async function listJoinedCalendars(uid: string) {
   );
 
   return calendars.filter((calendar): calendar is CalendarRecord => calendar !== null);
+}
+
+export async function listOwnedCalendars(ownerUid: string) {
+  const snapshots = await getDocs(query(collection(db, 'calendars'), where('ownerUid', '==', ownerUid)));
+
+  return mapActiveOwnedCalendarsFromSnapshots(
+    snapshots.docs.map((snapshot) => ({
+      id: snapshot.id,
+      data: () => snapshot.data() as Record<string, unknown>,
+    }))
+  );
+}
+
+export async function createOwnerCalendar(params: {
+  ownerUid: string;
+  ownerEmail: string;
+  title?: string | null;
+}) {
+  const calendarId = doc(collection(db, 'calendars')).id;
+  const trimmedTitle = params.title?.trim() || 'Mein Kalender';
+  const [ownerProfile, ownedCalendars] = await Promise.all([
+    getOwnerProfile(params.ownerUid),
+    listOwnedCalendars(params.ownerUid),
+  ]);
+
+  if (!ownerProfile) {
+    throw new Error('Dein Konto konnte nicht gefunden werden.');
+  }
+
+  const calendarPermission = canCreateAnotherCalendar({
+    tier: ownerProfile.subscriptionTier,
+    currentCalendarCount: ownedCalendars.length,
+  });
+
+  if (!calendarPermission.allowed) {
+    throw new Error(calendarPermission.reason ?? 'Dieser Kalender kann nicht erstellt werden.');
+  }
+
+  await runTransaction(db, async (transaction) => {
+    const userSnapshot = await transaction.get(userDoc(params.ownerUid));
+
+    if (!userSnapshot.exists()) {
+      throw new Error('Dein Konto konnte nicht gefunden werden.');
+    }
+
+    transaction.set(
+      calendarDoc(calendarId),
+      {
+        calendarId,
+        ownerUid: params.ownerUid,
+        ownerEmail: params.ownerEmail.trim(),
+        ownerUsername: ownerProfile.username,
+        title: trimmedTitle,
+        visibility: 'private',
+        calendarSlug: null,
+        description: null,
+        notifyOnNewSlotsAvailable: false,
+        isArchived: false,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    transaction.set(
+      doc(calendarAccessCollection(calendarId), params.ownerUid),
+      {
+        calendarId,
+        uid: params.ownerUid,
+        role: 'owner',
+        email: params.ownerEmail.trim(),
+        username: ownerProfile.username,
+        addedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  });
+
+  return { calendarId };
+}
+
+export async function updateUserSubscriptionTier(params: {
+  uid: string;
+  subscriptionTier: SubscriptionTier;
+}) {
+  const normalizedTier = normalizeSubscriptionTier(params.subscriptionTier);
+
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(userDoc(params.uid));
+
+    if (!snapshot.exists()) {
+      throw new Error('Das Nutzerkonto konnte nicht gefunden werden.');
+    }
+
+    transaction.set(
+      userDoc(params.uid),
+      {
+        subscriptionTier: normalizedTier,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  });
 }
 
 export function subscribeToJoinedCalendars(
@@ -739,9 +862,17 @@ export async function updateCalendarVisibility(params: {
   publicSlug: string;
 }) {
   const normalizedSlug = params.publicSlug.trim() ? validatePublicSlug(params.publicSlug) : '';
+  const [ownerProfile, ownedCalendars] = await Promise.all([
+    getOwnerProfile(params.ownerId),
+    listOwnedCalendars(params.ownerId),
+  ]);
 
   if (params.visibility === 'public' && !normalizedSlug) {
-    throw new Error('Bitte hinterlege zuerst einen gueltigen Kalender-Link.');
+    throw new Error('Bitte hinterlege zuerst einen gültigen Kalender-Link.');
+  }
+
+  if (!ownerProfile) {
+    throw new Error('Das Nutzerkonto konnte nicht gefunden werden.');
   }
 
   await runTransaction(db, async (transaction) => {
@@ -753,6 +884,21 @@ export async function updateCalendarVisibility(params: {
     }
 
     const calendar = mapCalendar(calendarSnapshot.id, calendarSnapshot.data() as Record<string, unknown>);
+    const currentPublicCalendarCount = ownedCalendars.filter(
+      (ownedCalendar) => ownedCalendar.visibility === 'public'
+    ).length;
+    const publicPermission = canEnablePublicCalendar({
+      tier: ownerProfile.subscriptionTier,
+      currentPublicCalendarCount,
+      isAlreadyPublic: calendar.visibility === 'public',
+    });
+
+    if (params.visibility === 'public' && !publicPermission.allowed) {
+      throw new Error(
+        publicPermission.reason ?? 'Der öffentliche Kalender kann mit deinem Tarif nicht aktiviert werden.'
+      );
+    }
+
     const currentSlug = calendar.calendarSlug ? normalizeSlug(calendar.calendarSlug) : '';
     const nextSlug = resolveStableCalendarSlug({
       currentCalendarSlug: currentSlug,
@@ -771,16 +917,19 @@ export async function updateCalendarVisibility(params: {
         throw new Error('Dieser Kalender-Link ist bereits vergeben.');
       }
 
-      transaction.set(
-        slugRef,
-        {
-          calendarSlug: nextSlug,
-          calendarId: params.calendarId,
-          updatedAt: serverTimestamp(),
-          createdAt: slugSnapshot.exists() ? slugSnapshot.data().createdAt ?? serverTimestamp() : serverTimestamp(),
-        },
-        { merge: true }
-      );
+      if (params.visibility === 'public') {
+        transaction.set(
+          slugRef,
+          {
+            calendarSlug: nextSlug,
+            calendarId: params.calendarId,
+            updatedAt: serverTimestamp(),
+            createdAt:
+              slugSnapshot.exists() ? slugSnapshot.data().createdAt ?? serverTimestamp() : serverTimestamp(),
+          },
+          { merge: true }
+        );
+      }
     }
 
     transaction.set(
@@ -819,7 +968,7 @@ export async function setConnectedCalendarFavorite(params: {
     const calendarSnapshot = await transaction.get(calendarDoc(params.calendarId));
 
     if (!calendarSnapshot.exists()) {
-      throw new Error('Der ausgewaehlte Kalender existiert nicht mehr.');
+      throw new Error('Der ausgewÃ¤hlte Kalender existiert nicht mehr.');
     }
 
     transaction.set(

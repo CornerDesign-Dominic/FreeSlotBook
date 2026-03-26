@@ -2,6 +2,7 @@ import {
   collectionGroup,
   deleteDoc,
   getDoc,
+  getDocs,
   onSnapshot,
   query,
   runTransaction,
@@ -12,6 +13,7 @@ import {
 
 import { db } from '@/src/firebase/config';
 
+import { canAddWhitelistEntry } from './subscription-policy';
 import type {
   CalendarAccessRecord,
   CalendarAccessRequestRecord,
@@ -31,6 +33,7 @@ import {
 } from './repository-shared';
 import {
   getCalendarBySlug,
+  getOwnerCalendar,
   getOwnerProfile,
   getUserProfileByEmail,
   getUserProfileByUsername,
@@ -90,6 +93,32 @@ async function getMembership(calendarId: string, uid: string) {
   return snapshot.exists() ? mapAccess(snapshot.id, snapshot.data() as Record<string, unknown>) : null;
 }
 
+async function getCalendarWhitelistUsage(calendarId: string) {
+  const [accessSnapshot, inviteSnapshot] = await Promise.all([
+    getDocs(calendarAccessCollection(calendarId)),
+    getDocs(calendarInvitesCollection(calendarId)),
+  ]);
+
+  const memberUids = new Set(
+    accessSnapshot.docs
+      .map((snapshot) => mapAccess(snapshot.id, snapshot.data() as Record<string, unknown>))
+      .filter((record) => record.role === 'member')
+      .map((record) => record.uid)
+  );
+  const pendingInviteUids = new Set(
+    inviteSnapshot.docs
+      .map((snapshot) => mapInvite(snapshot.id, snapshot.data() as Record<string, unknown>))
+      .filter((record) => record.status === 'pending' && !memberUids.has(record.invitedUid))
+      .map((record) => record.invitedUid)
+  );
+
+  return {
+    memberUids,
+    pendingInviteUids,
+    reservedCount: new Set([...memberUids, ...pendingInviteUids]).size,
+  };
+}
+
 async function ensureNoPendingInviteOrRequest(calendarId: string, uid: string) {
   const [inviteSnapshot, requestSnapshot] = await Promise.all([
     getDoc(calendarInviteDoc(calendarId, uid)),
@@ -116,7 +145,19 @@ export async function createCalendarInvite(params: {
   ownerUid: string;
   inviteeIdentifier: string;
 }) {
-  const targetUser = await resolveInviteTarget(params.inviteeIdentifier);
+  const [calendar, ownerProfile, targetUser] = await Promise.all([
+    getOwnerCalendar(params.calendarId),
+    getOwnerProfile(params.ownerUid),
+    resolveInviteTarget(params.inviteeIdentifier),
+  ]);
+
+  if (!calendar || calendar.ownerUid !== params.ownerUid) {
+    throw new Error('Nur der Kalenderinhaber kann Einladungen senden.');
+  }
+
+  if (!ownerProfile) {
+    throw new Error('Das Nutzerkonto konnte nicht gefunden werden.');
+  }
 
   if (!targetUser || !targetUser.username) {
     throw new Error('Zu dieser Nutzerkennung wurde kein Slotly-Nutzer gefunden.');
@@ -133,6 +174,15 @@ export async function createCalendarInvite(params: {
   }
 
   await ensureNoPendingInviteOrRequest(params.calendarId, targetUser.uid);
+
+  const whitelistPermission = canAddWhitelistEntry({
+    tier: ownerProfile.subscriptionTier,
+    currentWhitelistCount: (await getCalendarWhitelistUsage(params.calendarId)).reservedCount,
+  });
+
+  if (!whitelistPermission.allowed) {
+    throw new Error(whitelistPermission.reason ?? 'Das Whitelist-Limit dieses Kalenders ist erreicht.');
+  }
 
   await setDoc(
     calendarInviteDoc(params.calendarId, targetUser.uid),
@@ -178,7 +228,7 @@ export async function removeCalendarAccess(params: {
   }
 
   if (!memberUid) {
-    throw new Error('Das Mitglied konnte nicht aufgeloest werden.');
+    throw new Error('Das Mitglied konnte nicht aufgelöst werden.');
   }
 
   const membership = await getMembership(params.calendarId, memberUid);
@@ -374,7 +424,7 @@ export async function requestCalendarAccessBySlug(params: {
   const requesterProfile = await getOwnerProfile(params.requesterUid);
 
   if (!requesterProfile) {
-    throw new Error('Dein Konto konnte nicht aufgeloest werden.');
+    throw new Error('Dein Konto konnte nicht aufgelöst werden.');
   }
 
   const existingMembership = await getMembership(calendar.id, params.requesterUid);
@@ -427,13 +477,14 @@ export async function approveCalendarAccessRequest(params: {
   }
 
   if (!requesterUid) {
-    throw new Error('Die ausgewaehlte Anfrage konnte nicht aufgeloest werden.');
+    throw new Error('Die ausgewählte Anfrage konnte nicht aufgelöst werden.');
   }
 
-  const [ownerMembership, requestSnapshot, requesterProfile] = await Promise.all([
+  const [ownerMembership, requestSnapshot, requesterProfile, ownerProfile] = await Promise.all([
     getMembership(params.calendarId, params.ownerId),
     getDoc(calendarAccessRequestDoc(params.calendarId, requesterUid)),
     getOwnerProfile(requesterUid),
+    getOwnerProfile(params.ownerId),
   ]);
 
   if (!ownerMembership || ownerMembership.role !== 'owner') {
@@ -441,18 +492,31 @@ export async function approveCalendarAccessRequest(params: {
   }
 
   if (!requestSnapshot.exists()) {
-    throw new Error('Die ausgewaehlte Anfrage existiert nicht mehr.');
+    throw new Error('Die ausgewählte Anfrage existiert nicht mehr.');
   }
 
   if (!requesterProfile) {
     throw new Error('Der anfragende Nutzer konnte nicht gefunden werden.');
   }
 
+  if (!ownerProfile) {
+    throw new Error('Das Nutzerkonto konnte nicht gefunden werden.');
+  }
+
+  const whitelistPermission = canAddWhitelistEntry({
+    tier: ownerProfile.subscriptionTier,
+    currentWhitelistCount: (await getCalendarWhitelistUsage(params.calendarId)).reservedCount,
+  });
+
+  if (!whitelistPermission.allowed) {
+    throw new Error(whitelistPermission.reason ?? 'Das Whitelist-Limit dieses Kalenders ist erreicht.');
+  }
+
   await runTransaction(db, async (transaction) => {
     const freshRequestSnapshot = await transaction.get(calendarAccessRequestDoc(params.calendarId, requesterUid!));
 
     if (!freshRequestSnapshot.exists()) {
-      throw new Error('Die ausgewaehlte Anfrage existiert nicht mehr.');
+      throw new Error('Die ausgewählte Anfrage existiert nicht mehr.');
     }
 
     transaction.set(
@@ -495,7 +559,7 @@ export async function rejectCalendarAccessRequest(params: {
   }
 
   if (!requesterUid) {
-    throw new Error('Die ausgewaehlte Anfrage konnte nicht aufgeloest werden.');
+    throw new Error('Die ausgewählte Anfrage konnte nicht aufgelöst werden.');
   }
 
   if (params.ownerId) {
@@ -530,7 +594,7 @@ export async function cancelCalendarAccessRequest(params: {
   }
 
   if (!requesterUid) {
-    throw new Error('Die ausgewaehlte Anfrage konnte nicht aufgeloest werden.');
+    throw new Error('Die ausgewählte Anfrage konnte nicht aufgelöst werden.');
   }
 
   await setDoc(
@@ -544,9 +608,10 @@ export async function cancelCalendarAccessRequest(params: {
 }
 
 export async function acceptCalendarInvite(params: { calendarId: string; invitedUid: string }) {
-  const [inviteSnapshot, userProfile] = await Promise.all([
+  const [inviteSnapshot, userProfile, calendar] = await Promise.all([
     getDoc(calendarInviteDoc(params.calendarId, params.invitedUid)),
     getOwnerProfile(params.invitedUid),
+    getOwnerCalendar(params.calendarId),
   ]);
 
   if (!inviteSnapshot.exists()) {
@@ -555,6 +620,28 @@ export async function acceptCalendarInvite(params: { calendarId: string; invited
 
   if (!userProfile) {
     throw new Error('Der eingeladene Nutzer konnte nicht gefunden werden.');
+  }
+
+  if (!calendar) {
+    throw new Error('Der Kalender existiert nicht mehr.');
+  }
+
+  const ownerProfile = await getOwnerProfile(calendar.ownerUid);
+
+  if (!ownerProfile) {
+    throw new Error('Das Nutzerkonto konnte nicht gefunden werden.');
+  }
+
+  const whitelistUsage = await getCalendarWhitelistUsage(params.calendarId);
+  const whitelistPermission = canAddWhitelistEntry({
+    tier: ownerProfile.subscriptionTier,
+    currentWhitelistCount: whitelistUsage.reservedCount,
+    isAlreadyReserved:
+      whitelistUsage.memberUids.has(params.invitedUid) || whitelistUsage.pendingInviteUids.has(params.invitedUid),
+  });
+
+  if (!whitelistPermission.allowed) {
+    throw new Error(whitelistPermission.reason ?? 'Das Whitelist-Limit dieses Kalenders ist erreicht.');
   }
 
   await runTransaction(db, async (transaction) => {

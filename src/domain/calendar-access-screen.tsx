@@ -16,6 +16,8 @@ import { useCalendarAccessList } from '@/src/domain/useCalendarAccessList';
 import { useCalendarInvites } from '@/src/domain/useCalendarInvites';
 import { useCalendarAccessRequests } from '@/src/domain/useCalendarAccessRequests';
 import { useOwnerCalendar } from '@/src/domain/useOwnerCalendar';
+import { useOwnerProfile } from '@/src/domain/useOwnerProfile';
+import { canAddWhitelistEntry } from '@/src/domain/subscription-policy';
 import type { AccessRequestStatus } from '@/src/domain/types';
 
 export default function CalendarAccessScreen() {
@@ -26,6 +28,7 @@ export default function CalendarAccessScreen() {
   const { calendar, loading, error } = useOwnerCalendar(
     user ? { uid: user.uid, email: user.email } : null
   );
+  const { profile } = useOwnerProfile(user ? { uid: user.uid, email: user.email } : null);
   const { records: accessRecords, loading: accessLoading, error: accessError } =
     useCalendarAccessList(calendar?.id ?? null);
   const { records: inviteRecords, loading: invitesLoading, error: invitesError } =
@@ -51,6 +54,11 @@ export default function CalendarAccessScreen() {
       record.requesterUid !== user?.uid &&
       !accessUids.has(record.requesterUid)
   );
+  const whitelistUsageCount = accessRecords.filter((record) => record.role === 'member').length + pendingInvites.length;
+  const whitelistPermission = canAddWhitelistEntry({
+    tier: profile?.subscriptionTier ?? 'free',
+    currentWhitelistCount: whitelistUsageCount,
+  });
 
   const formatRequestStatus = (status: AccessRequestStatus) => {
     if (status === 'approved') {
@@ -231,16 +239,21 @@ export default function CalendarAccessScreen() {
         />
         <Pressable
           onPress={() => void handleCreateInvite()}
-          disabled={submittingInvite || !calendar}
+          disabled={submittingInvite || !calendar || !whitelistPermission.allowed}
           style={[
             uiStyles.button,
             uiStyles.buttonActive,
-            { opacity: submittingInvite ? 0.6 : 1 },
+            { opacity: submittingInvite || !whitelistPermission.allowed ? 0.6 : 1 },
           ]}>
           <Text style={[uiStyles.buttonText, { color: theme.colors.textPrimary, fontWeight: '600' }]}>
             {submittingInvite ? t('invite.creating') : t('invite.submit')}
           </Text>
         </Pressable>
+        {!whitelistPermission.allowed ? (
+          <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>
+            {whitelistPermission.reason}
+          </Text>
+        ) : null}
       </View>
 
       <View style={uiStyles.panel}>
