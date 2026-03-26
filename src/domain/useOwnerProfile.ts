@@ -1,13 +1,41 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 
 import { ensureOwnerAccountSetup, getOwnerProfile } from './repository';
 import { getProfileLoadErrorMessage } from './repository-shared';
 import type { OwnerProfile } from './types';
 
-export function useOwnerProfile(user: { uid: string; email: string | null } | null) {
+let ownerProfileRevision = 0;
+const ownerProfileListeners = new Set<() => void>();
+
+function subscribeToOwnerProfileRevision(listener: () => void) {
+  ownerProfileListeners.add(listener);
+
+  return () => {
+    ownerProfileListeners.delete(listener);
+  };
+}
+
+function getOwnerProfileRevision() {
+  return ownerProfileRevision;
+}
+
+export function invalidateOwnerProfile() {
+  ownerProfileRevision += 1;
+  ownerProfileListeners.forEach((listener) => listener());
+}
+
+export function useOwnerProfile(
+  user: { uid: string; email: string | null } | null,
+  refreshKey = 0
+) {
   const [profile, setProfile] = useState<OwnerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const ownerProfileRefreshVersion = useSyncExternalStore(
+    subscribeToOwnerProfileRevision,
+    getOwnerProfileRevision,
+    getOwnerProfileRevision
+  );
   const ownerUid = user?.uid ?? null;
   const ownerEmail = user?.email ?? null;
 
@@ -54,7 +82,7 @@ export function useOwnerProfile(user: { uid: string; email: string | null } | nu
     return () => {
       isCancelled = true;
     };
-  }, [ownerEmail, ownerUid]);
+  }, [ownerEmail, ownerUid, ownerProfileRefreshVersion, refreshKey]);
 
   return { profile, loading, error };
 }

@@ -20,12 +20,12 @@ const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
   },
   plus: {
     maxCalendars: 5,
-    maxPublicCalendars: 1,
-    maxWhitelistPerCalendar: 200,
+    maxPublicCalendars: 0,
+    maxWhitelistPerCalendar: 250,
   },
   pro: {
     maxCalendars: null,
-    maxPublicCalendars: null,
+    maxPublicCalendars: 1,
     maxWhitelistPerCalendar: 1000,
   },
 };
@@ -78,7 +78,7 @@ export function canEnablePublicCalendar(params: {
     return { allowed: true, reason: null, limits };
   }
 
-  if (params.tier === 'free') {
+  if (limits.maxPublicCalendars === 0) {
     return {
       allowed: false,
       reason: 'Dein aktueller Tarif erlaubt keine öffentlichen Kalender.',
@@ -88,7 +88,7 @@ export function canEnablePublicCalendar(params: {
 
   return {
     allowed: false,
-    reason: 'Im Plus-Tarif ist maximal ein öffentlicher Kalender möglich.',
+    reason: 'In deinem aktuellen Tarif ist maximal ein öffentlicher Kalender möglich.',
     limits,
   };
 }

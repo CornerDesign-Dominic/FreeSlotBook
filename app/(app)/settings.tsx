@@ -43,13 +43,19 @@ export default function SettingsScreen() {
       <AppScreenHeader title={t('settings.title')} />
 
       <View style={uiStyles.panel}>
-        <Text style={[uiStyles.sectionTitle, { marginBottom: designTheme.spacing[8] }]}>{t('settings.language')}</Text>
+        <Text style={[uiStyles.sectionTitle, { marginBottom: designTheme.spacing[8] }]}>
+          {t('settings.language')}
+        </Text>
         <LanguageSwitcher />
       </View>
 
       <View style={uiStyles.panel}>
-        <Text style={[uiStyles.sectionTitle, { marginBottom: designTheme.spacing[8] }]}>{t('settings.weekStart')}</Text>
-        <Text style={[uiStyles.secondaryText, { marginBottom: designTheme.spacing[12] }]}>{t('settings.weekStartHelp')}</Text>
+        <Text style={[uiStyles.sectionTitle, { marginBottom: designTheme.spacing[8] }]}>
+          {t('settings.weekStart')}
+        </Text>
+        <Text style={[uiStyles.secondaryText, { marginBottom: designTheme.spacing[12] }]}>
+          {t('settings.weekStartHelp')}
+        </Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <ChoiceButton
             label={t('settings.weekStartMonday')}
@@ -65,7 +71,9 @@ export default function SettingsScreen() {
       </View>
 
       <View style={uiStyles.panel}>
-        <Text style={[uiStyles.sectionTitle, { marginBottom: designTheme.spacing[8] }]}>{t('settings.theme')}</Text>
+        <Text style={[uiStyles.sectionTitle, { marginBottom: designTheme.spacing[8] }]}>
+          {t('settings.theme')}
+        </Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <ChoiceButton
             label={t('settings.themeLight')}
@@ -80,6 +88,18 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      <View style={uiStyles.panel}>
+        <Text style={[uiStyles.sectionTitle, { marginBottom: designTheme.spacing[8] }]}>Pricing</Text>
+        <Text style={[uiStyles.secondaryText, { marginBottom: designTheme.spacing[12] }]}>
+          Wechsle testweise zwischen Free, Plus und Pro.
+        </Text>
+        <Link href="/pricing" asChild>
+          <Pressable accessibilityRole="link" style={uiStyles.button}>
+            <Text style={uiStyles.buttonText}>Pricing öffnen</Text>
+          </Pressable>
+        </Link>
+      </View>
+
       <View
         style={{
           marginTop: designTheme.spacing[8],
@@ -88,25 +108,35 @@ export default function SettingsScreen() {
         }}>
         <Link href="/legal/datenschutz" asChild>
           <Pressable accessibilityRole="link" style={{ marginBottom: designTheme.spacing[8] }}>
-            <Text style={[uiStyles.secondaryText, { fontSize: designTheme.typography.meta }]}>Datenschutz</Text>
+            <Text style={[uiStyles.secondaryText, { fontSize: designTheme.typography.meta }]}>
+              Datenschutz
+            </Text>
           </Pressable>
         </Link>
 
         <Link href="/legal/impressum" asChild>
           <Pressable accessibilityRole="link" style={{ marginBottom: designTheme.spacing[8] }}>
-            <Text style={[uiStyles.secondaryText, { fontSize: designTheme.typography.meta }]}>Impressum</Text>
+            <Text style={[uiStyles.secondaryText, { fontSize: designTheme.typography.meta }]}>
+              Impressum
+            </Text>
           </Pressable>
         </Link>
 
         <Link href="/legal/agb" asChild>
           <Pressable accessibilityRole="link">
-            <Text style={[uiStyles.secondaryText, { fontSize: designTheme.typography.meta }]}>AGB</Text>
+            <Text style={[uiStyles.secondaryText, { fontSize: designTheme.typography.meta }]}>
+              AGB
+            </Text>
           </Pressable>
         </Link>
 
         <View style={{ marginTop: designTheme.spacing[20], alignItems: 'center' }}>
-          <Text style={[uiStyles.secondaryText, { fontSize: designTheme.typography.meta, marginBottom: designTheme.spacing[4] }]}>
-            Â© 2026 Slotlyme
+          <Text
+            style={[
+              uiStyles.secondaryText,
+              { fontSize: designTheme.typography.meta, marginBottom: designTheme.spacing[4] },
+            ]}>
+            © 2026 Slotlyme
           </Text>
           <Text style={[uiStyles.secondaryText, { fontSize: designTheme.typography.meta }]}>
             Version 1.0.0

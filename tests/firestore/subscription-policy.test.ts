@@ -17,12 +17,12 @@ describe('Subscription policy', () => {
     });
     expect(getSubscriptionLimits('plus')).toEqual({
       maxCalendars: 5,
-      maxPublicCalendars: 1,
-      maxWhitelistPerCalendar: 200,
+      maxPublicCalendars: 0,
+      maxWhitelistPerCalendar: 250,
     });
     expect(getSubscriptionLimits('pro')).toEqual({
       maxCalendars: null,
-      maxPublicCalendars: null,
+      maxPublicCalendars: 1,
       maxWhitelistPerCalendar: 1000,
     });
     expect(isUnlimited(getSubscriptionLimits('pro').maxCalendars)).toBe(true);
@@ -58,26 +58,31 @@ describe('Subscription policy', () => {
       })
     );
     expect(
-      canEnablePublicCalendar({ tier: 'plus', currentPublicCalendarCount: 0, isAlreadyPublic: false }).allowed
-    ).toBe(true);
-    expect(
-      canEnablePublicCalendar({ tier: 'plus', currentPublicCalendarCount: 1, isAlreadyPublic: false })
+      canEnablePublicCalendar({ tier: 'plus', currentPublicCalendarCount: 0, isAlreadyPublic: false })
     ).toEqual(
       expect.objectContaining({
         allowed: false,
-        reason: 'Im Plus-Tarif ist maximal ein öffentlicher Kalender möglich.',
+        reason: 'Dein aktueller Tarif erlaubt keine öffentlichen Kalender.',
       })
     );
     expect(
-      canEnablePublicCalendar({ tier: 'pro', currentPublicCalendarCount: 12, isAlreadyPublic: false }).allowed
+      canEnablePublicCalendar({ tier: 'pro', currentPublicCalendarCount: 0, isAlreadyPublic: false }).allowed
     ).toBe(true);
+    expect(
+      canEnablePublicCalendar({ tier: 'pro', currentPublicCalendarCount: 1, isAlreadyPublic: false })
+    ).toEqual(
+      expect.objectContaining({
+        allowed: false,
+        reason: 'In deinem aktuellen Tarif ist maximal ein öffentlicher Kalender möglich.',
+      })
+    );
   });
 
   test('whitelist limits are enforced per calendar', () => {
     expect(canAddWhitelistEntry({ tier: 'free', currentWhitelistCount: 24 }).allowed).toBe(true);
     expect(canAddWhitelistEntry({ tier: 'free', currentWhitelistCount: 25 }).allowed).toBe(false);
-    expect(canAddWhitelistEntry({ tier: 'plus', currentWhitelistCount: 199 }).allowed).toBe(true);
-    expect(canAddWhitelistEntry({ tier: 'plus', currentWhitelistCount: 200 }).allowed).toBe(false);
+    expect(canAddWhitelistEntry({ tier: 'plus', currentWhitelistCount: 249 }).allowed).toBe(true);
+    expect(canAddWhitelistEntry({ tier: 'plus', currentWhitelistCount: 250 }).allowed).toBe(false);
     expect(canAddWhitelistEntry({ tier: 'pro', currentWhitelistCount: 999 }).allowed).toBe(true);
     expect(canAddWhitelistEntry({ tier: 'pro', currentWhitelistCount: 1000 }).allowed).toBe(false);
   });

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+﻿import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const serverTimestamp = vi.fn(() => 'SERVER_TIMESTAMP');
 
@@ -317,6 +317,13 @@ describe('Subscription domain logic', () => {
           email: 'user@example.com',
           subscriptionTier: 'pro',
         }) as never
+      )
+      .mockResolvedValueOnce(
+        documentSnapshot('user_1', {
+          uid: 'user_1',
+          email: 'user@example.com',
+          subscriptionTier: 'pro',
+        }) as never
       );
     vi.mocked(firestore.getDocs)
       .mockResolvedValueOnce(querySnapshot([]) as never)
@@ -332,19 +339,15 @@ describe('Subscription domain logic', () => {
         ]) as never
       )
       .mockResolvedValueOnce(
+        querySnapshot([]) as never
+      )
+      .mockResolvedValueOnce(
         querySnapshot([
           documentSnapshot('calendar_public_1', {
             ownerUid: 'user_1',
             ownerEmail: 'user@example.com',
             visibility: 'public',
             calendarSlug: 'pro-public-1',
-            isArchived: false,
-          }),
-          documentSnapshot('calendar_public_2', {
-            ownerUid: 'user_1',
-            ownerEmail: 'user@example.com',
-            visibility: 'public',
-            calendarSlug: 'pro-public-2',
             isArchived: false,
           }),
         ]) as never
@@ -385,6 +388,19 @@ describe('Subscription domain logic', () => {
             return documentSnapshot('pro-public-3');
           }
 
+          if (path?.includes('calendars/calendar_4')) {
+            return documentSnapshot('calendar_4', {
+              ownerUid: 'user_1',
+              ownerEmail: 'user@example.com',
+              visibility: 'private',
+              calendarSlug: null,
+            });
+          }
+
+          if (path?.includes('calendarSlugs/pro-public-2')) {
+            return documentSnapshot('pro-public-2');
+          }
+
           return documentSnapshot();
         }),
         set: vi.fn(),
@@ -407,7 +423,7 @@ describe('Subscription domain logic', () => {
         visibility: 'public',
         publicSlug: 'plus-public-2',
       })
-    ).rejects.toThrow('Im Plus-Tarif ist maximal ein öffentlicher Kalender möglich.');
+    ).rejects.toThrow('Dein aktueller Tarif erlaubt keine öffentlichen Kalender.');
 
     await expect(
       repositoryCore.updateCalendarVisibility({
@@ -417,6 +433,15 @@ describe('Subscription domain logic', () => {
         publicSlug: 'pro-public-3',
       })
     ).resolves.toBeUndefined();
+
+    await expect(
+      repositoryCore.updateCalendarVisibility({
+        calendarId: 'calendar_4',
+        ownerId: 'user_1',
+        visibility: 'public',
+        publicSlug: 'pro-public-2',
+      })
+    ).rejects.toThrow('In deinem aktuellen Tarif ist maximal ein öffentlicher Kalender möglich.');
   });
 
   test('after a downgrade, new over-limit calendar growth is blocked', async () => {
