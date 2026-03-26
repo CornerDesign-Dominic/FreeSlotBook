@@ -434,7 +434,7 @@ export function CreateSlotScreen() {
 
       <View style={uiStyles.panel}>
         <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>
-          Neuer Slot für Kalender:
+          Kalender auswählen:
         </Text>
         <Pressable
           onPress={() => {
@@ -467,7 +467,7 @@ export function CreateSlotScreen() {
       </View>
 
       <View style={uiStyles.panel}>
-        <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>Slotstart</Text>
+        <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>Start</Text>
         <View style={{ flexDirection: 'row', gap: theme.spacing[8], marginBottom: theme.spacing[16] }}>
           <Pressable
             onPress={() => openPicker('start')}
@@ -485,7 +485,7 @@ export function CreateSlotScreen() {
           </Pressable>
         </View>
 
-        <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>Slotende</Text>
+        <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>Ende</Text>
         <View style={{ flexDirection: 'row', gap: theme.spacing[8] }}>
           <Pressable
             onPress={() => openPicker('end')}
@@ -731,14 +731,21 @@ export function CreateSlotScreen() {
                         flex: 1,
                         minHeight: 48,
                         borderWidth: 1,
-                        borderColor: theme.colors.border,
+                        borderColor: isSelected || day.isToday ? theme.colors.accent : theme.colors.border,
                         alignItems: 'center',
                         justifyContent: 'center',
                         opacity: day.isCurrentMonth ? 1 : 0.4,
-                        backgroundColor: isSelected ? theme.colors.accentSoft : theme.colors.surface,
+                        backgroundColor:
+                          isSelected || day.isToday ? theme.colors.accentSoft : theme.colors.surface,
                         borderRadius: theme.radius.small,
                       }}>
-                      <Text style={uiStyles.bodyText}>{day.date.getDate()}</Text>
+                      <Text
+                        style={[
+                          uiStyles.bodyText,
+                          day.isToday ? { color: theme.colors.accent, fontWeight: '700' } : null,
+                        ]}>
+                        {day.date.getDate()}
+                      </Text>
                     </Pressable>
                   );
                 })}

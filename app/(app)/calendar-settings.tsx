@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Feather } from '@expo/vector-icons';
 import { Link, useLocalSearchParams } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppScreenHeader } from '@/src/components/app-screen-header';
 import { useCalendar } from '@/src/domain/useCalendar';
@@ -10,9 +11,9 @@ import { useOwnerCalendar } from '@/src/domain/useOwnerCalendar';
 import { useOwnerProfile } from '@/src/domain/useOwnerProfile';
 import { getSubscriptionLimits } from '@/src/domain/subscription-policy';
 import {
-  updateCalendarTitle,
   updateCalendarDescription,
   updateCalendarNotificationSettings,
+  updateCalendarTitle,
   updateCalendarVisibility,
 } from '@/src/domain/repository';
 import { useAuth } from '@/src/firebase/useAuth';
@@ -24,6 +25,7 @@ export default function CalendarSettingsScreen() {
   const params = useLocalSearchParams<{ calendarId?: string | string[] }>();
   const { t } = useTranslation();
   const { theme, uiStyles } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const contentContainerStyle = useBottomSafeContentStyle(uiStyles.content);
   const selectedCalendarId = Array.isArray(params.calendarId) ? params.calendarId[0] ?? null : params.calendarId ?? null;
   const { profile, loading: profileLoading, error: profileError } = useOwnerProfile(
@@ -48,6 +50,8 @@ export default function CalendarSettingsScreen() {
   const [togglingNotifications, setTogglingNotifications] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
   const [copyFeedbackVisible, setCopyFeedbackVisible] = useState(false);
+  const [titleEditorVisible, setTitleEditorVisible] = useState(false);
+  const [descriptionEditorVisible, setDescriptionEditorVisible] = useState(false);
 
   useEffect(() => {
     setTitleValue(calendar?.title ?? '');
@@ -148,6 +152,7 @@ export default function CalendarSettingsScreen() {
         description: descriptionValue,
       });
       setDescriptionMessage('Beschreibung gespeichert');
+      setDescriptionEditorVisible(false);
     } catch (nextError) {
       setDescriptionMessage(
         nextError instanceof Error
@@ -173,6 +178,7 @@ export default function CalendarSettingsScreen() {
         title: titleValue,
       });
       setTitleMessage('Kalendertitel gespeichert');
+      setTitleEditorVisible(false);
     } catch (nextError) {
       setTitleMessage(
         nextError instanceof Error
@@ -190,7 +196,7 @@ export default function CalendarSettingsScreen() {
     isTitleValid &&
     !savingTitle &&
     titleValue.trim() !== (calendar?.title ?? '').trim();
-  const isDescriptionValid = descriptionValue.length <= 120;
+  const isDescriptionValid = descriptionValue.length <= 80;
   const canSaveDescription =
     Boolean(activeCalendarId) &&
     isDescriptionValid &&
@@ -204,7 +210,7 @@ export default function CalendarSettingsScreen() {
     <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
       <AppScreenHeader title="Kalender-Einstellungen" />
 
-        <View>
+      <View>
         {!calendar?.publicSlug ? (
           <View
             style={[
@@ -236,67 +242,9 @@ export default function CalendarSettingsScreen() {
           </View>
         ) : null}
 
-        <View style={uiStyles.panel}>
-          <Text style={uiStyles.sectionTitle}>Kalendertitel</Text>
-          <TextInput
-            value={titleValue}
-            onChangeText={(nextValue) => {
-              setTitleValue(nextValue.slice(0, 80));
-              setTitleMessage(null);
-            }}
-            maxLength={80}
-            placeholder="Titel für deinen Kalender"
-            placeholderTextColor={theme.colors.textSecondary}
-            style={[uiStyles.input, { marginBottom: theme.spacing[8] }]}
-          />
-          <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
-            {titleValue.trim().length} / 80
-          </Text>
-          <Pressable
-            onPress={() => void handleSaveTitle()}
-            disabled={!canSaveTitle}
-            style={[
-              uiStyles.button,
-              uiStyles.buttonActive,
-              !canSaveTitle ? { opacity: 0.6 } : null,
-            ]}>
-            <Text style={[uiStyles.buttonText, { color: theme.colors.textPrimary, fontWeight: '600' }]}>
-              {savingTitle ? 'Speichern ...' : 'Speichern'}
-            </Text>
-          </Pressable>
-          {titleMessage ? (
-            <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>
-              {titleMessage}
-            </Text>
-          ) : null}
-        </View>
-
-        <View style={uiStyles.panel}>
-          <Text style={uiStyles.sectionTitle}>Kalenderdetails</Text>
-          {calendar ? (
-            <>
-              <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>
-                {t('settings.ownerEmail', { email: calendar.ownerEmail })}
-              </Text>
-              <Text style={uiStyles.bodyText}>Kalendertyp: privat</Text>
-            </>
-          ) : (
-            <Text style={uiStyles.secondaryText}>{t('calendar.notAvailable')}</Text>
-          )}
-
-          {error || profileError ? (
-            <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>
-              {error ?? profileError}
-            </Text>
-          ) : null}
-        </View>
-
         {calendar?.publicSlug ? (
           <View style={uiStyles.panel}>
             <Text style={uiStyles.sectionTitle}>Kalender-ID</Text>
-            <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
-              Dieser Kalender-Link ist bereits fest vergeben und kann aktuell nicht geaendert werden.
-            </Text>
             <View
               style={{
                 flexDirection: 'row',
@@ -309,9 +257,11 @@ export default function CalendarSettingsScreen() {
                   uiStyles.bodyText,
                   {
                     flex: 1,
+                    color: theme.colors.accent,
+                    fontWeight: '600',
                   },
                 ]}>
-                https://slotlyme.app/calendar/{calendar.publicSlug}
+                /calendar/{calendar.publicSlug}
               </Text>
               <Pressable
                 onPress={() => void handleCopyCalendarId()}
@@ -326,6 +276,20 @@ export default function CalendarSettingsScreen() {
             </View>
           </View>
         ) : null}
+
+        <View style={uiStyles.panel}>
+          <Text style={uiStyles.sectionTitle}>Kalender Teilen</Text>
+          <Link
+            href={{
+              pathname: '/calendar-access',
+              params: activeCalendarId ? { calendarId: activeCalendarId } : undefined,
+            }}
+            asChild>
+            <Pressable style={uiStyles.button}>
+              <Text style={uiStyles.buttonText}>zur Mitgliederliste</Text>
+            </Pressable>
+          </Link>
+        </View>
 
         {canManagePublicCalendar ? (
           <View style={uiStyles.panel}>
@@ -363,24 +327,49 @@ export default function CalendarSettingsScreen() {
         ) : null}
 
         <View style={uiStyles.panel}>
-          <Text style={uiStyles.sectionTitle}>Freigaben</Text>
-          <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
-            Teile deinen Kalender mit anderen Personen und verwalte bestehende Zugriffe an einer Stelle.
+          <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>Kalender Titel</Text>
+          <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[12] }]}>
+            {calendar?.title?.trim() ? calendar.title : 'Kein Titel'}
           </Text>
-          <Link
-            href={{
-              pathname: '/calendar-access',
-              params: activeCalendarId ? { calendarId: activeCalendarId } : undefined,
+          <Pressable
+            onPress={() => {
+              setTitleValue(calendar?.title ?? '');
+              setTitleMessage(null);
+              setTitleEditorVisible(true);
             }}
-            asChild>
-            <Pressable style={uiStyles.button}>
-              <Text style={uiStyles.buttonText}>Freigaben verwalten</Text>
-            </Pressable>
-          </Link>
+            style={uiStyles.button}>
+            <Text style={uiStyles.buttonText}>bearbeiten</Text>
+          </Pressable>
+          {titleMessage ? (
+            <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>
+              {titleMessage}
+            </Text>
+          ) : null}
         </View>
 
         <View style={uiStyles.panel}>
-          <Text style={uiStyles.sectionTitle}>Benachrichtigungen</Text>
+          <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>Beschreibung</Text>
+          <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[12] }]}>
+            {calendar?.description?.trim() ? calendar.description : 'Keine Beschreibung'}
+          </Text>
+          <Pressable
+            onPress={() => {
+              setDescriptionValue(calendar?.description ?? '');
+              setDescriptionMessage(null);
+              setDescriptionEditorVisible(true);
+            }}
+            style={uiStyles.button}>
+            <Text style={uiStyles.buttonText}>bearbeiten</Text>
+          </Pressable>
+          {descriptionMessage ? (
+            <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>
+              {descriptionMessage}
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={uiStyles.panel}>
+          <Text style={uiStyles.sectionTitle}>Benachrichtigung</Text>
           {calendar ? (
             <>
               <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
@@ -415,50 +404,130 @@ export default function CalendarSettingsScreen() {
             <Text style={uiStyles.secondaryText}>{t('calendar.notAvailable')}</Text>
           )}
         </View>
-
-        <View style={uiStyles.panel}>
-          <Text style={uiStyles.sectionTitle}>Beschreibung</Text>
-          <TextInput
-            value={descriptionValue}
-            onChangeText={(nextValue) => {
-              setDescriptionValue(nextValue.slice(0, 120));
-              setDescriptionMessage(null);
-            }}
-            multiline
-            maxLength={120}
-              placeholder="Kurzbeschreibung für deinen Kalender"
-            placeholderTextColor={theme.colors.textSecondary}
-            style={[
-              uiStyles.input,
-              {
-                minHeight: 108,
-                textAlignVertical: 'top',
-                marginBottom: theme.spacing[8],
-              },
-            ]}
-          />
-          <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
-            {descriptionValue.length} / 120
-          </Text>
-          <Pressable
-            onPress={() => void handleSaveDescription()}
-            disabled={!canSaveDescription}
-            style={[
-              uiStyles.button,
-              uiStyles.buttonActive,
-              !canSaveDescription ? { opacity: 0.6 } : null,
-            ]}>
-            <Text style={[uiStyles.buttonText, { color: theme.colors.textPrimary, fontWeight: '600' }]}>
-              {savingDescription ? 'Speichern ...' : 'Speichern'}
-            </Text>
-          </Pressable>
-          {descriptionMessage ? (
-            <Text style={[uiStyles.bodyText, { marginTop: theme.spacing[12] }]}>
-              {descriptionMessage}
-            </Text>
-          ) : null}
-        </View>
       </View>
+
+      {error ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{error}</Text> : null}
+      {profileError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{profileError}</Text> : null}
+
+      <Modal
+        visible={titleEditorVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setTitleEditorVisible(false)}>
+        <View style={uiStyles.modalBackdrop}>
+          <View
+            style={[
+              uiStyles.modalSheet,
+              {
+                paddingBottom: theme.spacing[16] + insets.bottom,
+                backgroundColor: theme.colors.surface,
+              },
+            ]}>
+            <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[12] }]}>Kalender Titel</Text>
+            <TextInput
+              value={titleValue}
+              onChangeText={(nextValue) => {
+                setTitleValue(nextValue.slice(0, 80));
+                setTitleMessage(null);
+              }}
+              maxLength={80}
+              placeholder="Titel für deinen Kalender"
+              placeholderTextColor={theme.colors.textSecondary}
+              style={[uiStyles.input, { marginBottom: theme.spacing[8] }]}
+            />
+            <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
+              {titleValue.trim().length} / 80 Zeichen
+            </Text>
+            <View style={{ flexDirection: 'row', gap: theme.spacing[8] }}>
+              <Pressable
+                onPress={() => {
+                  setTitleValue(calendar?.title ?? '');
+                  setTitleEditorVisible(false);
+                }}
+                style={[uiStyles.button, { flex: 1 }]}>
+                <Text style={uiStyles.buttonText}>Abbrechen</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => void handleSaveTitle()}
+                disabled={!canSaveTitle}
+                style={[
+                  uiStyles.button,
+                  uiStyles.buttonActive,
+                  { flex: 1 },
+                  !canSaveTitle ? { opacity: 0.6 } : null,
+                ]}>
+                <Text style={[uiStyles.buttonText, { color: theme.colors.textPrimary, fontWeight: '600' }]}>
+                  {savingTitle ? 'Speichern ...' : 'Speichern'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={descriptionEditorVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setDescriptionEditorVisible(false)}>
+        <View style={uiStyles.modalBackdrop}>
+          <View
+            style={[
+              uiStyles.modalSheet,
+              {
+                paddingBottom: theme.spacing[16] + insets.bottom,
+                backgroundColor: theme.colors.surface,
+              },
+            ]}>
+            <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[12] }]}>Beschreibung</Text>
+            <TextInput
+              value={descriptionValue}
+              onChangeText={(nextValue) => {
+                setDescriptionValue(nextValue.slice(0, 80));
+                setDescriptionMessage(null);
+              }}
+              multiline
+              maxLength={80}
+              placeholder="Kurzbeschreibung für deinen Kalender"
+              placeholderTextColor={theme.colors.textSecondary}
+              style={[
+                uiStyles.input,
+                {
+                  minHeight: 108,
+                  textAlignVertical: 'top',
+                  marginBottom: theme.spacing[8],
+                },
+              ]}
+            />
+            <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
+              {descriptionValue.length} / 80 Zeichen
+            </Text>
+            <View style={{ flexDirection: 'row', gap: theme.spacing[8] }}>
+              <Pressable
+                onPress={() => {
+                  setDescriptionValue(calendar?.description ?? '');
+                  setDescriptionEditorVisible(false);
+                }}
+                style={[uiStyles.button, { flex: 1 }]}>
+                <Text style={uiStyles.buttonText}>Abbrechen</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => void handleSaveDescription()}
+                disabled={!canSaveDescription}
+                style={[
+                  uiStyles.button,
+                  uiStyles.buttonActive,
+                  { flex: 1 },
+                  !canSaveDescription ? { opacity: 0.6 } : null,
+                ]}>
+                <Text style={[uiStyles.buttonText, { color: theme.colors.textPrimary, fontWeight: '600' }]}>
+                  {savingDescription ? 'Speichern ...' : 'Speichern'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }

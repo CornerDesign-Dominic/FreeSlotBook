@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { AppScreenHeader } from '@/src/components/app-screen-header';
 import { useTranslation } from '@/src/i18n/provider';
@@ -51,6 +51,11 @@ export default function CalendarAccessScreen() {
   const [sharedPeopleExpanded, setSharedPeopleExpanded] = useState(true);
   const [invitesExpanded, setInvitesExpanded] = useState(true);
   const [requestsExpanded, setRequestsExpanded] = useState(true);
+  const [pendingRemoval, setPendingRemoval] = useState<{
+    memberUid: string;
+    email: string;
+    username: string | null;
+  } | null>(null);
 
   const accessUids = new Set(accessRecords.map((record) => record.uid));
   const pendingInvites = inviteRecords.filter(
@@ -198,20 +203,11 @@ export default function CalendarAccessScreen() {
   };
 
   const confirmRemoveAccess = (memberUid: string, granteeEmail: string, granteeUsername: string | null) => {
-    Alert.alert(
-      'Freigabe aufheben?',
-      'Der Nutzer verliert sofort den Zugriff auf diesen Kalender.',
-      [
-        { text: 'Abbrechen', style: 'cancel' },
-        {
-          text: 'Freigabe aufheben',
-          style: 'destructive',
-          onPress: () => {
-            void handleRemoveAccess(memberUid, granteeEmail, granteeUsername);
-          },
-        },
-      ]
-    );
+    setPendingRemoval({
+      memberUid,
+      email: granteeEmail,
+      username: granteeUsername,
+    });
   };
 
   if (authLoading || loading || accessLoading || invitesLoading || requestsLoading) {
@@ -224,14 +220,11 @@ export default function CalendarAccessScreen() {
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
-      <AppScreenHeader title={t('access.title')} />
+      <AppScreenHeader title="Mitglieder" />
 
       <View style={uiStyles.panel}>
         <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>
           {t('invite.title')}
-        </Text>
-        <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[12] }]}>
-          {t('invite.ownerHint')}
         </Text>
         <TextInput
           placeholder={t('invite.placeholder')}
@@ -268,7 +261,7 @@ export default function CalendarAccessScreen() {
         <Pressable
           onPress={() => setSharedPeopleExpanded((currentValue) => !currentValue)}
           style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={uiStyles.sectionTitle}>{`Freigabeliste (${accessRecords.length})`}</Text>
+          <Text style={uiStyles.sectionTitle}>{`Mitglieder (${accessRecords.length})`}</Text>
           <Feather
             name={sharedPeopleExpanded ? 'chevron-up' : 'chevron-down'}
             size={18}
@@ -315,7 +308,7 @@ export default function CalendarAccessScreen() {
         <Pressable
           onPress={() => setInvitesExpanded((currentValue) => !currentValue)}
           style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={uiStyles.sectionTitle}>{`Kalendereinladungen (${pendingInvites.length})`}</Text>
+          <Text style={uiStyles.sectionTitle}>{`Eingeladen (${pendingInvites.length})`}</Text>
           <Feather
             name={invitesExpanded ? 'chevron-up' : 'chevron-down'}
             size={18}
@@ -323,8 +316,12 @@ export default function CalendarAccessScreen() {
           />
         </Pressable>
         {invitesExpanded ? (
-          pendingInvites.length ? (
-            pendingInvites.map((record) => (
+          <>
+            <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[4] }]}>
+              Offene Einladungen.
+            </Text>
+            {pendingInvites.length ? (
+              pendingInvites.map((record) => (
               <View key={record.id} style={uiStyles.listItem}>
                 <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4] }]}>
                   {getIdentityLabel(record.invitedUsername, record.invitedEmail)}
@@ -337,9 +334,8 @@ export default function CalendarAccessScreen() {
                 <Text style={uiStyles.secondaryText}>{t('invite.statusPending')}</Text>
               </View>
             ))
-          ) : (
-            <Text style={uiStyles.secondaryText}>{t('invite.ownerEmpty')}</Text>
-          )
+            ) : null}
+          </>
         ) : null}
       </View>
 
@@ -347,7 +343,7 @@ export default function CalendarAccessScreen() {
         <Pressable
           onPress={() => setRequestsExpanded((currentValue) => !currentValue)}
           style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={uiStyles.sectionTitle}>{`Eingehende Anfragen (${pendingRequests.length})`}</Text>
+          <Text style={uiStyles.sectionTitle}>{`Anfragen (${pendingRequests.length})`}</Text>
           <Feather
             name={requestsExpanded ? 'chevron-up' : 'chevron-down'}
             size={18}
@@ -355,8 +351,12 @@ export default function CalendarAccessScreen() {
           />
         </Pressable>
         {requestsExpanded ? (
-          pendingRequests.length ? (
-            pendingRequests.map((record) => (
+          <>
+            <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[4] }]}>
+              Offene Anfragen.
+            </Text>
+            {pendingRequests.length ? (
+              pendingRequests.map((record) => (
               <View key={record.id} style={uiStyles.listItem}>
                 <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[4] }]}>
                   {getIdentityLabel(record.requesterUsername, record.requesterEmail)}
@@ -400,9 +400,8 @@ export default function CalendarAccessScreen() {
                 </View>
               </View>
             ))
-          ) : (
-            <Text style={uiStyles.secondaryText}>{t('access.requestsEmpty')}</Text>
-          )
+            ) : null}
+          </>
         ) : null}
       </View>
 
@@ -411,6 +410,48 @@ export default function CalendarAccessScreen() {
       {accessError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{accessError}</Text> : null}
       {invitesError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{invitesError}</Text> : null}
       {requestsError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{requestsError}</Text> : null}
+
+      <Modal
+        visible={pendingRemoval !== null}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setPendingRemoval(null)}>
+        <View style={uiStyles.modalBackdrop}>
+          <View style={uiStyles.modalSheet}>
+            <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>
+              Kalendermitglied entfernen ?
+            </Text>
+            <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[16] }]}>
+              Der Nutzer verliert sofort den Zugriff auf diesen Kalender.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: theme.spacing[8] }}>
+              <Pressable
+                onPress={() => setPendingRemoval(null)}
+                style={[uiStyles.button, { flex: 1 }]}>
+                <Text style={uiStyles.buttonText}>Abbrechen</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  if (!pendingRemoval) {
+                    return;
+                  }
+
+                  setPendingRemoval(null);
+                  void handleRemoveAccess(
+                    pendingRemoval.memberUid,
+                    pendingRemoval.email,
+                    pendingRemoval.username
+                  );
+                }}
+                style={[uiStyles.button, uiStyles.buttonActive, { flex: 1 }]}>
+                <Text style={[uiStyles.buttonText, { color: theme.colors.textPrimary, fontWeight: '600' }]}>
+                  Bestätigen
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }

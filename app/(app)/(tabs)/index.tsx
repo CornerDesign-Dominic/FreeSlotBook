@@ -1,16 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Feather } from '@expo/vector-icons';
 import { Link, router } from 'expo-router';
-import { useIsFocused } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { getDayKey } from '@/src/domain/calendar-utils';
 import { DashboardAppointmentTimeline } from '../../../src/features/dashboard/dashboard-appointment-timeline';
-import {
-  createRelativeTimelineWindow,
-  getInitialTimelineOffset,
-} from '../../../src/features/dashboard/dashboard-timeline-utils';
 import { useDashboardData } from '../../../src/domain/useDashboardData';
 import { useOwnedCalendars } from '../../../src/domain/useOwnedCalendars';
 import { useOwnedSlotSummary } from '../../../src/domain/useOwnedSlotSummary';
@@ -21,7 +16,6 @@ import { useTranslation } from '@/src/i18n/provider';
 import { useAppTheme, useBottomSafeContentStyle } from '../../../src/theme/ui';
 
 export default function HomeScreen() {
-  const isFocused = useIsFocused();
   const { user, loading } = useAuth();
   const userUid = user?.uid ?? null;
   const userEmail = user?.email ?? null;
@@ -40,7 +34,7 @@ export default function HomeScreen() {
   const {
     activeAppointments,
     loading: appointmentsLoading,
-      error: appointmentsError,
+    error: appointmentsError,
   } = useAppointmentCalendar(authUser);
   const username =
     typeof data.ownerProfile?.username === 'string' && data.ownerProfile.username.trim()
@@ -50,12 +44,8 @@ export default function HomeScreen() {
         : null;
   const publicUserLink = username ? `slotlyme.app/user/${username}` : null;
   const publicUserLinkCopyValue = username ? `https://slotlyme.app/user/${username}` : null;
-  const [timelineNow, setTimelineNow] = useState(() => new Date());
-  const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
   const [expandedDashboardCard, setExpandedDashboardCard] = useState<'appointments' | 'slots' | null>(null);
   const { logout: handleLogout, isLoggingOut } = useLogout();
-  const timelineWindow = useMemo(() => createRelativeTimelineWindow(timelineNow), [timelineNow]);
-  const appointmentTimelineRef = useRef<ScrollView | null>(null);
   const todayDateLabel = useMemo(
     () =>
       new Date().toLocaleDateString('de-DE', {
@@ -65,67 +55,6 @@ export default function HomeScreen() {
       }),
     []
   );
-
-  useEffect(() => {
-    if (!isFocused) {
-      return;
-    }
-
-    setTimelineNow(new Date());
-  }, [isFocused]);
-
-  useEffect(() => {
-    if (
-      !isFocused ||
-      loading ||
-      dashboardLoading ||
-      appointmentsLoading ||
-      !timelineViewportWidth
-    ) {
-      return;
-    }
-
-    let cancelled = false;
-    let frameHandle = 0;
-
-    const scrollToNow = () => {
-      if (cancelled) {
-        return;
-      }
-
-      if (!appointmentTimelineRef.current) {
-        frameHandle = requestAnimationFrame(scrollToNow);
-        return;
-      }
-
-      const initialOffset = getInitialTimelineOffset(timelineWindow, timelineViewportWidth);
-      appointmentTimelineRef.current.scrollTo({ x: initialOffset, animated: false });
-    };
-
-    frameHandle = requestAnimationFrame(scrollToNow);
-
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(frameHandle);
-    };
-  }, [
-    appointmentsLoading,
-    dashboardLoading,
-    isFocused,
-    loading,
-    timelineViewportWidth,
-    timelineWindow,
-  ]);
-
-  const handleTimelineViewportLayout = (width: number) => {
-    setTimelineViewportWidth((currentWidth) => {
-      if (Math.abs(currentWidth - width) < 1) {
-        return currentWidth;
-      }
-
-      return width;
-    });
-  };
 
   const handleCopyPublicUserLink = async () => {
     if (!publicUserLinkCopyValue) {
@@ -193,58 +122,37 @@ export default function HomeScreen() {
               currentValue === 'appointments' ? null : 'appointments'
             )
           }>
-          <Text style={[uiStyles.sectionTitle, { marginBottom: 0 }]}>
-            {t('appointments.title')}
-          </Text>
-          <View
-            style={{ marginTop: theme.spacing[12] }}
-            onLayout={(event) => handleTimelineViewportLayout(event.nativeEvent.layout.width)}>
+          <Text style={[uiStyles.sectionTitle, { marginBottom: 0 }]}>Meine Termine heute</Text>
+          <View style={{ marginTop: theme.spacing[12] }}>
             <DashboardAppointmentTimeline
               appointments={activeAppointments}
               loading={appointmentsLoading}
               error={appointmentsError}
-              window={timelineWindow}
-              scrollRef={appointmentTimelineRef}
-              onScroll={() => {}}
             />
           </View>
         </Pressable>
         {expandedDashboardCard === 'appointments' ? (
-          <View
-            style={{
-              marginTop: theme.spacing[12],
-              paddingTop: theme.spacing[12],
-              borderTopWidth: 1,
-              borderColor: theme.colors.border,
-              gap: theme.spacing[8],
-            }}>
-            <Link href="/my-appointment-calendar" asChild>
-              <Pressable style={uiStyles.button}>
-                <Text style={uiStyles.buttonText}>{t('dashboard.openAppointmentCalendar')}</Text>
-              </Pressable>
-            </Link>
-            <View style={{ flexDirection: 'row', gap: theme.spacing[8] }}>
-              <View style={{ flex: 1 }}>
-                <Link href={`/my-appointments/${getDayKey(new Date())}`} asChild>
-                  <Pressable style={uiStyles.button}>
-                    <Text style={[uiStyles.buttonText, { textAlign: 'center' }]}>Tag</Text>
-                  </Pressable>
-                </Link>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Link href={`/my-appointments/week?date=${getDayKey(new Date())}`} asChild>
-                  <Pressable style={uiStyles.button}>
-                    <Text style={[uiStyles.buttonText, { textAlign: 'center' }]}>Woche</Text>
-                  </Pressable>
-                </Link>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Link href="/my-appointments" asChild>
-                  <Pressable style={uiStyles.button}>
-                    <Text style={[uiStyles.buttonText, { textAlign: 'center' }]}>Monat</Text>
-                  </Pressable>
-                </Link>
-              </View>
+          <View style={{ marginTop: theme.spacing[12], flexDirection: 'row', gap: theme.spacing[8] }}>
+            <View style={{ flex: 1 }}>
+              <Link href={`/my-appointments/${getDayKey(new Date())}`} asChild>
+                <Pressable style={uiStyles.button}>
+                  <Text style={[uiStyles.buttonText, { textAlign: 'center' }]}>Tag</Text>
+                </Pressable>
+              </Link>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Link href={`/my-appointments/week?date=${getDayKey(new Date())}`} asChild>
+                <Pressable style={uiStyles.button}>
+                  <Text style={[uiStyles.buttonText, { textAlign: 'center' }]}>Woche</Text>
+                </Pressable>
+              </Link>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Link href="/my-appointments" asChild>
+                <Pressable style={uiStyles.button}>
+                  <Text style={[uiStyles.buttonText, { textAlign: 'center' }]}>Monat</Text>
+                </Pressable>
+              </Link>
             </View>
           </View>
         ) : null}
@@ -289,7 +197,7 @@ export default function HomeScreen() {
 
       <View style={[uiStyles.panel, { marginBottom: theme.spacing[24] }]}>
         <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[4] }]}>
-          {t('dashboard.sharedCalendars')}
+          Slots buchen
         </Text>
         <Pressable
           onPress={() => router.push('/connected-calendars')}
