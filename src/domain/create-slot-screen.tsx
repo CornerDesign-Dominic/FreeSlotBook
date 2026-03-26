@@ -7,7 +7,6 @@ import {
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 
@@ -35,23 +34,6 @@ import { useCalendar } from './useCalendar';
 import { useOwnedCalendars } from './useOwnedCalendars';
 import { useOwnerSlots } from './useOwnerSlots';
 import { useAuth } from '@/src/firebase/useAuth';
-
-function sanitizeDateInput(value: string) {
-  const digitsOnly = value.replace(/\D/g, '').slice(0, 8);
-  const day = digitsOnly.slice(0, 2);
-  const month = digitsOnly.slice(2, 4);
-  const year = digitsOnly.slice(4, 8);
-
-  return [day, month, year].filter(Boolean).join('.');
-}
-
-function sanitizeTimeInput(value: string) {
-  const digitsOnly = value.replace(/\D/g, '').slice(0, 4);
-  const hours = digitsOnly.slice(0, 2);
-  const minutes = digitsOnly.slice(2, 4);
-
-  return minutes ? `${hours}:${minutes}` : hours;
-}
 
 type DateFieldKey = 'start' | 'end';
 type TimeFieldKey = 'start' | 'end';
@@ -95,6 +77,7 @@ export function CreateSlotScreen() {
   const selectedCalendarId = Array.isArray(params.calendarId) ? params.calendarId[0] ?? null : params.calendarId ?? null;
   const preselectedDate = parseDayKey(preselectedDateParam);
   const initialStartDate = preselectedDate ? formatDateInput(preselectedDate) : '';
+  const initialEndDate = preselectedDate ? formatDateInput(preselectedDate) : '';
 
   const { user, loading: authLoading } = useAuth();
   const authUser = useMemo(
@@ -140,15 +123,16 @@ export function CreateSlotScreen() {
     error: accessError,
   } = useCalendarAccessList(effectiveCalendarId);
   const [startDateInput, setStartDateInput] = useState(initialStartDate);
-  const [endDateInput, setEndDateInput] = useState('');
+  const [endDateInput, setEndDateInput] = useState(initialEndDate);
   const [startTimeInput, setStartTimeInput] = useState('');
   const [endTimeInput, setEndTimeInput] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [pickerField, setPickerField] = useState<DateFieldKey | null>(null);
   const [timePickerField, setTimePickerField] = useState<TimeFieldKey | null>(null);
-  const [pickerHour, setPickerHour] = useState(1);
-  const [pickerMinute, setPickerMinute] = useState(1);
+  const [pickerHour, setPickerHour] = useState(0);
+  const [pickerMinute, setPickerMinute] = useState(0);
+  const [isEndDateLinkedToStart, setIsEndDateLinkedToStart] = useState(true);
   const [showAssignmentSection, setShowAssignmentSection] = useState(false);
   const [selectedAssigneeEmail, setSelectedAssigneeEmail] = useState<string | null>(null);
 
@@ -164,8 +148,8 @@ export function CreateSlotScreen() {
   );
   const isEditing = Boolean(editingSlotId);
   const selectedCalendarLabel = calendar?.title ?? availableCalendars[0]?.title ?? 'Kalender auswählen';
-  const timePickerHours = useMemo(() => Array.from({ length: 23 }, (_, index) => index + 1), []);
-  const timePickerMinutes = useMemo(() => Array.from({ length: 60 }, (_, index) => index + 1), []);
+  const timePickerHours = useMemo(() => Array.from({ length: 24 }, (_, index) => index), []);
+  const timePickerMinutes = useMemo(() => Array.from({ length: 60 }, (_, index) => index), []);
 
   useEffect(() => {
     if (
@@ -205,8 +189,8 @@ export function CreateSlotScreen() {
     const sourceValue = field === 'end' ? endTimeInput : startTimeInput;
     const parsedParts = parseTimeParts(sourceValue);
 
-    setPickerHour(parsedParts?.hour ?? 1);
-    setPickerMinute((parsedParts?.minute ?? 0) + 1);
+    setPickerHour(parsedParts?.hour ?? 0);
+    setPickerMinute(parsedParts?.minute ?? 0);
     setTimePickerField(field);
   };
 
@@ -215,7 +199,7 @@ export function CreateSlotScreen() {
   };
 
   const applyPickedTime = () => {
-    const formattedTime = `${`${pickerHour}`.padStart(2, '0')}:${`${pickerMinute - 1}`.padStart(2, '0')}`;
+    const formattedTime = `${`${pickerHour}`.padStart(2, '0')}:${`${pickerMinute}`.padStart(2, '0')}`;
 
     if (timePickerField === 'end') {
       setEndTimeInput(formattedTime);
@@ -230,10 +214,11 @@ export function CreateSlotScreen() {
     const baseDate = nextStartDate ?? preselectedDate ?? null;
 
     setStartDateInput(baseDate ? formatDateInput(baseDate) : '');
-    setEndDateInput('');
+    setEndDateInput(baseDate ? formatDateInput(baseDate) : '');
     setStartTimeInput('');
     setEndTimeInput('');
     setMessage(null);
+    setIsEndDateLinkedToStart(true);
     setShowAssignmentSection(false);
     setSelectedAssigneeEmail(null);
     setPickerMonth(() => {
@@ -248,11 +233,7 @@ export function CreateSlotScreen() {
     }
 
     setStartDateInput(formatDateInput(editingSlot.startsAt));
-    setEndDateInput(
-      getDayKey(editingSlot.startsAt) === getDayKey(editingSlot.endsAt)
-        ? ''
-        : formatDateInput(editingSlot.endsAt)
-    );
+    setEndDateInput(formatDateInput(editingSlot.endsAt));
     setStartTimeInput(
       editingSlot.startsAt.toLocaleTimeString('de-DE', {
         hour: '2-digit',
@@ -267,6 +248,7 @@ export function CreateSlotScreen() {
         hour12: false,
       })
     );
+    setIsEndDateLinkedToStart(getDayKey(editingSlot.startsAt) === getDayKey(editingSlot.endsAt));
     setShowAssignmentSection(false);
     setSelectedAssigneeEmail(null);
   }, [editingSlot]);
@@ -276,8 +258,13 @@ export function CreateSlotScreen() {
 
     if (pickerField === 'end') {
       setEndDateInput(formattedDate);
+      setIsEndDateLinkedToStart(false);
     } else {
       setStartDateInput(formattedDate);
+
+      if (isEndDateLinkedToStart) {
+        setEndDateInput(formattedDate);
+      }
     }
 
     closePicker();
@@ -480,79 +467,41 @@ export function CreateSlotScreen() {
       </View>
 
       <View style={uiStyles.panel}>
-        <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>{t('createSlot.date')}</Text>
-        <View style={{ flexDirection: 'row', marginBottom: theme.spacing[12] }}>
-          <TextInput
-            placeholder="TT.MM.YYYY"
-            value={startDateInput}
-            onChangeText={(value) => setStartDateInput(sanitizeDateInput(value))}
-            keyboardType="number-pad"
-            placeholderTextColor={theme.colors.textSecondary}
-            style={[uiStyles.input, { flex: 1, marginRight: theme.spacing[8] }]}
-          />
+        <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>Slotstart</Text>
+        <View style={{ flexDirection: 'row', gap: theme.spacing[8], marginBottom: theme.spacing[16] }}>
           <Pressable
             onPress={() => openPicker('start')}
-            style={[uiStyles.button, { paddingHorizontal: theme.spacing[12] }]}>
-            <Text style={uiStyles.buttonText}>{t('createSlot.calendarButton')}</Text>
+            style={[uiStyles.input, { flex: 1, justifyContent: 'center' }]}>
+            <Text style={startDateInput ? uiStyles.bodyText : uiStyles.secondaryText}>
+              {startDateInput || 'Datum'}
+            </Text>
           </Pressable>
-        </View>
-
-        <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>{t('createSlot.startTime')}</Text>
-        <View style={{ flexDirection: 'row', marginBottom: theme.spacing[12] }}>
-          <TextInput
-            placeholder="HH:MM"
-            value={startTimeInput}
-            onChangeText={(value) => setStartTimeInput(sanitizeTimeInput(value))}
-            keyboardType="number-pad"
-            maxLength={5}
-            placeholderTextColor={theme.colors.textSecondary}
-            style={[uiStyles.input, { flex: 1, marginRight: theme.spacing[8] }]}
-          />
           <Pressable
             onPress={() => openTimePicker('start')}
-            style={[uiStyles.button, { paddingHorizontal: theme.spacing[12] }]}>
-            <Text style={uiStyles.buttonText}>Zeit</Text>
+            style={[uiStyles.input, { flex: 1, justifyContent: 'center' }]}>
+            <Text style={startTimeInput ? uiStyles.bodyText : uiStyles.secondaryText}>
+              {startTimeInput || 'Zeit'}
+            </Text>
           </Pressable>
         </View>
 
-        <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>{t('createSlot.endTime')}</Text>
-        <View style={{ flexDirection: 'row', marginBottom: theme.spacing[12] }}>
-          <TextInput
-            placeholder="HH:MM"
-            value={endTimeInput}
-            onChangeText={(value) => setEndTimeInput(sanitizeTimeInput(value))}
-            keyboardType="number-pad"
-            maxLength={5}
-            placeholderTextColor={theme.colors.textSecondary}
-            style={[uiStyles.input, { flex: 1, marginRight: theme.spacing[8] }]}
-          />
-          <Pressable
-            onPress={() => openTimePicker('end')}
-            style={[uiStyles.button, { paddingHorizontal: theme.spacing[12] }]}>
-            <Text style={uiStyles.buttonText}>Zeit</Text>
-          </Pressable>
-        </View>
-
-        <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>{t('createSlot.endDateOptional')}</Text>
-        <View style={{ flexDirection: 'row', marginBottom: theme.spacing[12] }}>
-          <TextInput
-            placeholder="TT.MM.YYYY"
-            value={endDateInput}
-            onChangeText={(value) => setEndDateInput(sanitizeDateInput(value))}
-            keyboardType="number-pad"
-            placeholderTextColor={theme.colors.textSecondary}
-            style={[uiStyles.input, { flex: 1, marginRight: theme.spacing[8] }]}
-          />
+        <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>Slotende</Text>
+        <View style={{ flexDirection: 'row', gap: theme.spacing[8] }}>
           <Pressable
             onPress={() => openPicker('end')}
-            style={[uiStyles.button, { paddingHorizontal: theme.spacing[12] }]}>
-            <Text style={uiStyles.buttonText}>{t('createSlot.calendarButton')}</Text>
+            style={[uiStyles.input, { flex: 1, justifyContent: 'center' }]}>
+            <Text style={endDateInput ? uiStyles.bodyText : uiStyles.secondaryText}>
+              {endDateInput || 'Datum'}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => openTimePicker('end')}
+            style={[uiStyles.input, { flex: 1, justifyContent: 'center' }]}>
+            <Text style={endTimeInput ? uiStyles.bodyText : uiStyles.secondaryText}>
+              {endTimeInput || 'Zeit'}
+            </Text>
           </Pressable>
         </View>
-
-        <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[16] }]}>
-          {t('createSlot.sameDayHint')}
-        </Text>
       </View>
 
       <View style={uiStyles.panel}>
@@ -651,10 +600,6 @@ export function CreateSlotScreen() {
               },
             ]}>
             <Text style={uiStyles.buttonText}>Speichern & S+</Text>
-          </Pressable>
-
-          <Pressable onPress={() => router.back()} style={uiStyles.outlineAction}>
-            <Text style={uiStyles.buttonText}>Abbrechen</Text>
           </Pressable>
         </View>
 
@@ -842,7 +787,7 @@ export function CreateSlotScreen() {
                           paddingVertical: theme.spacing[12],
                           paddingHorizontal: theme.spacing[12],
                           backgroundColor: isSelected ? theme.colors.accentSoft : theme.colors.surface,
-                          borderTopWidth: hourValue === 1 ? 0 : 1,
+                          borderTopWidth: hourValue === 0 ? 0 : 1,
                           borderColor: theme.colors.border,
                         }}>
                         <Text style={[uiStyles.bodyText, { textAlign: 'center' }]}>
@@ -877,7 +822,7 @@ export function CreateSlotScreen() {
                           paddingVertical: theme.spacing[12],
                           paddingHorizontal: theme.spacing[12],
                           backgroundColor: isSelected ? theme.colors.accentSoft : theme.colors.surface,
-                          borderTopWidth: minuteValue === 1 ? 0 : 1,
+                          borderTopWidth: minuteValue === 0 ? 0 : 1,
                           borderColor: theme.colors.border,
                         }}>
                         <Text style={[uiStyles.bodyText, { textAlign: 'center' }]}>
