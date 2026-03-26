@@ -492,7 +492,7 @@ export default function CalendarDayScreen() {
     <View style={uiStyles.screen}>
       <ScrollView
         contentContainerStyle={contentContainerStyle}>
-        <AppScreenHeader title={t('calendar.title')} />
+        <AppScreenHeader title={calendar?.title ?? t('calendar.title')} />
 
         <View style={uiStyles.panel}>
           <CalendarNavigationHeader

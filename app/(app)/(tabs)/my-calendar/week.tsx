@@ -223,7 +223,7 @@ export default function CalendarWeekScreen() {
 
   return (
     <ScrollView style={uiStyles.screen} contentContainerStyle={contentContainerStyle}>
-      <AppScreenHeader title={t('calendar.title')} />
+      <AppScreenHeader title={calendar?.title ?? t('calendar.title')} />
 
       <View style={uiStyles.panel}>
         <CalendarNavigationHeader

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { router, useLocalSearchParams, usePathname } from 'expo-router';
 import type { Href } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import {
   Modal,
   Pressable,
@@ -31,7 +32,7 @@ import {
 } from './repository';
 import { useCalendarAccessList } from './useCalendarAccessList';
 import { useCalendar } from './useCalendar';
-import { useOwnerCalendar } from './useOwnerCalendar';
+import { useOwnedCalendars } from './useOwnedCalendars';
 import { useOwnerSlots } from './useOwnerSlots';
 import { useAuth } from '@/src/firebase/useAuth';
 
@@ -69,19 +70,48 @@ export function CreateSlotScreen() {
   const initialStartDate = preselectedDate ? formatDateInput(preselectedDate) : '';
 
   const { user, loading: authLoading } = useAuth();
-  const ownerCalendarState = useOwnerCalendar(
-    user ? { uid: user.uid, email: user.email } : null
+  const authUser = useMemo(
+    () => (user?.uid ? { uid: user.uid, email: user.email } : null),
+    [user?.email, user?.uid]
   );
-  const selectedCalendarState = useCalendar(selectedCalendarId);
-  const calendar = selectedCalendarId ? selectedCalendarState.calendar : ownerCalendarState.calendar;
-  const loading = selectedCalendarId ? selectedCalendarState.loading : ownerCalendarState.loading;
-  const error = selectedCalendarId ? selectedCalendarState.error : ownerCalendarState.error;
-  const { slots, loading: slotsLoading, error: slotsError } = useOwnerSlots(calendar?.id ?? null);
+  const {
+    records: ownedCalendarRecords,
+    loading: ownedCalendarsLoading,
+    error: ownedCalendarsError,
+  } = useOwnedCalendars(authUser);
+  const availableCalendars = useMemo(
+    () => ownedCalendarRecords.map((record) => record.calendar),
+    [ownedCalendarRecords]
+  );
+  const [selectedOwnedCalendarId, setSelectedOwnedCalendarId] = useState<string | null>(selectedCalendarId);
+  const [calendarPickerVisible, setCalendarPickerVisible] = useState(false);
+  const effectiveCalendarId = useMemo(() => {
+    if (
+      selectedOwnedCalendarId &&
+      availableCalendars.some((calendarRecord) => calendarRecord.id === selectedOwnedCalendarId)
+    ) {
+      return selectedOwnedCalendarId;
+    }
+
+    if (
+      selectedCalendarId &&
+      availableCalendars.some((calendarRecord) => calendarRecord.id === selectedCalendarId)
+    ) {
+      return selectedCalendarId;
+    }
+
+    return availableCalendars[0]?.id ?? null;
+  }, [availableCalendars, selectedCalendarId, selectedOwnedCalendarId]);
+  const selectedCalendarState = useCalendar(effectiveCalendarId);
+  const calendar = selectedCalendarState.calendar;
+  const loading = selectedCalendarState.loading;
+  const error = selectedCalendarState.error;
+  const { slots, loading: slotsLoading, error: slotsError } = useOwnerSlots(effectiveCalendarId);
   const {
     records: accessRecords,
     loading: accessLoading,
     error: accessError,
-  } = useCalendarAccessList(calendar?.id ?? null);
+  } = useCalendarAccessList(effectiveCalendarId);
   const [startDateInput, setStartDateInput] = useState(initialStartDate);
   const [endDateInput, setEndDateInput] = useState('');
   const [startTimeInput, setStartTimeInput] = useState('');
@@ -103,6 +133,26 @@ export function CreateSlotScreen() {
     [editingSlotId, slots]
   );
   const isEditing = Boolean(editingSlotId);
+  const selectedCalendarLabel = calendar?.title ?? availableCalendars[0]?.title ?? 'Kalender auswählen';
+
+  useEffect(() => {
+    if (
+      selectedCalendarId &&
+      availableCalendars.some((calendarRecord) => calendarRecord.id === selectedCalendarId)
+    ) {
+      setSelectedOwnedCalendarId(selectedCalendarId);
+      return;
+    }
+
+    if (
+      selectedOwnedCalendarId &&
+      availableCalendars.some((calendarRecord) => calendarRecord.id === selectedOwnedCalendarId)
+    ) {
+      return;
+    }
+
+    setSelectedOwnedCalendarId(availableCalendars[0]?.id ?? null);
+  }, [availableCalendars, selectedCalendarId, selectedOwnedCalendarId]);
 
   const openPicker = (field: DateFieldKey) => {
     setPickerField(field);
@@ -324,7 +374,7 @@ export function CreateSlotScreen() {
   const monthGrid = buildMonthGrid(pickerMonth, weekStartsOn);
   const weekdayLabels = getWeekdayLabels(language, weekStartsOn);
 
-  if (authLoading || loading || slotsLoading || accessLoading) {
+  if (authLoading || ownedCalendarsLoading || loading || slotsLoading || accessLoading) {
     return (
       <View style={uiStyles.centeredLoading}>
         <Text style={uiStyles.secondaryText}>{t('common.loading')}</Text>
@@ -337,6 +387,40 @@ export function CreateSlotScreen() {
       style={uiStyles.screen}
       contentContainerStyle={contentContainerStyle}>
       <AppScreenHeader title={isEditing ? t('createSlot.editTitle') : t('createSlot.title')} />
+
+      <View style={uiStyles.panel}>
+        <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[8] }]}>
+          Neuer Slot für Kalender:
+        </Text>
+        <Pressable
+          onPress={() => {
+            if (availableCalendars.length) {
+              setCalendarPickerVisible(true);
+            }
+          }}
+          style={[
+            uiStyles.button,
+            {
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            },
+            !availableCalendars.length ? { opacity: 0.6 } : null,
+          ]}>
+          <Text style={uiStyles.buttonText}>{selectedCalendarLabel}</Text>
+          <Feather name="chevron-down" size={16} color={theme.colors.textPrimary} />
+        </Pressable>
+        {ownedCalendarsError ? (
+          <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>
+            {ownedCalendarsError}
+          </Text>
+        ) : null}
+        {!ownedCalendarsError && !availableCalendars.length ? (
+          <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>
+            Du hast aktuell keine eigenen Slot-Kalender.
+          </Text>
+        ) : null}
+      </View>
 
       <View style={uiStyles.panel}>
         <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>{t('createSlot.date')}</Text>
@@ -512,6 +596,54 @@ export function CreateSlotScreen() {
         {slotsError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{slotsError}</Text> : null}
         {accessError ? <Text style={[uiStyles.secondaryText, { marginTop: theme.spacing[12] }]}>{accessError}</Text> : null}
       </View>
+
+      <Modal
+        visible={calendarPickerVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setCalendarPickerVisible(false)}>
+        <View style={uiStyles.modalBackdrop}>
+          <View style={uiStyles.modalSheet}>
+            <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[12] }]}>
+              Kalender auswählen
+            </Text>
+            <View style={{ gap: theme.spacing[8] }}>
+              {availableCalendars.map((calendarRecord) => {
+                const isSelected = calendarRecord.id === effectiveCalendarId;
+
+                return (
+                  <Pressable
+                    key={calendarRecord.id}
+                    onPress={() => {
+                      setSelectedOwnedCalendarId(calendarRecord.id);
+                      setCalendarPickerVisible(false);
+                      setMessage(null);
+                    }}
+                    style={[
+                      uiStyles.button,
+                      isSelected ? uiStyles.buttonActive : null,
+                    ]}>
+                    <Text
+                      style={[
+                        uiStyles.buttonText,
+                        isSelected
+                          ? { color: theme.colors.textPrimary, fontWeight: '600' }
+                          : null,
+                      ]}>
+                      {calendarRecord.title}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Pressable
+              onPress={() => setCalendarPickerVisible(false)}
+              style={{ marginTop: theme.spacing[16] }}>
+              <Text style={uiStyles.linkText}>Schließen</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={pickerField !== null} animationType="slide" transparent onRequestClose={closePicker}>
         <View style={uiStyles.modalBackdrop}>
