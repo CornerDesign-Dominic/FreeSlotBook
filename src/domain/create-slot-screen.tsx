@@ -54,6 +54,33 @@ function sanitizeTimeInput(value: string) {
 }
 
 type DateFieldKey = 'start' | 'end';
+type TimeFieldKey = 'start' | 'end';
+
+function parseTimeParts(value: string) {
+  const trimmedValue = value.trim();
+
+  if (!/^\d{2}:\d{2}$/.test(trimmedValue)) {
+    return null;
+  }
+
+  const [hoursValue, minutesValue] = trimmedValue.split(':').map(Number);
+
+  if (
+    Number.isNaN(hoursValue) ||
+    Number.isNaN(minutesValue) ||
+    hoursValue < 0 ||
+    hoursValue > 23 ||
+    minutesValue < 0 ||
+    minutesValue > 59
+  ) {
+    return null;
+  }
+
+  return {
+    hour: hoursValue,
+    minute: minutesValue,
+  };
+}
 
 export function CreateSlotScreen() {
   const { t, language } = useTranslation();
@@ -119,6 +146,9 @@ export function CreateSlotScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [pickerField, setPickerField] = useState<DateFieldKey | null>(null);
+  const [timePickerField, setTimePickerField] = useState<TimeFieldKey | null>(null);
+  const [pickerHour, setPickerHour] = useState(1);
+  const [pickerMinute, setPickerMinute] = useState(1);
   const [showAssignmentSection, setShowAssignmentSection] = useState(false);
   const [selectedAssigneeEmail, setSelectedAssigneeEmail] = useState<string | null>(null);
 
@@ -134,6 +164,8 @@ export function CreateSlotScreen() {
   );
   const isEditing = Boolean(editingSlotId);
   const selectedCalendarLabel = calendar?.title ?? availableCalendars[0]?.title ?? 'Kalender auswählen';
+  const timePickerHours = useMemo(() => Array.from({ length: 23 }, (_, index) => index + 1), []);
+  const timePickerMinutes = useMemo(() => Array.from({ length: 60 }, (_, index) => index + 1), []);
 
   useEffect(() => {
     if (
@@ -167,6 +199,31 @@ export function CreateSlotScreen() {
 
   const closePicker = () => {
     setPickerField(null);
+  };
+
+  const openTimePicker = (field: TimeFieldKey) => {
+    const sourceValue = field === 'end' ? endTimeInput : startTimeInput;
+    const parsedParts = parseTimeParts(sourceValue);
+
+    setPickerHour(parsedParts?.hour ?? 1);
+    setPickerMinute((parsedParts?.minute ?? 0) + 1);
+    setTimePickerField(field);
+  };
+
+  const closeTimePicker = () => {
+    setTimePickerField(null);
+  };
+
+  const applyPickedTime = () => {
+    const formattedTime = `${`${pickerHour}`.padStart(2, '0')}:${`${pickerMinute - 1}`.padStart(2, '0')}`;
+
+    if (timePickerField === 'end') {
+      setEndTimeInput(formattedTime);
+    } else if (timePickerField === 'start') {
+      setStartTimeInput(formattedTime);
+    }
+
+    closeTimePicker();
   };
 
   const resetFormForNewSlot = (nextStartDate?: Date | null) => {
@@ -441,26 +498,40 @@ export function CreateSlotScreen() {
         </View>
 
         <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>{t('createSlot.startTime')}</Text>
-        <TextInput
-          placeholder="HH:MM"
-          value={startTimeInput}
-          onChangeText={(value) => setStartTimeInput(sanitizeTimeInput(value))}
-          keyboardType="number-pad"
-          maxLength={5}
-          placeholderTextColor={theme.colors.textSecondary}
-          style={[uiStyles.input, { marginBottom: theme.spacing[12] }]}
-        />
+        <View style={{ flexDirection: 'row', marginBottom: theme.spacing[12] }}>
+          <TextInput
+            placeholder="HH:MM"
+            value={startTimeInput}
+            onChangeText={(value) => setStartTimeInput(sanitizeTimeInput(value))}
+            keyboardType="number-pad"
+            maxLength={5}
+            placeholderTextColor={theme.colors.textSecondary}
+            style={[uiStyles.input, { flex: 1, marginRight: theme.spacing[8] }]}
+          />
+          <Pressable
+            onPress={() => openTimePicker('start')}
+            style={[uiStyles.button, { paddingHorizontal: theme.spacing[12] }]}>
+            <Text style={uiStyles.buttonText}>Zeit</Text>
+          </Pressable>
+        </View>
 
         <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>{t('createSlot.endTime')}</Text>
-        <TextInput
-          placeholder="HH:MM"
-          value={endTimeInput}
-          onChangeText={(value) => setEndTimeInput(sanitizeTimeInput(value))}
-          keyboardType="number-pad"
-          maxLength={5}
-          placeholderTextColor={theme.colors.textSecondary}
-          style={[uiStyles.input, { marginBottom: theme.spacing[12] }]}
-        />
+        <View style={{ flexDirection: 'row', marginBottom: theme.spacing[12] }}>
+          <TextInput
+            placeholder="HH:MM"
+            value={endTimeInput}
+            onChangeText={(value) => setEndTimeInput(sanitizeTimeInput(value))}
+            keyboardType="number-pad"
+            maxLength={5}
+            placeholderTextColor={theme.colors.textSecondary}
+            style={[uiStyles.input, { flex: 1, marginRight: theme.spacing[8] }]}
+          />
+          <Pressable
+            onPress={() => openTimePicker('end')}
+            style={[uiStyles.button, { paddingHorizontal: theme.spacing[12] }]}>
+            <Text style={uiStyles.buttonText}>Zeit</Text>
+          </Pressable>
+        </View>
 
         <Text style={[uiStyles.bodyText, { marginBottom: theme.spacing[8] }]}>{t('createSlot.endDateOptional')}</Text>
         <View style={{ flexDirection: 'row', marginBottom: theme.spacing[12] }}>
@@ -661,10 +732,13 @@ export function CreateSlotScreen() {
                     (currentMonth) =>
                       new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
                   )
-                }>
-                <Text style={uiStyles.linkText}>
-                  {t('createSlot.pickerBack')}
-                </Text>
+                }
+                style={uiStyles.calendarNavigationButton}>
+                <Feather
+                  name="chevron-left"
+                  size={18}
+                  color={theme.colors.textPrimary}
+                />
               </Pressable>
               <Text style={uiStyles.sectionTitle}>{formatMonthTitle(pickerMonth, locale)}</Text>
               <Pressable
@@ -673,10 +747,13 @@ export function CreateSlotScreen() {
                     (currentMonth) =>
                       new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)
                   )
-                }>
-                <Text style={uiStyles.linkText}>
-                  {t('createSlot.pickerNext')}
-                </Text>
+                }
+                style={uiStyles.calendarNavigationButton}>
+                <Feather
+                  name="chevron-right"
+                  size={18}
+                  color={theme.colors.textPrimary}
+                />
               </Pressable>
             </View>
 
@@ -724,9 +801,102 @@ export function CreateSlotScreen() {
             ))}
 
             <View style={{ marginTop: theme.spacing[16], alignItems: 'flex-end' }}>
-              <Pressable onPress={closePicker}>
-                <Text style={uiStyles.linkText}>
-                  {t('createSlot.pickerClose')}
+              <Pressable onPress={closePicker} style={uiStyles.button}>
+                <Text style={uiStyles.buttonText}>
+                  Abbrechen
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={timePickerField !== null} animationType="slide" transparent onRequestClose={closeTimePicker}>
+        <View style={uiStyles.modalBackdrop}>
+          <View style={[uiStyles.modalSheet, { minHeight: 420 }]}>
+            <Text style={[uiStyles.sectionTitle, { marginBottom: theme.spacing[16] }]}>
+              Zeit auswählen
+            </Text>
+
+            <View style={{ flexDirection: 'row', gap: theme.spacing[12], marginBottom: theme.spacing[16] }}>
+              <View style={{ flex: 1 }}>
+                <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[8], textAlign: 'center' }]}>
+                  Stunden
+                </Text>
+                <ScrollView
+                  style={{
+                    maxHeight: 220,
+                    borderWidth: 1,
+                    borderColor: theme.colors.border,
+                    borderRadius: theme.radius.medium,
+                    backgroundColor: theme.colors.surface,
+                  }}>
+                  {timePickerHours.map((hourValue) => {
+                    const isSelected = pickerHour === hourValue;
+
+                    return (
+                      <Pressable
+                        key={`hour-${hourValue}`}
+                        onPress={() => setPickerHour(hourValue)}
+                        style={{
+                          paddingVertical: theme.spacing[12],
+                          paddingHorizontal: theme.spacing[12],
+                          backgroundColor: isSelected ? theme.colors.accentSoft : theme.colors.surface,
+                          borderTopWidth: hourValue === 1 ? 0 : 1,
+                          borderColor: theme.colors.border,
+                        }}>
+                        <Text style={[uiStyles.bodyText, { textAlign: 'center' }]}>
+                          {`${hourValue}`.padStart(2, '0')}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text style={[uiStyles.secondaryText, { marginBottom: theme.spacing[8], textAlign: 'center' }]}>
+                  Minuten
+                </Text>
+                <ScrollView
+                  style={{
+                    maxHeight: 220,
+                    borderWidth: 1,
+                    borderColor: theme.colors.border,
+                    borderRadius: theme.radius.medium,
+                    backgroundColor: theme.colors.surface,
+                  }}>
+                  {timePickerMinutes.map((minuteValue) => {
+                    const isSelected = pickerMinute === minuteValue;
+
+                    return (
+                      <Pressable
+                        key={`minute-${minuteValue}`}
+                        onPress={() => setPickerMinute(minuteValue)}
+                        style={{
+                          paddingVertical: theme.spacing[12],
+                          paddingHorizontal: theme.spacing[12],
+                          backgroundColor: isSelected ? theme.colors.accentSoft : theme.colors.surface,
+                          borderTopWidth: minuteValue === 1 ? 0 : 1,
+                          borderColor: theme.colors.border,
+                        }}>
+                        <Text style={[uiStyles.bodyText, { textAlign: 'center' }]}>
+                          {`${minuteValue}`.padStart(2, '0')}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: theme.spacing[8] }}>
+              <Pressable onPress={closeTimePicker} style={[uiStyles.button, { flex: 1 }]}>
+                <Text style={uiStyles.buttonText}>Abbrechen</Text>
+              </Pressable>
+              <Pressable onPress={applyPickedTime} style={[uiStyles.button, uiStyles.buttonActive, { flex: 1 }]}>
+                <Text style={[uiStyles.buttonText, { color: theme.colors.textPrimary, fontWeight: '600' }]}>
+                  Bestätigen
                 </Text>
               </Pressable>
             </View>
