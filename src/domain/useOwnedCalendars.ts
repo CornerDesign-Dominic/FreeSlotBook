@@ -13,6 +13,11 @@ type OwnedCalendarItem = {
   isFavorite: boolean;
 };
 
+const calendarTitleCollator = new Intl.Collator('de', {
+  numeric: true,
+  sensitivity: 'base',
+});
+
 export function useOwnedCalendars(user: { uid: string; email: string | null } | null) {
   const [calendars, setCalendars] = useState<CalendarRecord[]>([]);
   const [favoriteCalendarIds, setFavoriteCalendarIds] = useState<string[]>([]);
@@ -101,10 +106,18 @@ export function useOwnedCalendars(user: { uid: string; email: string | null } | 
 
   const records = useMemo<OwnedCalendarItem[]>(
     () =>
-      calendars.map((calendar) => ({
-        calendar,
-        isFavorite: favoriteCalendarIds.includes(calendar.id),
-      })),
+      calendars
+        .map((calendar) => ({
+          calendar,
+          isFavorite: favoriteCalendarIds.includes(calendar.id),
+        }))
+        .sort((left, right) => {
+          if (left.isFavorite !== right.isFavorite) {
+            return left.isFavorite ? -1 : 1;
+          }
+
+          return calendarTitleCollator.compare(left.calendar.title, right.calendar.title);
+        }),
     [calendars, favoriteCalendarIds]
   );
 

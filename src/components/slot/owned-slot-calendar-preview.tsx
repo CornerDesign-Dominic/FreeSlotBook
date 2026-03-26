@@ -48,14 +48,16 @@ export function OwnedSlotCalendarPreview(props: { calendarId: string }) {
   }
 
   return (
-    <View style={{ gap: theme.spacing[8] }}>
+    <View style={{ gap: theme.spacing[4] }}>
       <Text style={uiStyles.bodyText}>
         Slots am: {formatPreviewDate(previewDate, locale)}
       </Text>
-      <Text style={uiStyles.secondaryText}>{summary.total} Gesamt</Text>
-      <Text style={uiStyles.secondaryText}>{summary.available} Offen</Text>
-      <Text style={uiStyles.secondaryText}>{summary.booked} Gebucht</Text>
-      <Text style={uiStyles.secondaryText}>{summary.inactive} Deaktiviert</Text>
+      <View style={{ gap: 2 }}>
+        <Text style={uiStyles.secondaryText}>{summary.total} Gesamt</Text>
+        <Text style={uiStyles.secondaryText}>{summary.available} Offen</Text>
+        <Text style={uiStyles.secondaryText}>{summary.booked} Gebucht</Text>
+        <Text style={uiStyles.secondaryText}>{summary.inactive} Deaktiviert</Text>
+      </View>
     </View>
   );
 }

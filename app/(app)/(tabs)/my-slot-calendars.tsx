@@ -49,7 +49,6 @@ export default function MySlotCalendarsScreen() {
   const { profile, loading: profileLoading } = useOwnerProfile(authUser);
   const { records, loading, error, reload, toggleFavorite } = useOwnedCalendars(authUser);
   const [expandedCalendarId, setExpandedCalendarId] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [copiedCalendarId, setCopiedCalendarId] = useState<string | null>(null);
   const [processingFavoriteCalendarId, setProcessingFavoriteCalendarId] = useState<string | null>(null);
   const [addFormVisible, setAddFormVisible] = useState(false);
@@ -88,14 +87,9 @@ export default function MySlotCalendarsScreen() {
 
   const handleToggleFavorite = async (calendarId: string, nextIsFavorite: boolean) => {
     setProcessingFavoriteCalendarId(calendarId);
-    setMessage(null);
 
     try {
       await toggleFavorite(calendarId, nextIsFavorite);
-    } catch (nextError) {
-      setMessage(
-        nextError instanceof Error ? nextError.message : 'Der Favorit konnte nicht gespeichert werden.'
-      );
     } finally {
       setProcessingFavoriteCalendarId(null);
     }
@@ -103,27 +97,21 @@ export default function MySlotCalendarsScreen() {
 
   const handleCopyCalendarLink = async (calendar: CalendarRecord) => {
     if (!calendar.publicSlug) {
-      setMessage('Für diesen Kalender ist noch kein Kalender-Link vorhanden.');
       return;
     }
 
     try {
       await Clipboard.setStringAsync(`https://slotlyme.app/calendar/${calendar.publicSlug}`);
       setCopiedCalendarId(calendar.id);
-      setMessage('Kalender-Link kopiert.');
-    } catch {
-      setMessage('Der Kalender-Link konnte nicht kopiert werden.');
-    }
+    } catch {}
   };
 
   const handleCreateCalendar = async () => {
     if (!user?.uid || !user.email) {
-      setMessage('Du musst eingeloggt sein.');
       return;
     }
 
     setIsCreatingCalendar(true);
-    setMessage(null);
 
     try {
       const result = await createOwnerCalendar({
@@ -135,12 +123,7 @@ export default function MySlotCalendarsScreen() {
       setNewCalendarTitle('');
       setAddFormVisible(false);
       setExpandedCalendarId(result.calendarId);
-      setMessage('Kalender erstellt.');
       reload();
-    } catch (nextError) {
-      setMessage(
-        nextError instanceof Error ? nextError.message : 'Der Kalender konnte nicht erstellt werden.'
-      );
     } finally {
       setIsCreatingCalendar(false);
     }
@@ -292,7 +275,6 @@ export default function MySlotCalendarsScreen() {
         )}
       </View>
 
-      {message ? <Text style={uiStyles.bodyText}>{message}</Text> : null}
       {error ? <Text style={uiStyles.secondaryText}>{error}</Text> : null}
     </ScrollView>
   );
